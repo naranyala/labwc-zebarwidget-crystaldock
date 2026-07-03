@@ -1,21 +1,23 @@
 #!/bin/bash
 #
-# widget-manager.sh — Manage zebar widget themes
+# widget-manager.sh — Manage C-based Wayland widget and statusbar components
 #
-# List, install, remove, preview, and create widget themes.
+# Swap, list, status, and configure components.
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
-ZEBAR_DIR="${HOME}/.config/zebar"
-WIDGET_SRC="$PROJECT_DIR/dotfiles/zebar/widgets"
+COMPONENTS_DIR="$PROJECT_DIR/components"
+CONFIG_DIR="${HOME}/.config/labwc-widgets"
+REGISTRY="$COMPONENTS_DIR/registry.json"
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 CYAN='\033[0;36m'
 BOLD='\033[1m'
+DIM='\033[2m'
 NC='\033[0m'
 
 pass()  { echo -e "  ${GREEN}✓${NC} $1"; }
@@ -27,271 +29,391 @@ section() { echo -e "\n${BOLD}[$1]${NC}"; }
 ACTION="${1:-help}"
 shift || true
 
-case "$ACTION" in
-  list|ls)
+# ---- JSON helpers (simple, no jq dependency) ----
+
+json_get() {
+    local file="$1" key="$2"
+    grep -o "\"$key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"" "$file" 2>/dev/null | \
+        head -1 | sed 's/.*": *"//;s/"$//'
+}
+
+json_get_array() {
+    local file="$1" key="$2"
+    grep -o "\"$key\"[[:space:]]*:[[:space:]]*\[[^\]]*\]" "$file" 2>/dev/null | \
+        head -1 | sed 's/.*\[//;s/\].*//' | tr ',' '\n' | tr -d ' "'
+}
+
+# ---- Config management ----
+
+ensure_config() {
+    mkdir -p "$CONFIG_DIR"
+    if [[ ! -f "$CONFIG_DIR/status.json" ]]; then
+        cat > "$CONFIG_DIR/status.json" << 'EOF'
+{
+  "statusbar": "main",
+  "dock": "crystal",
+  "theme": "catppuccin-mocha",
+  "widgets": {
+    "clock": true,
+    "cpu": true,
+    "memory": true,
+    "network": true,
+    "battery": true,
+    "volume": true
+  }
+}
+EOF
+        pass "Created default config"
+    fi
+}
+
+get_current() {
+    local key="$1"
+    ensure_config
+    json_get "$CONFIG_DIR/status.json" "$key"
+}
+
+set_current() {
+    local key="$1" value="$2"
+    ensure_config
+
+    # Simple sed replacement
+    if grep -q "\"$key\"" "$CONFIG_DIR/status.json"; then
+        sed -i "s|\"$key\"[[:space:]]*:[[:space:]]*\"[^\"]*\"|\"$key\": \"$value\"|" \
+            "$CONFIG_DIR/status.json"
+    else
+        # Add before closing brace
+        sed -i "s|}$|  ,\"$key\": \"$value\"\n}|" "$CONFIG_DIR/status.json"
+    fi
+}
+
+# ---- Commands ----
+
+cmd_list() {
+    local category="${1:-all}"
+
+    section "Available Components"
+
+    if [[ "$category" == "all" || "$category" == "statusbars" ]]; then
+        echo -e "\n${BOLD}Statusbars:${NC}"
+        local current_bar=$(get_current "statusbar")
+        for name in sfwbar; do
+            local marker=""
+            [[ "$name" == "$current_bar" ]] && marker=" ${GREEN}← active${NC}"
+            local desc="SFWBar (GTK3, C-based, wayland-native) - Only accepted panel/statusbar/taskbar"
+            echo -e "  ${CYAN}$name${NC}${marker}  ${DIM}$desc${NC}"
+        done
+    fi
+
+    if [[ "$category" == "all" || "$category" == "widgets" ]]; then
+        echo -e "\n${BOLD}Widgets:${NC}"
+        for name in clock cpu memory network battery volume; do
+            echo -e "  ${CYAN}$name${NC}"
+        done
+    fi
+
+    if [[ "$category" == "all" || "$category" == "docks" ]]; then
+        echo -e "\n${BOLD}Docks:${NC}"
+        local current_dock=$(get_current "dock")
+        for name in crystal none; do
+            local marker=""
+            [[ "$name" == "$current_dock" ]] && marker=" ${GREEN}← active${NC}"
+            echo -e "  ${CYAN}$name${NC}${marker}"
+        done
+    fi
+
     echo ""
-    echo "== Available Widget Themes =="
+}
+
+cmd_swap() {
+    local category="${1:-}"
+    local target="${2:-}"
+
+    [[ -z "$category" ]] && fail "Usage: $0 swap <statusbar|dock> <name>"
+    [[ -z "$target" ]] && fail "Usage: $0 swap <statusbar|dock> <name>"
+
+    case "$category" in
+        statusbar|bar)
+            # Validate statusbar exists
+            case "$target" in
+                sfwbar)
+                    if ! command -v sfwbar >/dev/null 2>&1; then
+                        fail "sfwbar not installed. Build and install first."
+                    fi
+                    ;;
+                *)
+                    fail "Unknown statusbar: $target (use sfwbar only)"
+                    ;;
+            esac
+
+            local current=$(get_current "statusbar")
+            [[ "$current" == "$target" ]] && { info "Already using '$target'"; return; }
+
+            set_current "statusbar" "$target"
+            pass "Switched statusbar: $current → $target"
+            echo ""
+            info "Restart statusbar to apply:"
+            echo "    pkill -f sfwbar; sfwbar &"
+            echo ""
+            ;;
+
+        dock)
+            # Check if dock exists in registry
+            if [[ "$target" != "none" ]]; then
+                if [[ ! -d "$COMPONENTS_DIR/dock/$target" ]]; then
+                    warn "Dock '$target' not found in components/dock/"
+                fi
+            fi
+
+            local current=$(get_current "dock")
+            [[ "$current" == "$target" ]] && { info "Already using '$target'"; return; }
+
+            set_current "dock" "$target"
+            pass "Switched dock: $current → $target"
+            echo ""
+            info "Restart dock to apply:"
+            if [[ "$target" == "none" ]]; then
+                echo "    pkill -f crystal-dock"
+            else
+                echo "    pkill -f crystal-dock; crystal-dock --start --overlay &"
+            fi
+            echo ""
+            ;;
+
+        *)
+            fail "Unknown category: $category (use 'statusbar' or 'dock')"
+            ;;
+    esac
+}
+
+cmd_status() {
+    ensure_config
+
+    section "Current Configuration"
+
+    local statusbar=$(get_current "statusbar")
+    local dock=$(get_current "dock")
+    local theme=$(get_current "theme")
+
+    echo -e "  ${BOLD}Statusbar:${NC}  ${CYAN}$statusbar${NC}"
+    echo -e "  ${BOLD}Dock:${NC}       ${CYAN}$dock${NC}"
+    echo -e "  ${BOLD}Theme:${NC}      ${CYAN}$theme${NC}"
+
+    # Check running processes
     echo ""
-    
-    # From project
-    if [ -d "$WIDGET_SRC" ]; then
-      info "Project widgets ($WIDGET_SRC):"
-      for dir in "$WIDGET_SRC"/*/; do
-        if [ -d "$dir" ] && [ -f "$dir/index.html" ]; then
-          local_name=$(basename "$dir")
-          local_size=$(wc -c < "$dir/index.html" 2>/dev/null || echo "?")
-          echo "  $local_name ${DIM}($local_size bytes)${NC}"
+    section "Running Processes"
+
+    if pgrep -f "statusbar-" >/dev/null 2>&1; then
+        local pid=$(pgrep -f "statusbar-" | head -1)
+        local cmd=$(ps -p $pid -o comm= 2>/dev/null || echo "unknown")
+        echo -e "  ${GREEN}●${NC} Statusbar: $cmd (PID: $pid)"
+    else
+        echo -e "  ${RED}●${NC} Statusbar: not running"
+    fi
+
+    if pgrep -f "crystal-dock" >/dev/null 2>&1; then
+        local pid=$(pgrep -f "crystal-dock" | head -1)
+        echo -e "  ${GREEN}●${NC} Dock: crystal-dock (PID: $pid)"
+    else
+        echo -e "  ${DIM}●${NC} Dock: not running"
+    fi
+
+    echo ""
+}
+
+cmd_build() {
+    section "Building Components"
+
+    if [[ ! -d "$COMPONENTS_DIR/build" ]]; then
+        info "Creating build directory..."
+        mkdir -p "$COMPONENTS_DIR/build"
+    fi
+
+    info "Running meson setup..."
+    cd "$COMPONENTS_DIR/build"
+    meson setup .. 2>&1 | while IFS= read -r line; do
+        echo "  $line"
+    done
+
+    info "Building..."
+    meson compile 2>&1 | while IFS= read -r line; do
+        echo "  $line"
+    done
+
+    pass "Build complete"
+    echo ""
+    info "Binaries in: $COMPONENTS_DIR/build/"
+    echo ""
+}
+
+cmd_install() {
+    section "Installing Components"
+
+    local bindir="$HOME/.local/bin"
+    mkdir -p "$bindir"
+
+    if [[ ! -d "$COMPONENTS_DIR/build" ]]; then
+        fail "Build first: $0 build"
+    fi
+
+    # Install statusbars
+    for bar in main compact panel; do
+        local bin="$COMPONENTS_DIR/build/statusbar-$bar"
+        if [[ -f "$bin" ]]; then
+            cp "$bin" "$bindir/statusbar-$bar"
+            chmod +x "$bindir/statusbar-$bar"
+            pass "statusbar-$bar"
         fi
-      done
-    fi
-    
-    # From user config
-    if [ -d "$ZEBAR_DIR/widgets" ]; then
-      echo ""
-      info "Installed widgets ($ZEBAR_DIR/widgets):"
-      for dir in "$ZEBAR_DIR/widgets"/*/; do
-        if [ -d "$dir" ] && [ -f "$dir/index.html" ]; then
-          local_name=$(basename "$dir")
-          local_size=$(wc -c < "$dir/index.html" 2>/dev/null || echo "?")
-          echo "  $local_name ${DIM}($local_size bytes)${NC}"
+    done
+
+    # Install widgets
+    for widget in clock cpu memory network battery volume; do
+        local bin="$COMPONENTS_DIR/build/widget-$widget"
+        if [[ -f "$bin" ]]; then
+            cp "$bin" "$bindir/widget-$widget"
+            chmod +x "$bindir/widget-$widget"
+            pass "widget-$widget"
         fi
-      done
-    fi
-    
-    # Main widget
-    if [ -d "$ZEBAR_DIR/main" ] && [ -f "$ZEBAR_DIR/main/index.html" ]; then
-      echo ""
-      info "Main widget (status bar): installed"
-    fi
-    echo ""
-    ;;
+    done
 
-  install|add)
-    WIDGET_NAME="${1:-}"
-    if [ -z "$WIDGET_NAME" ]; then
-      fail "Usage: $0 install <widget-name>"
-    fi
-    
-    WIDGET_SRC_DIR="$WIDGET_SRC/$WIDGET_NAME"
-    WIDGET_DST_DIR="$ZEBAR_DIR/widgets/$WIDGET_NAME"
-    
-    if [ ! -d "$WIDGET_SRC_DIR" ]; then
-      fail "Widget '$WIDGET_NAME' not found in $WIDGET_SRC"
-    fi
-    
-    if [ -d "$WIDGET_DST_DIR" ]; then
-      warn "Widget '$WIDGET_NAME' already installed"
-      read -rp "Overwrite? [y/N] " ans
-      if [[ ! "$ans" =~ ^[Yy] ]]; then
-        info "Cancelled"
-        exit 0
-      fi
-      rm -rf "$WIDGET_DST_DIR"
-    fi
-    
-    mkdir -p "$(dirname "$WIDGET_DST_DIR")"
-    cp -r "$WIDGET_SRC_DIR" "$WIDGET_DST_DIR"
-    pass "Installed widget: $WIDGET_NAME"
-    echo ""
-    info "Launch with: zebar start-widget $WIDGET_NAME"
-    echo ""
-    ;;
+    # Install registry
+    mkdir -p "$CONFIG_DIR"
+    cp "$REGISTRY" "$CONFIG_DIR/registry.json"
+    pass "registry.json"
 
-  remove|rm)
-    WIDGET_NAME="${1:-}"
-    if [ -z "$WIDGET_NAME" ]; then
-      fail "Usage: $0 remove <widget-name>"
-    fi
-    
-    WIDGET_DST_DIR="$ZEBAR_DIR/widgets/$WIDGET_NAME"
-    
-    if [ ! -d "$WIDGET_DST_DIR" ]; then
-      fail "Widget '$WIDGET_NAME' not installed"
-    fi
-    
-    read -rp "Remove widget '$WIDGET_NAME'? [y/N] " ans
-    if [[ ! "$ans" =~ ^[Yy] ]]; then
-      info "Cancelled"
-      exit 0
-    fi
-    
-    rm -rf "$WIDGET_DST_DIR"
-    pass "Removed widget: $WIDGET_NAME"
     echo ""
-    ;;
-
-  enable)
-    WIDGET_NAME="${1:-}"
-    if [ -z "$WIDGET_NAME" ]; then
-      fail "Usage: $0 enable <widget-name>"
-    fi
-    
-    WIDGET_SRC_FILE="$WIDGET_SRC/$WIDGET_NAME/index.html"
-    WIDGET_DST_FILE="$ZEBAR_DIR/main/index.html"
-    
-    if [ ! -f "$WIDGET_SRC_FILE" ]; then
-      fail "Widget '$WIDGET_NAME' not found"
-    fi
-    
-    # Backup current main widget
-    if [ -f "$WIDGET_DST_FILE" ]; then
-      cp "$WIDGET_DST_FILE" "${WIDGET_DST_FILE}.backup"
-      info "Backed up current main widget"
-    fi
-    
-    cp "$WIDGET_SRC_FILE" "$WIDGET_DST_FILE"
-    if [ -f "$WIDGET_SRC/$WIDGET_NAME/style.css" ]; then
-      cp "$WIDGET_SRC/$WIDGET_NAME/style.css" "$ZEBAR_DIR/main/style.css"
-    fi
-    
-    pass "Enabled widget '$WIDGET_NAME' as main widget"
+    pass "Installation complete"
     echo ""
-    info "Restart zebar to see changes: pkill zebar && zebar startup"
+    info "Components installed to: $bindir/"
     echo ""
-    ;;
+}
 
-  disable)
-    BACKUP="$ZEBAR_DIR/main/index.html.backup"
-    if [ ! -f "$BACKUP" ]; then
-      fail "No backup found to restore"
+cmd_start() {
+    local target="${1:-}"
+
+    if [[ -z "$target" ]]; then
+        # Start current statusbar from config
+        target=$(get_current "statusbar")
     fi
-    
-    cp "$BACKUP" "$ZEBAR_DIR/main/index.html"
-    pass "Restored original main widget"
+
+    section "Starting Statusbar: $target"
+
+    # Kill existing statusbar
+    pkill -f "statusbar-" 2>/dev/null || true
+    pkill -f "sfwbar" 2>/dev/null || true
+    pkill -f "zebar" 2>/dev/null || true
+    sleep 0.5
+
+    case "$target" in
+        main|compact|panel)
+            local bin="$HOME/.local/bin/statusbar-$target"
+            if [[ -x "$bin" ]]; then
+                "$bin" &
+                pass "Started statusbar-$target"
+            else
+                bin="$COMPONENTS_DIR/build/statusbar-$target"
+                if [[ -x "$bin" ]]; then
+                    "$bin" &
+                    pass "Started statusbar-$target (from build)"
+                else
+                    fail "statusbar-$target not found. Build and install first."
+                fi
+            fi
+            ;;
+        sfwbar)
+            if command -v sfwbar >/dev/null 2>&1; then
+                sfwbar &
+                pass "Started sfwbar"
+            else
+                fail "sfwbar not installed. Build and install first."
+            fi
+            ;;
+        zebar)
+            if command -v zebar >/dev/null 2>&1; then
+                zebar startup &
+                pass "Started zebar"
+            else
+                fail "zebar not installed."
+            fi
+            ;;
+        *)
+            fail "Unknown statusbar: $target"
+            ;;
+    esac
+}
+
+cmd_stop() {
+    section "Stopping Statusbar"
+
+    if pgrep -f "statusbar-" >/dev/null 2>&1; then
+        pkill -f "statusbar-"
+        pass "Statusbar stopped"
+    else
+        info "No statusbar running"
+    fi
+}
+
+cmd_restart() {
+    cmd_stop
+    sleep 0.5
+    cmd_start
+}
+
+cmd_help() {
     echo ""
-    ;;
-
-  create)
-    WIDGET_NAME="${1:-}"
-    if [ -z "$WIDGET_NAME" ]; then
-      fail "Usage: $0 create <widget-name>"
-    fi
-    
-    WIDGET_DIR="$WIDGET_SRC/$WIDGET_NAME"
-    
-    if [ -d "$WIDGET_DIR" ]; then
-      fail "Widget '$WIDGET_NAME' already exists"
-    fi
-    
-    mkdir -p "$WIDGET_DIR"
-    
-    cat > "$WIDGET_DIR/index.html" << 'HTMLEOF'
-<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    body {
-      margin: 0;
-      padding: 0;
-      background: transparent;
-      font-family: 'JetBrains Mono', monospace;
-      color: #cdd6f4;
-    }
-    .widget {
-      background: rgba(30, 30, 46, 0.85);
-      padding: 8px 16px;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .item {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-    }
-    .label {
-      font-size: 10px;
-      color: #a6adc8;
-    }
-    .value {
-      font-size: 14px;
-      font-weight: bold;
-    }
-  </style>
-</head>
-<body>
-  <div class="widget">
-    <div class="item">
-      <span class="label">TIME</span>
-      <span class="value" id="time">--:--</span>
-    </div>
-    <div class="item">
-      <span class="label">CPU</span>
-      <span class="value" id="cpu">--%</span>
-    </div>
-    <div class="item">
-      <span class="label">MEM</span>
-      <span class="value" id="mem">--%</span>
-    </div>
-  </div>
-
-  <script>
-    function updateTime() {
-      const now = new Date();
-      document.getElementById('time').textContent = 
-        now.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
-    }
-    
-    function updateStats() {
-      // Placeholder - replace with real system data
-      document.getElementById('cpu').textContent = Math.floor(Math.random() * 100) + '%';
-      document.getElementById('mem').textContent = Math.floor(Math.random() * 100) + '%';
-    }
-    
-    updateTime();
-    updateStats();
-    setInterval(updateTime, 1000);
-    setInterval(updateStats, 5000);
-  </script>
-</body>
-</html>
-HTMLEOF
-
-    pass "Created widget: $WIDGET_NAME"
-    echo ""
-    info "Edit: $WIDGET_DIR/index.html"
-    info "Install: $0 install $WIDGET_NAME"
-    echo ""
-    ;;
-
-  edit)
-    WIDGET_NAME="${1:-}"
-    if [ -z "$WIDGET_NAME" ]; then
-      fail "Usage: $0 edit <widget-name>"
-    fi
-    
-    WIDGET_FILE="$WIDGET_SRC/$WIDGET_NAME/index.html"
-    if [ ! -f "$WIDGET_FILE" ]; then
-      fail "Widget '$WIDGET_NAME' not found"
-    fi
-    
-    ${EDITOR:-nano} "$WIDGET_FILE"
-    pass "Widget edited"
-    ;;
-
-  help|--help|-h|*)
-    echo ""
-    echo "== Widget Manager =="
+    echo -e "${BOLD}== Widget Manager (C-based Wayland) ==${NC}"
     echo ""
     echo "Usage: $0 <command> [args]"
     echo ""
     echo "Commands:"
-    echo "  list              List available widget themes"
-    echo "  install <name>    Install a widget theme"
-    echo "  remove <name>     Remove an installed widget"
-    echo "  enable <name>     Set a widget as the main bar"
-    echo "  disable           Restore original main widget"
-    echo "  create <name>     Create a new widget template"
-    echo "  edit <name>       Edit a widget's HTML"
-    echo "  help              Show this help"
+    echo "  list [statusbar|widget|dock]   List available components"
+    echo "  status                         Show current configuration"
+    echo "  swap statusbar <name>          Switch statusbar (main|compact|panel)"
+    echo "  swap dock <name>               Switch dock (crystal|none)"
+    echo "  build                          Build C components with meson"
+    echo "  install                        Install binaries to ~/.local/bin/"
+    echo "  start [name]                   Start statusbar"
+    echo "  stop                           Stop running statusbar"
+    echo "  restart                        Restart statusbar"
+    echo "  help                           Show this help"
     echo ""
     echo "Examples:"
-    echo "  $0 list"
-    echo "  $0 install compact"
-    echo "  $0 enable detailed"
-    echo "  $0 create my-widget"
+    echo "  $0 list                        # Show all components"
+    echo "  $0 swap statusbar compact      # Switch to compact bar"
+    echo "  $0 swap dock none              # Disable dock"
+    echo "  $0 build && $0 install         # Build and install"
+    echo "  $0 start                       # Start current statusbar"
     echo ""
-    ;;
+    echo "Statusbars:"
+    echo "  main        C-based full-featured bar with all widgets"
+    echo "  compact     C-based space-optimized single-line bar"
+    echo "  panel       C-based grid dashboard with detailed metrics"
+    echo "  sfwbar      SFWBar (GTK3, C-based, wayland-native)"
+    echo "  zebar       Zebar (HTML/CSS/JS widgets, legacy fallback)"
+    echo ""
+    echo "Widgets (standalone):"
+    echo "  clock       Real-time clock with date"
+    echo "  cpu         CPU usage monitor"
+    echo "  memory      Memory usage monitor"
+    echo "  network     Network connectivity status"
+    echo "  battery     Battery level and charging"
+    echo "  volume      Audio volume control"
+    echo ""
+    echo "Docks:"
+    echo "  crystal     Crystal Wayland dock"
+    echo "  none        No dock"
+    echo ""
+}
+
+# ---- Dispatch ----
+case "$ACTION" in
+    list|ls)       cmd_list "$@" ;;
+    status|st)     cmd_status ;;
+    swap|sw)       cmd_swap "$@" ;;
+    build|b)       cmd_build ;;
+    install|i)     cmd_install ;;
+    start|s)       cmd_start "$@" ;;
+    stop)          cmd_stop ;;
+    restart)       cmd_restart ;;
+    help|--help|-h|*)  cmd_help ;;
 esac

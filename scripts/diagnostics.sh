@@ -214,7 +214,7 @@ out "== XDG Desktop Portals =="
 if command -v xdg-desktop-portal &>/dev/null; then
   out "Portal:     $(command -v xdg-desktop-portal)"
 fi
-for portal in xdg-desktop-portal-wlr xdg-desktop-portal-gtk xdg-desktop-portal-lxqt; do
+for portal in xdg-desktop-portal-wlr xdg-desktop-portal-gtk; do
   if command -v "$portal" &>/dev/null; then
     out "  $portal: $(command -v "$portal")"
   fi

@@ -1,0 +1,156 @@
+/* SFWBar Catppuccin Mocha GTK Theme */
+/* Place at ~/.config/sfwbar/catppuccin-mocha.css */
+
+/* Catppuccin Mocha color palette */
+@define-color bg_color #1e1e2e;
+@define-color fg_color #cdd6f4;
+@define-color selected_bg_color #45475a;
+@define-color selected_fg_color #cdd6f4;
+@define-color tooltip_bg_color #313244;
+@define-color tooltip_fg_color #cdd6f4;
+@define-color link_color #89b4fa;
+@define-color visited_link_color #cba6f7;
+
+/* Error/Warning/Success colors */
+@define-color error_color #f38ba8;
+@define-color warning_color #f9e2af;
+@define-color success_color #a6e3a1;
+
+/* Window decorations */
+decoration {
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+decoration:backdrop {
+  box-shadow: none;
+}
+
+/* Buttons */
+button {
+  background-color: rgba(69, 71, 90, 0.4);
+  color: #cdd6f4;
+  border-radius: 4px;
+  border: 1px solid rgba(88, 91, 112, 0.6);
+  padding: 4px 8px;
+  min-height: 20px;
+}
+
+button:hover {
+  background-color: rgba(69, 71, 90, 0.6);
+}
+
+button:active {
+  background-color: rgba(69, 71, 90, 0.8);
+}
+
+button:focus {
+  border-color: #89b4fa;
+}
+
+/* Entries */
+entry {
+  background-color: rgba(49, 50, 68, 0.6);
+  color: #cdd6f4;
+  border-radius: 4px;
+  border: 1px solid #585b70;
+  padding: 4px 8px;
+  caret-color: #cdd6f4;
+}
+
+entry:focus {
+  border-color: #89b4fa;
+}
+
+/* Labels */
+label {
+  color: #cdd6f4;
+}
+
+/* Separators */
+separator {
+  color: rgba(88, 91, 112, 0.6);
+}
+
+/* Scrollbars */
+scrollbar {
+  background-color: transparent;
+}
+
+scrollbar slider {
+  background-color: rgba(69, 71, 90, 0.6);
+  border-radius: 4px;
+  min-width: 6px;
+  min-height: 6px;
+}
+
+scrollbar slider:hover {
+  background-color: rgba(69, 71, 90, 0.8);
+}
+
+/* Switches */
+switch {
+  background-color: rgba(69, 71, 90, 0.6);
+  border-radius: 12px;
+  padding: 2px;
+}
+
+switch:checked {
+  background-color: #89b4fa;
+}
+
+switch slider {
+  background-color: #cdd6f4;
+  border-radius: 10px;
+  min-width: 20px;
+  min-height: 20px;
+}
+
+/* Checkbuttons */
+checkbutton {
+  color: #cdd6f4;
+}
+
+checkbutton check {
+  background-color: rgba(49, 50, 68, 0.6);
+  border: 1px solid #585b70;
+  border-radius: 3px;
+  min-width: 16px;
+  min-height: 16px;
+}
+
+checkbutton check:checked {
+  background-color: #89b4fa;
+  border-color: #89b4fa;
+}
+
+/* Menus */
+menu,
+menuitem {
+  background-color: #313244;
+  color: #cdd6f4;
+  border-radius: 4px;
+  border: 1px solid #45475a;
+  padding: 4px 8px;
+}
+
+menuitem:hover {
+  background-color: #45475a;
+}
+
+menuitem label {
+  color: #cdd6f4;
+}
+
+/* Tooltips */
+tooltip {
+  background-color: #313244;
+  color: #cdd6f4;
+  border-radius: 4px;
+  border: 1px solid #45475a;
+  padding: 4px 8px;
+}
+
+tooltip label {
+  color: #cdd6f4;
+}

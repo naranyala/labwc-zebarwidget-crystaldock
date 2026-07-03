@@ -1,0 +1,31 @@
+#Api2
+
+# Read volume via wpctl command
+file("/bin/sh -c 'wpctl get-volume @DEFAULT_SINK@ 2>/dev/null'") {
+  XVolRaw = Grab(First)
+}
+
+# Extract volume number (0.26 -> 26%)
+Set XVolLevel = Val(RegEx("Volume: ([0-9.]+)", XVolRaw)) * 100
+Set XVolMuted = RegEx("MUTED", XVolRaw)
+
+export label "volume-text" {
+  interval = 2000
+  style = "volume-text"
+  value = If(XVolMuted,
+    "Vol Mute",
+    "Vol " + Str(XVolLevel, 0) + "%"
+  )
+  tooltip = If(XVolMuted,
+    "Volume: Muted",
+    "Volume: " + Str(XVolLevel, 0) + "%"
+  )
+  action = ExecTerm("wpctl set-mute @DEFAULT_SINK@ toggle")
+}
+
+#CSS
+label#volume-text {
+  padding-left: 4px;
+  padding-right: 4px;
+  color: @theme_fg_color;
+}

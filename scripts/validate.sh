@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# validate.sh — Comprehensive validation of labwc + zebar + crystal-dock setup
+# validate.sh — Comprehensive validation of labwc + sfwbar + crystal-dock setup
 #
 # Checks: binaries, configs, permissions, dependencies, autostart, themes
 # Exit code = number of errors found
@@ -10,7 +10,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 CONFIG_DIR="${HOME}/.config/labwc"
-ZEBAR_DIR="${HOME}/.config/zebar"
+SFWBAR_DIR="${HOME}/.config/sfwbar"
 
 ERRORS=0
 WARNINGS=0
@@ -96,10 +96,10 @@ if [ -f "$CONFIG_DIR/autostart" ]; then
   else
     warn "autostart: crystal-dock NOT in autostart"
   fi
-  if grep -q "zebar" "$CONFIG_DIR/autostart"; then
-    pass "autostart: zebar configured"
+  if grep -q "sfwbar" "$CONFIG_DIR/autostart"; then
+    pass "autostart: sfwbar configured"
   else
-    warn "autostart: zebar NOT in autostart"
+    warn "autostart: sfwbar NOT in autostart"
   fi
   if grep -q "gammastep\|redshift" "$CONFIG_DIR/autostart"; then
     pass "autostart: screen protection configured"
@@ -109,27 +109,25 @@ if [ -f "$CONFIG_DIR/autostart" ]; then
 fi
 
 # ============================================================
-section "3. Zebar Widgets"
+section "3. SFWBar Configuration"
 # ============================================================
-if [ -d "$ZEBAR_DIR" ]; then
-  pass "Zebar config directory: $ZEBAR_DIR"
+SFWBAR_DIR="${HOME}/.config/sfwbar"
+if [ -d "$SFWBAR_DIR" ]; then
+  pass "SFWBar config directory: $SFWBAR_DIR"
 else
-  warn "Zebar config directory missing: $ZEBAR_DIR"
+  warn "SFWBar config directory missing: $SFWBAR_DIR"
 fi
 
-if [ -d "$ZEBAR_DIR/main" ]; then
-  if [ -f "$ZEBAR_DIR/main/index.html" ]; then
-    pass "Main widget: index.html exists"
-  else
-    fail "Main widget: index.html MISSING"
-  fi
-  if [ -f "$ZEBAR_DIR/main/style.css" ]; then
-    pass "Main widget: style.css exists"
-  else
-    warn "Main widget: style.css missing (using inline styles)"
-  fi
+if [ -f "$SFWBAR_DIR/sfwbar.config" ]; then
+  pass "sfwbar.config exists"
 else
-  warn "Main widget directory not found"
+  warn "sfwbar.config missing"
+fi
+
+if command -v sfwbar &>/dev/null; then
+  pass "sfwbar binary: $(command -v sfwbar)"
+else
+  warn "sfwbar not installed"
 fi
 
 # Check for additional widgets

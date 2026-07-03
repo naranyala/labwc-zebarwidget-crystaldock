@@ -129,53 +129,32 @@ if [[ -d "$SCRIPTS_SRC/actions" ]]; then
 fi
 
 # ============================================================
-section "5. Install Zebar Widgets (v3)"
+section "5. Install SFWBar Configuration"
 # ============================================================
 
-ZEBAR_SRC="$PROJECT_DIR/dotfiles/zebar"
-ZEBAR_V1="$HOME/.config/zebar"
-ZEBAR_V3="$HOME/.glzr/zebar"
-ZEBAR_PACKS="$ZEBAR_V3/packs/labwc-zebar"
+SFWBAR_SRC="$PROJECT_DIR/dotfiles/sfwbar"
+SFWBAR_DST="$HOME/.config/sfwbar"
 
-# Install pack structure for zebar v3
-mkdir -p "$ZEBAR_PACKS/main"
-if [[ -d "$ZEBAR_SRC/main" ]]; then
-  cp "$ZEBAR_SRC/main/index.html" "$ZEBAR_PACKS/main/"
-  cp "$ZEBAR_SRC/main/style.css" "$ZEBAR_PACKS/main/"
-  cp "$ZEBAR_SRC/main/zpack.json" "$ZEBAR_PACKS/main/" 2>/dev/null || true
-  pass "main statusbar → $ZEBAR_PACKS/main"
+# Install sfwbar config
+mkdir -p "$SFWBAR_DST"
+if [[ -d "$SFWBAR_SRC" ]]; then
+  for cfg in sfwbar.config catppuccin-mocha.css; do
+    if [[ -f "$SFWBAR_SRC/$cfg" ]]; then
+      cp "$SFWBAR_SRC/$cfg" "$SFWBAR_DST/$cfg"
+      pass "$cfg"
+    fi
+  done
 fi
 
-# Create root zpack.json for the pack
-if [[ -f "$ZEBAR_SRC/main/zpack.json" ]]; then
-  cp "$ZEBAR_SRC/main/zpack.json" "$ZEBAR_PACKS/zpack.json"
-  pass "zpack.json → $ZEBAR_PACKS/"
-fi
-
-# Copy zebar settings.json
-if [[ -f "$ZEBAR_SRC/settings.json" ]]; then
-  cp "$ZEBAR_SRC/settings.json" "$ZEBAR_V3/settings.json"
-  pass "settings.json → $ZEBAR_V3/settings.json"
-fi
-
-# Copy to v1 path as fallback
-mkdir -p "$ZEBAR_V1/main"
-if [[ -d "$ZEBAR_SRC/main" ]]; then
-  cp -r "$ZEBAR_SRC/main"/* "$ZEBAR_V1/main/"
-fi
-if [[ -f "$ZEBAR_SRC/settings.json" ]]; then
-  cp "$ZEBAR_SRC/settings.json" "$ZEBAR_V1/settings.json"
-fi
-pass "fallback: ~/.config/zebar/"
-
-# Additional widgets
-if [[ -d "$ZEBAR_SRC/widgets" ]]; then
-  for widget_dir in "$ZEBAR_SRC/widgets"/*/; do
-    if [[ -d "$widget_dir" ]]; then
-      name=$(basename "$widget_dir")
-      cp -r "$widget_dir" "$ZEBAR_V3/widgets/$name"
-      cp -r "$widget_dir" "$ZEBAR_V1/widgets/$name" 2>/dev/null || true
-      pass "widget: $name"
+# Copy widget files from installed sfwbar
+if [[ -d "$HOME/.local/share/sfwbar" ]]; then
+  for f in "$HOME/.local/share/sfwbar"/*.widget "$HOME/.local/share/sfwbar"/*.source; do
+    if [[ -f "$f" ]]; then
+      name=$(basename "$f")
+      if [[ ! -f "$SFWBAR_DST/$name" ]]; then
+        cp "$f" "$SFWBAR_DST/$name"
+        pass "$name"
+      fi
     fi
   done
 fi

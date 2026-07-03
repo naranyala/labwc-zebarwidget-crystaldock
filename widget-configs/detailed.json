@@ -1,0 +1,172 @@
+/* widget-configs/detailed.json - Detailed Widget Configuration */
+{
+    "name": "Detailed Widget Configuration",
+    "description": "Comprehensive widgets with extensive options and detailed information",
+    "type": "detailed",
+    "default_layout": "grid",
+    "grid_config": {
+        "columns": 3,
+        "rows": 2,
+        "gap": 10,
+        "widget_positions": {
+            "top-left": "workspaces",
+            "top-center": "clock", 
+            "top-right": "cpu",
+            "center-left": "memory",
+            "center-center": "network",
+            "center-right": "battery",
+            "bottom-left": "volume",
+            "bottom-center": "tray",
+            "bottom-right": "weather"
+        }
+    },
+    "widgets": [
+        {
+            "name": "workspaces",
+            "enabled": true,
+            "position": "top-left",
+            "width": 280,
+            "height": 32,
+            "properties": {
+                "count": 9,
+                "show_all": true,
+                "animation": "smooth",
+                "focus_indicator": "highlight"
+            }
+        },
+        {
+            "name": "clock",
+            "enabled": true,
+            "position": "top-center",
+            "width": 120,
+            "height": 32,
+            "properties": {
+                "format": "24h",
+                "show_seconds": true,
+                "show_date": true,
+                "show_timezone": true,
+                "date_format": "long",
+                "clock_style": "digital"
+            }
+        },
+        {
+            "name": "cpu",
+            "enabled": true,
+            "position": "top-right",
+            "width": 80,
+            "height": 32,
+            "properties": {
+                "show_icon": true,
+                "show_temperature": true,
+                "show_cores": true,
+                "show_load": true,
+                "graph_height": 4,
+                "warning_threshold": 80
+            }
+        },
+        {
+            "name": "memory",
+            "enabled": true,
+            "position": "center-left",
+            "width": 100,
+            "height": 80,
+            "properties": {
+                "show_swap": true,
+                "show_details": true,
+                "graph_style": "filled",
+                "show_percentage": true,
+                "show_absolute_values": true,
+                "mini_graph": true
+            }
+        },
+        {
+            "name": "network",
+            "enabled": true,
+            "position": "center-center",
+            "width": 100,
+            "height": 80,
+            "properties": {
+                "show_icon": true,
+                "show_signal": true,
+                "show_type": true,
+                "show_ssid": true,
+                "show_speed": true,
+                "ping_test": true
+            }
+        },
+        {
+            "name": "battery",
+            "enabled": true,
+            "position": "center-right",
+            "width": 100,
+            "height": 80,
+            "properties": {
+                "show_percent": true,
+                "show_time": true,
+                "show_charging": true,
+                "show_icon": true,
+                "alert_threshold": 10,
+                "warning_color": "#f38ba8",
+                "critical_color": "#fab387"
+            }
+        },
+        {
+            "name": "volume",
+            "enabled": true,
+            "position": "bottom-left",
+            "width": 80,
+            "height": 32,
+            "properties": {
+                "show_level": true,
+                "show_muted": true,
+                "show_sink": true,
+                "show_icon": true,
+                "control_with_scroll": true,
+                "quick_set_levels": ["mute", "25", "50", "75", "100"],
+                "meter_style": "circular"
+            }
+        },
+        {
+            "name": "tray",
+            "enabled": true,
+            "position": "bottom-center",
+            "width": 200,
+            "height": 32,
+            "properties": {
+                "max_icons": 8,
+                "show_labels": true,
+                "notification_popup": true,
+                "notification_position": "bottom-right",
+                "icon_size": "medium"
+            }
+        },
+        {
+            "name": "weather",
+            "enabled": true,
+            "position": "bottom-right",
+            "width": 100,
+            "height": 32,
+            "properties": {
+                "location": "auto",
+                "temperature_unit": "celsius",
+                "show_icon": true,
+                "show_forecast": true,
+                "show_humidity": true,
+                "show_wind": true,
+                "auto_refresh": true
+            }
+        }
+    ],
+    "theme": {
+        "type": "detailed",
+        "primary_color": "#89b4fa",
+        "secondary_color": "#a6e3a1",
+        "accent_color": "#f38ba8",
+        "background_alpha": 0.95,
+        "card_background": "#1e1e2e",
+        "card_border": "#45475a",
+        "text_primary": "#cdd6f4",
+        "text_secondary": "#a6e3a1",
+        "text_dimmed": "#7f849c"
+    }
+}

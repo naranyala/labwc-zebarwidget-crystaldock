@@ -1,0 +1,31 @@
+/* widget-configs/minimalist.json - Minimalist Widget Configuration */
+{
+    "name": "Minimalist Widget Bundle",
+    "description": "Ultra-lightweight widgets with minimal footprint and obfuscation",
+    "type": "minimal",
+    "default_layout": "center",
+    "widgets": [
+        {
+            "name": "clock",
+            "enabled": true,
+            "position": "center",
+            "width": 120,
+            "height": 24,
+            "properties": {
+                "format": "12h",
+                "show_seconds": false,
+                "show_date": false,
+                "transparent_background": true,
+                "subtle_text": true
+            }
+        }
+    ],
+    "theme": {
+        "background_alpha": 0.0,
+        "text_color": "#cdd6f4",
+        "text_alpha": 0.8,
+        "text_size": 11,
+        "show_border": false,
+        "shadow": false
+    }
+}

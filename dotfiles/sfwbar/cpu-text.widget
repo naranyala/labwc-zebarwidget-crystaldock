@@ -1,0 +1,18 @@
+#Api2
+
+include("cpu.source")
+
+export label "cpu-text" {
+  interval = 1000
+  style = If(XCpuPresent, "cpu-text", "hidden")
+  value = "CPU " + Str(XCpuUtilization*100, 0) + "%"
+  tooltip = "CPU Usage: " + Str(XCpuUtilization*100, 1) + "%"
+  action = ExecTerm("top")
+}
+
+#CSS
+label#cpu-text {
+  padding-left: 4px;
+  padding-right: 4px;
+  color: @theme_fg_color;
+}

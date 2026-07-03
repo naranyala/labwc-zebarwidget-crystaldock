@@ -1,5 +1,7 @@
 # labwc + Zebar + crystal-dock
 
+<img src="./screenshoot.png" size="300"/>
+
 A complete Wayland desktop environment built on **labwc** (Openbox-inspired compositor), **zebar** (HTML/CSS/JS widget panels), and **crystal-dock** (Wayland dock). Ships with interactive theme management, 25+ automation scripts, and a full GTK3/GTK4 theming pipeline.
 
 ---

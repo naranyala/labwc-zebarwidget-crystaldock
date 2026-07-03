@@ -103,27 +103,23 @@ if [ -f "$WALLPAPER_SRC" ]; then
 fi
 
 # ============================================================
-section "6. Fix Zebar Widgets"
+section "6. Fix SFWBar Configuration"
 # ============================================================
-ZEBAR_SRC="$PROJECT_DIR/dotfiles/zebar/main"
-ZEBAR_DST="$HOME/.config/zebar/main"
+SFWBAR_SRC="$PROJECT_DIR/dotfiles/sfwbar"
+SFWBAR_DST="$HOME/.config/sfwbar"
 
-if [ -d "$ZEBAR_SRC" ]; then
-  if [ -L "$ZEBAR_DST" ]; then
-    TARGET=$(readlink -f "$ZEBAR_DST")
-    if [ "$TARGET" != "$(readlink -f "$ZEBAR_SRC")" ]; then
-      rm -f "$ZEBAR_DST"
-      ln -sf "$ZEBAR_SRC" "$ZEBAR_DST"
-      pass "Updated zebar main widget symlink"
-    else
-      skip "Zebar widget symlink correct"
+if [ -d "$SFWBAR_SRC" ]; then
+  mkdir -p "$SFWBAR_DST"
+  for cfg in sfwbar.config catppuccin-mocha.css; do
+    if [ -f "$SFWBAR_SRC/$cfg" ]; then
+      if [ ! -f "$SFWBAR_DST/$cfg" ]; then
+        cp "$SFWBAR_SRC/$cfg" "$SFWBAR_DST/$cfg"
+        pass "Installed $cfg"
+      else
+        skip "$cfg already exists"
+      fi
     fi
-  elif [ ! -d "$ZEBAR_DST" ]; then
-    ln -sf "$ZEBAR_SRC" "$ZEBAR_DST"
-    pass "Created zebar main widget symlink"
-  else
-    skip "Zebar widget directory exists"
-  fi
+  done
 fi
 
 # ============================================================

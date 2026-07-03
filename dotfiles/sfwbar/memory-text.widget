@@ -1,0 +1,18 @@
+#Api2
+
+include("memory.source")
+
+export label "memory-text" {
+  interval = 1000
+  style = If(XMemPresent, "memory-text", "hidden")
+  value = "MEM " + Str(XMemUtilization*100, 0) + "%"
+  tooltip = "Memory Usage: " + Str(XMemUtilization*100, 1) + "%"
+  action = ExecTerm("top -o %MEM")
+}
+
+#CSS
+label#memory-text {
+  padding-left: 4px;
+  padding-right: 4px;
+  color: @theme_fg_color;
+}

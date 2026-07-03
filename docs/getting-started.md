@@ -3,7 +3,7 @@
 ## Prerequisites
 
 - **labwc** - Lab Wayland Compositor ([build from source](../download-labwc.sh) or install via package manager)
-- **zebar** - HTML/CSS/JS widget tool
+- **sfwbar** - GTK3 Wayland-native statusbar/taskbar panel (primary panel/statusbar)
 - **crystal-dock** - Wayland dock
 - **foot** - Wayland terminal
 - **rofi** - Application launcher

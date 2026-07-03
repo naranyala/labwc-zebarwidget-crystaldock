@@ -1,0 +1,32 @@
+#Api2
+
+module("network")
+
+Private {
+  include("wifi.widget")
+
+  export label "network-text" {
+    interval = 5000
+    style = "network-text"
+    value = If(Net("online"),
+      If(Net("wifi"),
+        "WiFi " + Net("ssid"),
+        "Eth"
+      ),
+      "Offline"
+    )
+    tooltip = If(Net("online"),
+      "Interface: " + Net("iface") + "\n" +
+      If(Net("wifi"), "SSID: " + Net("ssid") + "\nSignal: " + Str(Net("signal")) + "%", "Wired"),
+      "Not connected"
+    )
+    action = ExecTerm("nmcli device status")
+  }
+}
+
+#CSS
+label#network-text {
+  padding-left: 4px;
+  padding-right: 4px;
+  color: @theme_fg_color;
+}

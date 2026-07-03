@@ -1,0 +1,85 @@
+/* widget-configs/system.json - System Metrics Widgets Bundle Configuration */
+{
+    "name": "System Metrics Bundle",
+    "description": "Collection of system monitoring widgets (CPU, Memory, Network, Battery, Volume)",
+    "type": "bundle",
+    "default_layout": "row",
+    "widgets": [
+        {
+            "name": "cpu",
+            "enabled": true,
+            "position": "right",
+            "width": 80,
+            "height": 32,
+            "properties": {
+                "show_icon": true,
+                "show_temperature": true,
+                "show_cores": true,
+                "temperature_unit": "celsius",
+                "color_scheme": "auto"
+            }
+        },
+        {
+            "name": "memory",
+            "enabled": true,
+            "position": "right",
+            "width": 80,
+            "height": 32,
+            "properties": {
+                "show_swap": true,
+                "show_details": true,
+                "graph_style": "bar",
+                "show_percentage": true
+            }
+        },
+        {
+            "name": "network",
+            "enabled": true,
+            "position": "right",
+            "width": 120,
+            "height": 32,
+            "properties": {
+                "show_icon": true,
+                "show_signal": true,
+                "show_type": true,
+                "show_ssid": true,
+                "connect_on_click": false
+            }
+        },
+        {
+            "name": "battery",
+            "enabled": true,
+            "position": "left",
+            "width": 80,
+            "height": 32,
+            "properties": {
+                "show_percent": true,
+                "show_time": true,
+                "show_charging": true,
+                "show_icon": true,
+                "alert_threshold": 20,
+                "warning_color": "#f38ba8"
+            }
+        },
+        {
+            "name": "volume",
+            "enabled": true,
+            "position": "left",
+            "width": 80,
+            "height": 32,
+            "properties": {
+                "show_level": true,
+                "show_muted": true,
+                "show_sink": true,
+                "show_icon": true,
+                "control_with_scroll": true,
+                "quick_set_levels": ["mute", "50", "100"]
+            }
+        }
+    ],
+    "theme": {
+        "background_alpha": 0.0,
+        "card_background": "#1e1e2e",
+        "card_border": "#45475a"
+    }
+}
