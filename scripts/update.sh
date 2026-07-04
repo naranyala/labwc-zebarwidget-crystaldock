@@ -27,6 +27,7 @@ section() { echo -e "\n${BOLD}[$1]${NC}"; }
 UPDATE_DOTFILES=false
 UPDATE_CONFIG=false
 SKIP_BUILD=false
+FORCE_BUILD=false
 CURRENT_TAG=""
 
 while [[ $# -gt 0 ]]; do
@@ -34,6 +35,8 @@ while [[ $# -gt 0 ]]; do
     --dotfiles) UPDATE_DOTFILES=true; shift ;;
     --config) UPDATE_CONFIG=true; shift ;;
     --skip-build) SKIP_BUILD=true; shift ;;
+    --force) FORCE_BUILD=true; shift ;;
+    --master) USE_MASTER=true; shift ;;
     --all) UPDATE_DOTFILES=true; UPDATE_CONFIG=true; shift ;;
     --version) CURRENT_TAG="$2"; shift 2 ;;
     --help)
@@ -43,6 +46,8 @@ while [[ $# -gt 0 ]]; do
       echo "  --dotfiles     Also update dotfiles from project"
       echo "  --config       Also update ~/.config/labwc from project"
       echo "  --skip-build   Check for update but don't rebuild"
+      echo "  --force        Force rebuild even if already at the latest version"
+      echo "  --master       Update to the bleeding-edge master branch instead of the latest stable release"
       echo "  --all          Update everything"
       echo "  --version TAG  Target a specific version (default: latest)"
       echo "  --help         Show this help"
@@ -64,19 +69,23 @@ trap cleanup EXIT
 section "1. Checking latest version"
 # -------------------------------------------------------------------
 REPO="labwc/labwc"
-if [ -z "$CURRENT_TAG" ]; then
-  info "Fetching latest release from GitHub..."
-  CURRENT_TAG=$(curl -sL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": "\(.*\)",/\1/')
-fi
-
-if [ -z "$CURRENT_TAG" ]; then
-  info "No release found, using master"
+if [ "${USE_MASTER:-false}" = "true" ]; then
+  info "Using master branch as requested..."
   CURRENT_TAG="master"
-  TARBALL_URL="https://github.com/$REPO/archive/refs/heads/master.tar.gz"
   SHORT_REF="master"
 else
-  SHORT_REF="$CURRENT_TAG"
-  TARBALL_URL="https://github.com/$REPO/archive/refs/tags/$CURRENT_TAG.tar.gz"
+  if [ -z "$CURRENT_TAG" ]; then
+    info "Fetching latest release from GitHub..."
+    CURRENT_TAG=$(curl -sL "https://api.github.com/repos/$REPO/releases/latest" | grep '"tag_name"' | head -1 | sed 's/.*"tag_name": "\(.*\)",/\1/')
+  fi
+
+  if [ -z "$CURRENT_TAG" ]; then
+    info "No release found, using master"
+    CURRENT_TAG="master"
+    SHORT_REF="master"
+  else
+    SHORT_REF="$CURRENT_TAG"
+  fi
 fi
 
 info "Target: $SHORT_REF"
@@ -86,7 +95,13 @@ INSTALLED_VER="$(labwc --version 2>/dev/null || true)"
 if [ -n "$INSTALLED_VER" ]; then
   info "Installed: ${INSTALLED_VER%%$'\n'*}"
   if echo "$INSTALLED_VER" | grep -qi "$SHORT_REF"; then
-    info "Already at $SHORT_REF"
+    info "Already at latest version ($SHORT_REF)"
+    if ! $FORCE_BUILD; then
+      pass "No update needed. Use --force to rebuild anyway."
+      exit 0
+    else
+      info "Forcing rebuild as requested..."
+    fi
   fi
 fi
 
@@ -96,16 +111,12 @@ if $SKIP_BUILD; then
 fi
 
 # -------------------------------------------------------------------
-section "2. Downloading source"
+section "2. Cloning source"
 # -------------------------------------------------------------------
 TMPDIR=$(mktemp -d)
-info "Downloading labwc ($SHORT_REF) ..."
-curl -sL "$TARBALL_URL" -o "$TMPDIR/labwc.tar.gz"
-
-info "Extracting..."
-EXTRACT_DIR=$(tar -tzf "$TMPDIR/labwc.tar.gz" | head -1 | cut -d/ -f1)
-tar -xzf "$TMPDIR/labwc.tar.gz" -C "$TMPDIR"
-SRC_DIR="$TMPDIR/$EXTRACT_DIR"
+SRC_DIR="$TMPDIR/labwc"
+info "Cloning labwc ($SHORT_REF) ..."
+git clone --depth=1 --branch "$CURRENT_TAG" "https://github.com/$REPO.git" "$SRC_DIR"
 pass "Source ready"
 
 # -------------------------------------------------------------------
@@ -121,11 +132,11 @@ pass "Build successful"
 section "4. Installing"
 # -------------------------------------------------------------------
 info "Installing..."
-if meson install --skip-subprojects -C build/ 2>/dev/null; then
+if meson install -C build/ --skip-subprojects 2>/dev/null; then
   pass "labwc $SHORT_REF installed"
 else
   warn "Install failed (may need sudo)"
-  info "Run: sudo meson install --skip-subprojects -C $SRC_DIR/build/"
+  info "Run: sudo meson install -C $SRC_DIR/build/ --skip-subprojects"
 fi
 
 # -------------------------------------------------------------------

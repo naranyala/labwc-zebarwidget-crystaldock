@@ -1,0 +1,37 @@
+#Api2
+
+# Privacy Indicator — microphone and camera usage
+module("pipewire")
+
+Private {
+  Var audio_icon = "audio-input-microphone-symbolic";
+  Var video_icon = "camera-web-symbolic";
+
+  export grid "privacy" {
+    button {
+      value = audio_icon;
+      style = If(PipewireCount("AudioIn") > 0, "privacy_active", "hidden");
+      class = "module";
+      trigger = "pipewire";
+      tooltip = "Microphone in use";
+      css = "* { color: #f38ba8; }";
+    }
+    button {
+      value = video_icon;
+      style = If(PipewireCount("VideoIn") > 0, "privacy_active", "hidden");
+      class = "module";
+      trigger = "pipewire";
+      tooltip = "Camera in use";
+      css = "* { color: #f38ba8; }";
+    }
+  }
+}
+
+#CSS
+button#privacy_active {
+  min-width: 20px;
+  min-height: 20px;
+  padding: 4px;
+  border-radius: 4px;
+  background-color: rgba(243, 139, 168, 0.2);
+}

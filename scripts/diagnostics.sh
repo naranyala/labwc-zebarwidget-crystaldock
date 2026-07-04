@@ -116,7 +116,7 @@ out ""
 
 # --- Processes ---
 out "== Running Processes =="
-for proc in labwc crystal-dock zebar swaybg gammastep redshift mako dunst rofi foot lxpolkit; do
+for proc in labwc crystal-dock sfwbar swaybg gammastep redshift mako dunst rofi foot lxpolkit; do
   if pgrep -x "$proc" &>/dev/null; then
     local_pids=$(pgrep -x "$proc" | tr '\n' ',' | sed 's/,$//')
     out "  ● $proc (PID: $local_pids)"

@@ -1,4 +1,4 @@
-/* SFWBar — Noctalia-style floating bar theme
+/* SFWBar — Regular full-width panel theme
  * Theme: {{THEME_NAME}} */
 
 @define-color bg_color {{COLOR_BG}};
@@ -13,21 +13,28 @@
 @define-color success {{COLOR_OK}};
 
 /* ============================================================
- * Base — transparent window, floating pill bar
+ * Base — regular full-width panel
  * ============================================================ */
 
 window#sfwbar {
-  background-color: transparent;
+  background-color: alpha({{COLOR_BG}}, 0.92);
   box-shadow: none;
 }
 
-grid#layout {
-  background-color: alpha({{COLOR_BG}}, 0.92);
-  border-radius: 12px;
-  margin: 10px 180px 0px 180px;
+grid#layout, grid#topbar {
+  background-color: transparent;
+  border-radius: 0px;
+  margin: 0px;
   padding: 0px 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  border: 1px solid alpha({{COLOR_BORDER}}, 0.3);
+  border-bottom: 1px solid alpha({{COLOR_BORDER}}, 0.3);
+}
+
+grid#bottombar {
+  background-color: alpha({{COLOR_BG}}, 0.85);
+  border-radius: 0px;
+  margin: 0px;
+  padding: 0px 8px;
+  border-top: 1px solid alpha({{COLOR_BORDER}}, 0.3);
 }
 
 * {

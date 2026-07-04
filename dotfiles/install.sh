@@ -514,7 +514,7 @@ section "14. Apply Theme"
 THEME_SCRIPT="$SCRIPTS_DST/theme"
 if [[ -x "$THEME_SCRIPT" ]]; then
   info "Applying catppuccin-mocha theme..."
-  bash "$THEME_SCRIPT" catppuccin-mocha 2>&1 | sed 's/^/    /' || warn "Theme application had issues"
+  bash "$THEME_SCRIPT" set catppuccin-mocha 2>&1 | sed 's/^/    /' || warn "Theme application had issues"
 else
   warn "theme script not found — run manually: theme catppuccin-mocha"
 fi

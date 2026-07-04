@@ -40,7 +40,7 @@ else
     done
 fi
 # Fallback: known path
-[[ -d "$PROJECT_DIR/themes" ]] || PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-crystaldock-barandwidgets"
+[[ -d "$PROJECT_DIR/themes" ]] || PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar"
 [[ -d "$PROJECT_DIR/themes" ]] || fail "Cannot find project root (themes/ not found)"
 THEMES_DIR="$PROJECT_DIR/themes"
 TEMPLATES_DIR="$PROJECT_DIR/templates"
@@ -182,6 +182,12 @@ render_template() {
             THEMERC_BORDER)    value=$(ini_get "labwc.themerc_border" "#45475a") ;;
             THEMERC_HEIGHT)    value=$(ini_get "labwc.themerc_height" "28") ;;
             TITLEBAR_LAYOUT)   value=$(ini_get "labwc.titlebar_layout" "icon:iconify,max,close") ;;
+
+            # OSD / Window Switcher
+            OSD_BG)            value=$(ini_get "labwc.osd_bg" "${INI_VALUES[colors.base]:-#1e1e2e}") ;;
+            OSD_BORDER)        value=$(ini_get "labwc.osd_border" "${INI_VALUES[colors.surface1]:-#45475a}") ;;
+            OSD_TEXT)          value=$(ini_get "labwc.osd_text" "${INI_VALUES[colors.text]:-#cdd6f4}") ;;
+            OSD_ACCENT)        value=$(ini_get "labwc.osd_accent" "${INI_VALUES[colors.blue]:-#89b4fa}") ;;
 
             # GTK
             GTK_THEME)             value=$(ini_get "gtk3.gtk_theme" "Adwaita-dark") ;;

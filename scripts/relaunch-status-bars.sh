@@ -8,6 +8,7 @@
 #   "dock"           → restart crystal-dock only
 
 export PATH="$HOME/.local/bin:$PATH"
+export FONTCONFIG_FILE="$HOME/.config/fontconfig/fonts.conf"
 
 set -euo pipefail
 
@@ -62,7 +63,7 @@ esac
 # ---- Start ----
 section "Starting"
 
-CSS_FILE="$HOME/.config/sfwbar/theme.css"
+CSS_FILE="$HOME/.config/sfwbar/catppuccin-mocha.css"
 CONFIG_FILE="$HOME/.config/sfwbar/sfwbar.config"
 CSS_ARG=""
 CONFIG_ARG=""
@@ -72,8 +73,8 @@ CONFIG_ARG=""
 start_statusbar() {
   STATUSBAR="sfwbar"
   if [ -f "$HOME/.config/labwc-widgets/status.json" ]; then
-    VAL=$(grep -o '"statusbar"[[:space:]]*:[[:space:]]*"[^"]*"' "$HOME/.config/labwc-widgets/status.json" 2>/dev/null | head -1 | sed 's/.*": *"//;s/"$//')
-    [ -n "$VAL" ] && STATUSBAR="$VAL"
+    # Force sfwbar as default regardless of config
+    STATUSBAR="sfwbar"
   fi
 
   if [ "$STATUSBAR" = "noctalia" ]; then
@@ -97,10 +98,12 @@ start_statusbar() {
       warn "sfwbar binary not found, skipping"
       return
     fi
+    # Launch sfwbar (single config, dual panels: top + bottom)
     nohup sfwbar $CONFIG_ARG $CSS_ARG > /dev/null 2>&1 &
+
     sleep 1
     if pgrep -x sfwbar >/dev/null 2>&1; then
-      pass "sfwbar started (PID: $(pgrep -x sfwbar))"
+      pass "sfwbar started (PID: $(pgrep -x sfwbar | tr '\n' ' '))"
     else
       warn "sfwbar failed to start"
     fi

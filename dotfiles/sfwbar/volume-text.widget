@@ -9,14 +9,24 @@ Set XVolMuted = RegEx("MUTED", XVolRaw)
 
 export button "volume-text" {
   interval = 2000
-  style = "module"
+  style = "module_pill"
   class = "module"
-  value = If(XVolMuted, "audio-volume-muted-symbolic",
-           If(XVolLevel > 66, "audio-volume-high-symbolic",
-            If(XVolLevel > 33, "audio-volume-medium-symbolic",
-             "audio-volume-low-symbolic")))
   tooltip = If(XVolMuted, "Volume: Muted", "Volume: " + Str(XVolLevel, 0) + "%")
   action = PopUp("VolPopup")
+  action[scroll_up] = Exec("wpctl set-volume @DEFAULT_SINK@ 0.05+")
+  action[scroll_down] = Exec("wpctl set-volume @DEFAULT_SINK@ 0.05-")
+  action[middle] = Exec("wpctl set-mute @DEFAULT_SINK@ toggle")
+
+  grid {
+    style = "pill_grid"
+    image {
+      value = If(XVolMuted, "audio-volume-muted-symbolic",
+               If(XVolLevel > 66, "audio-volume-high-symbolic",
+                If(XVolLevel > 33, "audio-volume-medium-symbolic",
+                 "audio-volume-low-symbolic")))
+    }
+    label { value = If(XVolMuted, "Muted", Str(XVolLevel, 0) + "%") }
+  }
 }
 
 PopUp("VolPopup") {

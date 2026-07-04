@@ -2,13 +2,24 @@
 
 include("cpu.source")
 
-export label "cpu-text" {
+export button "cpu-text" {
   interval = 1000
-  style = If(XCpuPresent, "cpu-text", "hidden")
+  style = If(XCpuPresent, "module_pill", "hidden")
   class = "module"
-  value = "CPU " + Str(XCpuUtilization*100, 0) + "%"
   tooltip = "CPU Usage: " + Str(XCpuUtilization*100, 1) + "%"
   action = PopUp("CpuPopup")
+  
+  grid {
+    style = "pill_grid"
+    image { value = "cpu-symbolic" }
+    progressbar "cpu_prog" { 
+      value = XCpuUtilization
+      style = "pill_progress"
+      min = 0
+      max = 1 
+    }
+    label { value = Str(XCpuUtilization*100, 0) + "%" }
+  }
 }
 
 PopUp("CpuPopup") {
@@ -30,10 +41,4 @@ PopUp("CpuPopup") {
       action = ExecTerm("htop")
     }
   }
-}
-
-#CSS
-label#cpu-text {
-  padding: 2px 8px;
-  color: #cdd6f4;
 }

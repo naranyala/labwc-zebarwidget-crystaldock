@@ -107,6 +107,12 @@ case "$CATEGORY" in
     exec "$ACTIONS_DIR/launcher.sh" "$@" ;;
   settings|setting|config)
     exec "$ACTIONS_DIR/quick-settings.sh" "$@" ;;
+  fuzzel-calc)
+    exec "$ACTIONS_DIR/fuzzel-calc.sh" "$@" ;;
+  fuzzel-emoji)
+    exec "$ACTIONS_DIR/fuzzel-emoji.sh" "$@" ;;
+  maintenance)
+    exec "$ACTIONS_DIR/maintenance.sh" "$@" ;;
   help|--help|-h|*)
     show_help ;;
 esac

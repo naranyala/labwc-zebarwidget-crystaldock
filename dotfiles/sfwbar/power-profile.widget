@@ -1,0 +1,84 @@
+#Api2
+
+# Power Profile — switch between performance/balanced/power-saver
+file("/bin/sh -c 'powerprofilesctl get 2>/dev/null || echo auto'") {
+  XPowerRaw = Grab(First)
+}
+
+Set XPowerProfile = $XPowerRaw
+
+Function XPowerIcon(profile) {
+  If(profile = "performance", "power-profile-performance-symbolic",
+  If(profile = "power-saver", "power-profile-power-saver-symbolic",
+  "power-profile-balanced-symbolic"))
+}
+
+Function XPowerLabel(profile) {
+  If(profile = "performance", "Perf",
+  If(profile = "power-saver", "Saver",
+  "Balanced"))
+}
+
+export button "power-profile" {
+  interval = 10000
+  style = "module_pill"
+  class = "module"
+  tooltip = "Power Profile: " + XPowerLabel($XPowerProfile) + "\n" +
+    "Click to cycle profiles"
+  action = {
+    If($XPowerProfile = "performance",
+      Exec("powerprofilesctl set balanced"),
+    If($XPowerProfile = "balanced",
+      Exec("powerprofilesctl set power-saver"),
+      Exec("powerprofilesctl set performance")))
+  }
+  action[scroll_up] = Exec("powerprofilesctl set performance")
+  action[scroll_down] = Exec("powerprofilesctl set power-saver")
+
+  grid {
+    style = "pill_grid"
+    image { value = XPowerIcon($XPowerProfile) }
+    label { value = XPowerLabel($XPowerProfile) }
+  }
+}
+
+PopUp("PowerPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "Power Profile"
+      style = "detail_header"
+    }
+    label {
+      style = "detail_value"
+      interval = 10000
+      value = "Current: " + XPowerLabel($XPowerProfile)
+    }
+    grid {
+      style = "detail_button_row"
+      button {
+        value = "power-profile-performance-symbolic"
+        tooltip = "Performance"
+        action = Exec("powerprofilesctl set performance")
+      }
+      button {
+        value = "power-profile-balanced-symbolic"
+        tooltip = "Balanced"
+        action = Exec("powerprofilesctl set balanced")
+      }
+      button {
+        value = "power-profile-power-saver-symbolic"
+        tooltip = "Power Saver"
+        action = Exec("powerprofilesctl set power-saver")
+      }
+    }
+    label {
+      value = "Click to open power settings"
+      style = "detail_hint"
+      action = ExecTerm("powerprofilesctl list")
+    }
+  }
+}
+
+#CSS

@@ -1,0 +1,63 @@
+#Api2
+
+# Clipboard Widget — clipboard history
+file("/bin/sh -c 'wl-paste --list 2>/dev/null | head -5 || echo none'") {
+  XClipEntries = Grab(First)
+}
+
+file("/bin/sh -c 'wl-paste 2>/dev/null | head -c 50 || echo none'") {
+  XClipCurrent = Grab(First)
+}
+
+Set XClipCount = Val(RegEx("^text/plain", XClipEntries, Sum))
+
+export button "clipboard" {
+  interval = 3000
+  style = "module_pill"
+  class = "module"
+  tooltip = "Clipboard\n" +
+    If($XClipCurrent != "none", "Current: " + $XClipCurrent, "Empty")
+  action = PopUp("ClipboardPopup")
+
+  grid {
+    style = "pill_grid"
+    image { value = "edit-paste-symbolic" }
+    label { value = "Clip" }
+  }
+}
+
+PopUp("ClipboardPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "Clipboard"
+      style = "detail_header"
+    }
+    label {
+      style = "detail_value"
+      interval = 3000
+      value = "Current: " + $XClipCurrent
+    }
+    grid {
+      style = "detail_button_row"
+      button {
+        value = "edit-clear-symbolic"
+        tooltip = "Clear clipboard"
+        action = Exec("wl-paste --clear")
+      }
+      button {
+        value = "edit-copy-symbolic"
+        tooltip = "Copy selection"
+        action = Exec("wl-copy < /dev/null")
+      }
+    }
+    label {
+      value = "Click to open clipman"
+      style = "detail_hint"
+      action = ExecTerm("clipman show")
+    }
+  }
+}
+
+#CSS

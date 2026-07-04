@@ -1,4 +1,4 @@
-/* SFWBar — Noctalia-style floating bar theme
+/* SFWBar — Regular full-width panel theme
  * Catppuccin Mocha palette */
 
 /* Catppuccin Mocha color palette */
@@ -16,21 +16,20 @@
 @define-color success #a6e3a1;
 
 /* ============================================================
- * Base — transparent window, floating pill bar
+ * Base — regular full-width panel
  * ============================================================ */
 
 window#sfwbar {
-  background-color: transparent;
+  background-color: rgba(30, 30, 46, 0.92);
   box-shadow: none;
 }
 
 grid#layout {
-  background-color: rgba(30, 30, 46, 0.92);
-  border-radius: 12px;
-  margin: 10px 180px 0px 180px;
+  background-color: transparent;
+  border-radius: 0px;
+  margin: 0px;
   padding: 0px 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(88, 91, 112, 0.3);
+  border-bottom: 1px solid rgba(88, 91, 112, 0.3);
 }
 
 * {

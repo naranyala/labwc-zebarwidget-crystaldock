@@ -1,0 +1,96 @@
+#Api2
+
+# Volume Control — PipeWire/WirePlumber with device info
+file("/bin/sh -c 'wpctl get-volume @DEFAULT_SINK@ 2>/dev/null'") {
+  XVolRaw = Grab(First)
+}
+
+# Audio sink info
+file("/bin/sh -c 'wpctl inspect @DEFAULT_SINK@ 2>/dev/null | grep -E \"node.description|node.name\" | head -2'") {
+  XVolSinkInfo = Grab(First)
+}
+
+# Source (mic) info
+file("/bin/sh -c 'wpctl get-volume @DEFAULT_SOURCE@ 2>/dev/null'") {
+  XVolSourceRaw = Grab(First)
+}
+
+Set XVolLevel = Val(RegEx("Volume: ([0-9.]+)", XVolRaw)) * 100
+Set XVolMuted = RegEx("MUTED", XVolRaw)
+Set XVolSinkName = Extract($XVolSinkInfo, "node.description: \"(.*)\"")
+Set XVolMicLevel = Val(RegEx("Volume: ([0-9.]+)", XVolSourceRaw)) * 100
+Set XVolMicMuted = RegEx("MUTED", XVolSourceRaw)
+
+export button "volume-control" {
+  interval = 2000
+  style = "module_pill"
+  class = "module"
+  tooltip = If(XVolMuted, "Volume: Muted", "Volume: " + Str(XVolLevel, 0) + "%") +
+    "\nSink: " + If($XVolSinkName != "", $XVolSinkName, "Default") +
+    "\nMic: " + If(XVolMicMuted, "Muted", Str(XVolMicLevel, 0) + "%")
+  action = PopUp("VolControlPopup")
+  action[scroll_up] = Exec("wpctl set-volume @DEFAULT_SINK@ 0.05+")
+  action[scroll_down] = Exec("wpctl set-volume @DEFAULT_SINK@ 0.05-")
+  action[middle] = Exec("wpctl set-mute @DEFAULT_SINK@ toggle")
+
+  grid {
+    style = "pill_grid"
+    image {
+      value = If(XVolMuted, "audio-volume-muted-symbolic",
+               If(XVolLevel > 66, "audio-volume-high-symbolic",
+                If(XVolLevel > 33, "audio-volume-medium-symbolic",
+                 "audio-volume-low-symbolic")))
+    }
+    label { value = If(XVolMuted, "Muted", Str(XVolLevel, 0) + "%") }
+  }
+}
+
+PopUp("VolControlPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "Volume Control"
+      style = "detail_header"
+    }
+    label {
+      style = "detail_value"
+      interval = 2000
+      value = If(XVolMuted, "Muted", Str(XVolLevel, 0) + "%") +
+        "\nSink: " + If($XVolSinkName != "", $XVolSinkName, "Default") +
+        "\nMic: " + If(XVolMicMuted, "Muted", Str(XVolMicLevel, 0) + "%")
+    }
+    scale {
+      style = "detail_slider"
+      value = XVolLevel
+      min = 0
+      max = 100
+      action = Exec("/bin/sh -c 'wpctl set-volume @DEFAULT_SINK@ " + Str($value/100, 2) + "'")
+    }
+    grid {
+      style = "detail_button_row"
+      button {
+        value = "audio-volume-muted-symbolic"
+        tooltip = "Toggle mute"
+        action = Exec("wpctl set-mute @DEFAULT_SINK@ toggle")
+      }
+      button {
+        value = "audio-volume-low-symbolic"
+        tooltip = "Volume down 5%"
+        action = Exec("wpctl set-volume @DEFAULT_SINK@ 0.05-")
+      }
+      button {
+        value = "audio-volume-high-symbolic"
+        tooltip = "Volume up 5%"
+        action = Exec("wpctl set-volume @DEFAULT_SINK@ 0.05+")
+      }
+    }
+    label {
+      value = "Click to open pavucontrol"
+      style = "detail_hint"
+      action = ExecTerm("pavucontrol")
+    }
+  }
+}
+
+#CSS

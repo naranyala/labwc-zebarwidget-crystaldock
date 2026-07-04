@@ -1,0 +1,72 @@
+#Api2
+
+# Temperature widget — system thermal monitoring
+file("/sys/class/thermal/thermal_zone0/temp") {
+  XTemp0 = Grab(First)
+}
+file("/sys/class/thermal/thermal_zone1/temp") {
+  XTemp1 = Grab(First)
+}
+file("/sys/class/hwmon/hwmon0/temp1_input") {
+  XHwTemp = Grab(First)
+}
+
+Set XTempC = Val(If(Val(XTemp0) > 0, XTemp0, If(Val(XHwTemp) > 0, XHwTemp, 0))) / 1000
+Set XTemp2C = Val(XTemp1) / 1000
+
+Set XTempIcon = If(XTempC > 80, "temperature-warm-symbolic",
+  If(XTempC > 60, "temperature-medium-symbolic",
+   "temperature-cold-symbolic"))
+
+Set XTempStyle = If(XTempC > 80, "temp_critical",
+  If(XTempC > 60, "temp_warning", "temp_normal"))
+
+export button "temperature" {
+  interval = 3000
+  style = "module_pill"
+  class = "module"
+  css = If(XTempC > 80, "* { color: #f38ba8; }",
+    If(XTempC > 60, "* { color: #f9e2af; }", "* { color: #a6e3a1; }"))
+  tooltip = "CPU Temperature: " + Str(XTempC, 0) + "°C\n" +
+    "Sensor 2: " + Str(XTemp2C, 0) + "°C"
+  action = PopUp("TempPopup")
+
+  grid {
+    style = "pill_grid"
+    image { value = XTempIcon }
+    label {
+      value = Str(XTempC, 0) + "°C"
+      css = If(XTempC > 80, "* { color: #f38ba8; }",
+        If(XTempC > 60, "* { color: #f9e2af; }", "* { color: #a6e3a1; }"))
+    }
+  }
+}
+
+PopUp("TempPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "Temperature"
+      style = "detail_header"
+    }
+    label {
+      style = "detail_value"
+      interval = 3000
+      value = "CPU: " + Str(XTempC, 0) + "°C\n" +
+        "Sensor 2: " + Str(XTemp2C, 0) + "°C\n" +
+        If(XTempC > 80, "WARNING: High temperature!",
+         If(XTempC > 60, "Elevated temperature", "Normal"))
+    }
+    label {
+      value = "Click to open sensors"
+      style = "detail_hint"
+      action = ExecTerm("watch -n 2 sensors")
+    }
+  }
+}
+
+#CSS
+label#temp_normal { color: #a6e3a1; }
+label#temp_warning { color: #f9e2af; }
+label#temp_critical { color: #f38ba8; }

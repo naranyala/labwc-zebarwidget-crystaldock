@@ -9,14 +9,19 @@ Private {
   Var tooltip_format = "%k:%M\n%x"
   Var reset_on_popup = TRUE;
 
-  export label 'clock' {
-    value = Time(time_format)
-    style ="clock"
+  export button 'clock' {
+    style = "module_pill"
     tooltip = Time(tooltip_format)
     action = {
       If reset_on_popup
         EmitTrigger("calendar-reset")
       PopUp("Xcal")
+    }
+
+    grid {
+      style = "pill_grid"
+      image { value = "preferences-system-time-symbolic" }
+      label { value = Time(time_format) }
     }
   }
 }

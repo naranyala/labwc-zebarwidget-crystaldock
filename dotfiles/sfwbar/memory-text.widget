@@ -2,13 +2,24 @@
 
 include("memory.source")
 
-export label "memory-text" {
+export button "memory-text" {
   interval = 1000
-  style = If(XMemPresent, "memory-text", "hidden")
+  style = If(XMemPresent, "module_pill", "hidden")
   class = "module"
-  value = "MEM " + Str(XMemUtilization*100, 0) + "%"
   tooltip = "Memory Usage: " + Str(XMemUtilization*100, 1) + "%"
   action = PopUp("MemPopup")
+
+  grid {
+    style = "pill_grid"
+    image { value = "ram-symbolic" }
+    progressbar "mem_prog" { 
+      value = XMemUtilization
+      style = "pill_progress"
+      min = 0
+      max = 1 
+    }
+    label { value = Str(XMemUtilization*100, 0) + "%" }
+  }
 }
 
 PopUp("MemPopup") {
@@ -32,8 +43,4 @@ PopUp("MemPopup") {
   }
 }
 
-#CSS
-label#memory-text {
-  padding: 2px 8px;
-  color: #cdd6f4;
-}
+

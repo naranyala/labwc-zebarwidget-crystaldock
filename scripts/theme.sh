@@ -13,8 +13,20 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-PROJECT_DIR="$(cd "$SCRIPT_DIR/.." 2>/dev/null && pwd || echo "")"
-THEMES_DIR="${PROJECT_DIR:-/media/naranyala/Data/projects-remote/labwc-crystaldock-barandwidgets}/themes"
+PROJECT_DIR=""
+# Walk up from script dir looking for themes/
+_candidate="$SCRIPT_DIR"
+while [[ "$_candidate" != "/" ]]; do
+  if [[ -d "$_candidate/themes" ]]; then
+    PROJECT_DIR="$_candidate"
+    break
+  fi
+  _candidate="$(dirname "$_candidate")"
+done
+# Fallback: known project path
+[[ -z "$PROJECT_DIR" ]] && PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar"
+[[ -d "$PROJECT_DIR/themes" ]] || { echo "Cannot find themes/ directory"; exit 1; }
+THEMES_DIR="$PROJECT_DIR/themes"
 CURRENT_FILE="$HOME/.config/labwc/.current-theme"
 
 RED='\033[0;31m'

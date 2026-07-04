@@ -13,14 +13,21 @@ Set XBrightLevel = If(Val(XBrightMax) > 0, Val(XBrightRaw) / Val(XBrightMax) * 1
 
 export button "brightness" {
   interval = 5000
-  style = "module"
+  style = "module_pill"
   class = "module"
-  value = If(XBrightLevel > 75, "display-brightness-high-symbolic",
-           If(XBrightLevel > 25, "display-brightness-medium-symbolic",
-            "display-brightness-low-symbolic"))
   tooltip = "Brightness: " + Str(XBrightLevel, 0) + "%"
   action[scroll_up] = Exec("brightnessctl set +5%")
   action[scroll_down] = Exec("brightnessctl set 5%-")
+
+  grid {
+    style = "pill_grid"
+    image {
+      value = If(XBrightLevel > 75, "display-brightness-high-symbolic",
+               If(XBrightLevel > 25, "display-brightness-medium-symbolic",
+                "display-brightness-low-symbolic"))
+    }
+    label { value = Str(XBrightLevel, 0) + "%" }
+  }
 }
 
 #CSS

@@ -1,0 +1,42 @@
+#Api2
+
+Exec("sh ~/.config/sfwbar/get-keybinds.sh") {
+  XKeybindsRaw = Grab(First)
+}
+
+export button "keybinds" {
+  style = "module_pill"
+  class = "module"
+  tooltip = "Show Labwc Keybinds"
+  action = PopUp("KeybindsPopup")
+  
+  grid {
+    style = "pill_grid"
+    image { value = "preferences-desktop-keyboard-shortcuts-symbolic" }
+  }
+}
+
+PopUp("KeybindsPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "Labwc Keybinds"
+      style = "detail_header"
+    }
+    label {
+      style = "keybinds_list"
+      value = ReplaceAll($XKeybindsRaw, "@", "\n")
+    }
+  }
+}
+
+#CSS
+
+label.keybinds_list {
+  font-family: monospace;
+  font-size: 11px;
+  -GtkWidget-halign: start;
+  color: #cdd6f4;
+  padding: 10px;
+}

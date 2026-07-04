@@ -1,0 +1,74 @@
+#Api2
+
+# Bluetooth Monitor — device list, connection status
+module("bluez")
+
+Private {
+
+  Function XBtDeviceIcon(type) {
+    If(type = "audio-headphones", "audio-headphones-symbolic",
+    If(type = "audio-headset", "audio-headset-symbolic",
+    If(type = "input-gaming", "input-gaming-symbolic",
+    If(type = "input-keyboard", "input-keyboard-symbolic",
+    If(type = "input-mouse", "input-mouse-symbolic",
+    If(type = "phone", "phone-symbolic",
+    "bluetooth-active-symbolic"))))))
+  }
+
+  export button "bluetooth-monitor" {
+    interval = 5000
+    style = If(BluezState()="on", "module_pill", "hidden")
+    class = "module"
+    tooltip = "Bluetooth: " + BluezState() + "\n" +
+      "Devices: " + Str(BluezCount())
+    action = PopUp("BtMonitorPopup")
+
+    grid {
+      style = "pill_grid"
+      image {
+        value = If(BluezState()="on", "bluetooth-active-symbolic", "bluetooth-disabled-symbolic")
+      }
+      label {
+        value = If(BluezCount() > 0, Str(BluezCount()) + " dev", "BT")
+      }
+    }
+  }
+
+  PopUp("BtMonitorPopup") {
+    style = "detail_popup"
+    grid {
+      style = "detail_grid"
+      label {
+        value = "Bluetooth"
+        style = "detail_header"
+      }
+      label {
+        style = "detail_value"
+        interval = 5000
+        value = "State: " + BluezState() + "\n" +
+          "Devices: " + Str(BluezCount()) + "\n" +
+          If(BluezCount() > 0, "Click device to connect", "")
+      }
+      grid {
+        style = "detail_button_row"
+        button {
+          value = If(BluezState()="on", "bluetooth-disabled-symbolic", "bluetooth-active-symbolic")
+          tooltip = If(BluezState()="on", "Disable Bluetooth", "Enable Bluetooth")
+          action = Exec("bluetoothctl power " + If(BluezState()="on", "off", "on"))
+        }
+        button {
+          value = "view-refresh-symbolic"
+          tooltip = "Scan for devices"
+          action = Exec("bluetoothctl scan on")
+        }
+      }
+      label {
+        value = "Click to open blueman"
+        style = "detail_hint"
+        action = ExecTerm("blueman-manager")
+      }
+    }
+  }
+}
+
+#CSS

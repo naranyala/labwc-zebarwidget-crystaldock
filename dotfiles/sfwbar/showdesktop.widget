@@ -1,0 +1,28 @@
+#Api2
+
+# Show Desktop widget — toggle desktop view (minimize all windows)
+
+export button "showdesktop" {
+  style = "module"
+  class = "module"
+  value = "user-desktop-symbolic"
+  tooltip = "Show Desktop"
+  action = ToggleDesktop()
+}
+
+#CSS
+
+button#showdesktop {
+  padding: 4px 8px;
+  margin: 2px;
+  border-radius: 6px;
+  background-color: transparent;
+}
+
+button#showdesktop:hover {
+  background-color: rgba(69, 71, 90, 0.5);
+}
+
+button#showdesktop:checked {
+  background-color: rgba(137, 180, 250, 0.2);
+}

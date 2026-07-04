@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# widget-actions.sh — Standardized CLI actions for zebar widgets
+# widget-actions.sh — Standardized CLI actions for sfwbar widgets
 #
 # Widgets shell out to this for volume, brightness, media, network, power.
 # All return JSON for easy parsing: {"status":"ok","value":...}

@@ -1,0 +1,124 @@
+#Api2
+
+# Quick Settings Widget — one-click toggles for common settings
+Private {
+
+  Var qs_items = [
+    ["wifi", "network-wireless-symbolic", "WiFi"],
+    ["bluetooth", "bluetooth-active-symbolic", "Bluetooth"],
+    ["nightlight", "night-light-symbolic", "Night Light"],
+    ["dnd", "preferences-system-notifications-symbolic", "Do Not Disturb"],
+    ["lock", "system-lock-screen-symbolic", "Lock Screen"]
+  ];
+
+  Var qs_id;
+
+  Var QsTmpl = "
+    grid 'qs_container' {
+      grid {
+        style = 'qs_grid';
+        action = {
+          if qs_id != ''
+            Config('grid \"qs_' + qs_id +'\" { style = \"hidden\" }');
+          if qs_id != '@LOC@'
+            Config('grid \"qs_@LOC@\" { style = \"qs_conf\" }');
+          qs_id = if(qs_id='@LOC@', '', '@LOC@');
+        }
+        loc(0,@LOC@);
+        image {
+          value = qs_items[@LOC@][1];
+          interval = 0;
+          style = 'qs_icon';
+          loc(0,0);
+        }
+        label {
+          value = qs_items[@LOC@][2];
+          interval = 0;
+          style = 'qs_label';
+          loc(1,0);
+        }
+        grid 'qs_@LOC@' {
+          loc(0,1,2,1);
+          style = 'hidden';
+          image {
+            value = 'dialog-ok';
+            action = {
+              PopUp('QsPopup');
+              Config('grid \"qs_@LOC@\" {style = \"hidden\"}');
+              If(@LOC@ = 0, Exec('rfkill toggle wifi'));
+              If(@LOC@ = 1, Exec('bluetoothctl power on || bluetoothctl power off'));
+              If(@LOC@ = 2, Exec('gammastep -O 3500'));
+              If(@LOC@ = 3, Exec('dunstctl set-paused toggle'));
+              If(@LOC@ = 4, Exec('loginctl lock-session'));
+            }
+            loc(0,0,1,1);
+          }
+          image {
+            value = 'dialog-cancel';
+            action = Config('grid \"qs_@LOC@\" {style = \"hidden\"}');
+            loc(1,0,1,1);
+          }
+        }
+      }
+    }"
+
+  Function QsInit() {
+    for(Var i = 0; i < ArraySize(qs_items); i=i+1)
+      Config(Replace(QsTmpl, "@LOC@", Str(i)));
+  }
+
+  PopUp("QsPopup") {
+    style = "detail_popup"
+    grid {
+      style = "detail_grid"
+      grid "qs_container" {}
+    }
+  }
+
+  export button "quick-settings" {
+    value = "emblem-system-symbolic";
+    style = "module_pill";
+    class = "module";
+    tooltip = "Quick Settings";
+    action[0] = QsInit();
+    action = PopUp("QsPopup");
+  }
+}
+
+#CSS
+
+image#qs_icon {
+  min-width: 24px;
+  min-height: 24px;
+  padding-right: 8px;
+  -GtkWidget-hexpand: false;
+  -GtkWidget-halign: start;
+}
+
+label#qs_label {
+  -GtkWidget-hexpand: false;
+  -GtkWidget-halign: start;
+}
+
+grid#qs_grid {
+  -GtkWidget-hexpand: false;
+  padding-bottom: 5px;
+}
+
+grid#qs_conf {
+  margin-top: 2px;
+  border: solid 1px rgba(88, 91, 112, 0.4);
+  border-radius: 5px;
+  -GtkWidget-hexpand: true;
+  -GtkWidget-halign: fill;
+}
+
+grid#qs_conf image {
+  margin: 5px;
+  -GtkWidget-hexpand: true;
+  -GtkWidget-halign: fill;
+}
+
+grid#qs_conf :not(:last-child) image {
+  border-right: solid 1px rgba(88, 91, 112, 0.4);
+}

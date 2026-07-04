@@ -1,0 +1,22 @@
+#Api2
+
+# Keyboard Layout — current layout indicator
+module("xkbmap")
+
+export button "keyboard-layout" {
+  interval = 5000
+  style = If(Ident(Layout), "module_pill", "hidden")
+  class = "module"
+  tooltip = "Keyboard Layout: " + Layout()
+  action = SetLayout("next")
+  action[scroll_up] = SetLayout("next")
+  action[scroll_down] = SetLayout("prev")
+
+  grid {
+    style = "pill_grid"
+    image { value = "input-keyboard-symbolic" }
+    label { value = Layout() }
+  }
+}
+
+#CSS

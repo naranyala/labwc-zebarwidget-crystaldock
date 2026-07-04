@@ -1,4 +1,4 @@
-/* SFWBar — Noctalia-style floating bar theme
+/* SFWBar — Regular full-width panel theme
  * Catppuccin Mocha palette */
 
 /* Catppuccin Mocha color palette */
@@ -13,21 +13,19 @@
 @define-color success #a6e3a1;
 
 /* ============================================================
- * Base — transparent window, floating pill bar
+ * Base — regular full-width panel
  * ============================================================ */
 
 window#sfwbar {
-  background-color: transparent;
+  background-color: rgba(30, 30, 46, 0.92);
   box-shadow: none;
 }
 
 grid#layout {
-  background-color: rgba(30, 30, 46, 0.92);
-  border-radius: 12px;
-  margin: 10px 180px 0px 180px;
+  background-color: transparent;
+  border-radius: 0px;
+  margin: 0px;
   padding: 0px 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
-  border: 1px solid rgba(88, 91, 112, 0.3);
 }
 
 * {
@@ -157,26 +155,64 @@ button#pager_item:hover {
 }
 
 /* ============================================================
+ * Double Panel — Top Bar + Bottom Taskbar
+ * ============================================================ */
+
+/* Top bar grid */
+grid#topbar {
+  background-color: rgba(30, 30, 46, 0.92);
+  border-radius: 0px;
+  margin: 0px;
+  padding: 0px 8px;
+  border-bottom: 1px solid rgba(88, 91, 112, 0.3);
+}
+
+/* Bottom bar grid */
+grid#bottombar {
+  background-color: rgba(30, 30, 46, 0.85);
+  border-radius: 0px;
+  margin: 0px;
+  padding: 0px 8px;
+  border-top: 1px solid rgba(88, 91, 112, 0.3);
+}
+
+/* ============================================================
  * Taskbar (bottom bar)
  * ============================================================ */
 
-button.taskbar_item {
+button#taskbar_item {
   padding: 4px 8px;
   margin: 2px;
   border-radius: 6px;
   background-color: transparent;
 }
 
-button.taskbar_item:hover {
+button#taskbar_item:hover {
   background-color: rgba(69, 71, 90, 0.5);
 }
 
-button.taskbar_item.active {
+button#taskbar_item.focused {
   background-color: rgba(137, 180, 250, 0.2);
 }
 
-button.taskbar_item.urgent {
+button#taskbar_item.urgent {
   background-color: rgba(243, 139, 168, 0.2);
+}
+
+button#taskbar_item image {
+  min-height: 20px;
+  min-width: 20px;
+  padding: 2px;
+  -ScaleImage-symbolic: false;
+}
+
+button#taskbar_item label {
+  font-size: 11px;
+  padding-left: 4px;
+}
+
+grid#taskbar {
+  -GtkWidget-hexpand: true;
 }
 
 /* ============================================================
@@ -344,3 +380,54 @@ tooltip label {
   color: #cdd6f4;
   font-size: 11px;
 }
+
+/* ============================================================
+ * Rich Widget Pills (Noctalia-inspired)
+ * ============================================================ */
+
+button.module_pill {
+  padding: 4px 8px;
+  border-radius: 12px;
+  background-color: rgba(69, 71, 90, 0.3);
+  margin: 2px 4px;
+  min-height: 24px;
+}
+
+button.module_pill:hover {
+  background-color: rgba(69, 71, 90, 0.6);
+}
+
+grid.pill_grid {
+  -GtkWidget-direction: right;
+  border: none;
+  background-color: transparent;
+}
+
+grid.pill_grid image {
+  margin-right: 6px;
+  color: #cdd6f4;
+}
+
+grid.pill_grid label {
+  font-weight: bold;
+  font-size: 12px;
+  color: #cdd6f4;
+}
+
+progressbar.pill_progress trough {
+  min-height: 6px;
+  min-width: 35px;
+  border-radius: 3px;
+  background-color: rgba(30, 30, 46, 0.6);
+  margin: 0px 6px;
+  -GtkWidget-valign: center;
+}
+
+progressbar.pill_progress progress {
+  min-height: 6px;
+  border-radius: 3px;
+}
+
+progressbar#cpu_prog progress { background-color: #89b4fa; }
+progressbar#mem_prog progress { background-color: #cba6f7; }
+progressbar#bat_prog progress { background-color: #a6e3a1; }

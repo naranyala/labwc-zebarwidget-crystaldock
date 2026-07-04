@@ -1,0 +1,113 @@
+#Api2
+
+# Media Player — MPRIS controls with rich info
+file("/bin/sh -c 'playerctl metadata --format \"{\"artist\":\"%{artist}\",\"title\":\"%{title}\",\"album\":\"%{album}\",\"status\":\"$(playerctl status 2>/dev/null)\"}\" 2>/dev/null || echo {}'") {
+  XMediaJson = Grab(First)
+}
+
+file("/bin/sh -c 'playerctl metadata --format artist 2>/dev/null || echo none'") {
+  XMediaArtist = Grab(First)
+}
+file("/bin/sh -c 'playerctl metadata --format title 2>/dev/null || echo none'") {
+  XMediaTitle = Grab(First)
+}
+file("/bin/sh -c 'playerctl metadata --format album 2>/dev/null || echo none'") {
+  XMediaAlbum = Grab(First)
+}
+file("/bin/sh -c 'playerctl status 2>/dev/null || echo none'") {
+  XMediaStatus = Grab(First)
+}
+file("/bin/sh -c 'playerctl position 2>/dev/null || echo 0'") {
+  XMediaPosition = Grab(First)
+}
+file("/bin/sh -c 'playerctl metadata --format \"%(mpris:length)\" 2>/dev/null || echo 0'") {
+  XMediaLength = Grab(First)
+}
+
+Set XMediaPosFmt = If(Val(XMediaLength) > 0,
+  Str(Val(XMediaPosition)/60, 0) + ":" + Pad(Str(Val(XMediaPosition)%60, 0), 2, "0") +
+  " / " + Str(Val(XMediaLength)/1000000/60, 0) + ":" + Pad(Str(Val(XMediaLength)/1000000%60, 0), 2, "0"),
+  "")
+
+export button "media-player" {
+  interval = 2000
+  style = If(XMediaStatus != "none", "module_pill", "hidden")
+  class = "module"
+  tooltip = If(XMediaStatus != "none",
+    If(XMediaArtist != "none", XMediaArtist + "\n", "") +
+    If(XMediaTitle != "none", XMediaTitle + "\n", "") +
+    If(XMediaAlbum != "none", "(" + XMediaAlbum + ")\n", "") +
+    XMediaStatus + If(XMediaPosFmt != "", "\n" + XMediaPosFmt, ""),
+    "No media playing")
+  action = If(XMediaStatus = "Playing", Exec("playerctl pause"),
+           If(XMediaStatus = "Paused", Exec("playerctl play"),
+            Exec("playerctl play")))
+  action[scroll_up] = Exec("playerctl position 5+")
+  action[scroll_down] = Exec("playerctl position 5-")
+  action[middle] = Exec("playerctl next")
+
+  grid {
+    style = "pill_grid"
+    image {
+      value = If(XMediaStatus = "Playing", "media-playback-pause-symbolic",
+               If(XMediaStatus = "Paused", "media-playback-start-symbolic",
+                "multimedia-audio-player-symbolic"))
+    }
+    label {
+      value = If(XMediaTitle != "none", XMediaTitle, "Media")
+    }
+  }
+}
+
+PopUp("MediaPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "Media Player"
+      style = "detail_header"
+    }
+    label {
+      style = "detail_value"
+      interval = 2000
+      value = If(XMediaStatus != "none",
+        If(XMediaArtist != "none", "Artist: " + XMediaArtist + "\n", "") +
+        If(XMediaTitle != "none", "Title: " + XMediaTitle + "\n", "") +
+        If(XMediaAlbum != "none", "Album: " + XMediaAlbum + "\n", "") +
+        "Status: " + XMediaStatus + "\n" +
+        If(XMediaPosFmt != "", "Position: " + XMediaPosFmt, ""),
+        "No media playing"
+      )
+    }
+    grid {
+      style = "detail_button_row"
+      button {
+        value = "media-skip-backward-symbolic"
+        tooltip = "Previous"
+        action = Exec("playerctl previous")
+      }
+      button {
+        value = If(XMediaStatus = "Playing", "media-playback-pause-symbolic", "media-playback-start-symbolic")
+        tooltip = If(XMediaStatus = "Playing", "Pause", "Play")
+        action = If(XMediaStatus = "Playing", Exec("playerctl pause"), Exec("playerctl play"))
+      }
+      button {
+        value = "media-skip-forward-symbolic"
+        tooltip = "Next"
+        action = Exec("playerctl next")
+      }
+      button {
+        value = "media-playback-stop-symbolic"
+        tooltip = "Stop"
+        action = Exec("playerctl stop")
+      }
+    }
+    label {
+      value = "Click to open player"
+      style = "detail_hint"
+      action = ExecTerm("playerctl")
+    }
+  }
+}
+
+#CSS

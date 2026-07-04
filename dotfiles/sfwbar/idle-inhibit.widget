@@ -1,0 +1,25 @@
+#Api2
+
+# Idle Inhibitor — prevent screenblank/suspend
+module("idleinhibit")
+
+Private {
+  Var icon_active = "system-lock-screen-symbolic";
+  Var icon_inactive = "system-unlock-symbolic";
+
+  export button "idle-inhibit" {
+    value = If(IdleInhibitState()="on", icon_active, icon_inactive);
+    style = If(Ident(IdleInhibitState), "module_pill", "hidden");
+    class = "module";
+    tooltip = If(IdleInhibitState()="on", "Idle Inhibitor: Active\nScreen will not blank", "Idle Inhibitor: Inactive");
+    local = true;
+    trigger = "idleinhibitor";
+    action[1] = SetIdleInhibitor("toggle");
+  }
+}
+
+#CSS
+button#idle-inhibit {
+  min-width: 24px;
+  min-height: 24px;
+}

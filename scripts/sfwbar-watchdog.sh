@@ -1,62 +1,24 @@
 #!/bin/sh
 
-# Watchdog for sfwbar
+# Watchdog for sfwbar — restart if it crashes
+
+export PATH="$HOME/.local/bin:$PATH"
+export FONTCONFIG_FILE="$HOME/.config/fontconfig/fonts.conf"
+
+CONFIG_FILE="$HOME/.config/sfwbar/sfwbar.config"
+CSS_FILE="$HOME/.config/sfwbar/catppuccin-mocha.css"
+
+CSS_ARG=""
+CONFIG_ARG=""
+[ -f "$CSS_FILE" ] && CSS_ARG="-c $CSS_FILE"
+[ -f "$CONFIG_FILE" ] && CONFIG_ARG="-f $CONFIG_FILE"
 
 while true; do
   if ! pgrep -x "sfwbar" > /dev/null; then
-    export XDG_RUNTIME_DIR="/run/user/$(id -u)"
-    if [ -f "$HOME/.config/sfwbar/wbar.config" ]; then
-      sfwbar --config "$HOME/.config/sfwbar/wbar.config"
-    elif [ -f "$HOME/.config/sfwbar/w10.config" ]; then
-      sfwbar --config "$HOME/.config/sfwbar/w10.config"
-    else
-      # Fallback to minimal configuration
-      mkdir -p "$HOME/.config/sfwbar"
-      cat > "$HOME/.config/sfwbar/wbar.config" << 'EOF'
-module.name "bar" {
-  position = "top",
-  height = "32px",
-  background = "#1e1e2e",
-  foreground = "#cdd6f4",
-  
-  widget {
-    type = "workspaces",
-    position = "left"
-  },
-  
-  widget {
-    type = "clock",
-    format = "%H:%M",
-    timezone = "local"
-  },
-  
-  widget {
-    type = "cpu",
-    label = "CPU"
-  },
-  
-  widget {
-    type = "memory",
-    label = "MEM"
-  },
-  
-  widget {
-    type = "network",
-    label = "NET"
-  },
-  
-  widget {
-    type = "battery",
-    label = "BAT"
-  },
-  
-  widget {
-    type = "volume",
-    label = "VOL"
-  }
-}
-EOF
-      sfwbar --config "$HOME/.config/sfwbar/wbar.config"
+    if [ -n "$CONFIG_ARG" ]; then
+      sfwbar $CONFIG_ARG $CSS_ARG > /dev/null 2>&1 &
+      sleep 1
+      pgrep -x sfwbar > /dev/null && echo "sfwbar restarted (PID: $(pgrep -x sfwbar))"
     fi
   fi
   sleep 5

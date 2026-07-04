@@ -1,0 +1,80 @@
+#Api2
+
+# Weather Widget — current conditions with icon
+Exec("curl -s 'https://api.open-meteo.com/v1/forecast?latitude=51.5&longitude=-0.12&current=temperature_2m,weather_code,wind_speed_10m,relative_humidity_2m&temperature_unit=celsius'") {
+  XWeatherTemp     = Json(".current.temperature_2m")
+  XWeatherCode     = Json(".current.weather_code")
+  XWeatherWind     = Json(".current.wind_speed_10m")
+  XWeatherHumidity = Json(".current.relative_humidity_2m")
+}
+
+# Map WMO weather codes to icons
+Function XWeatherIcon(code) {
+  If(code = 0, "weather-clear-symbolic",
+  If(code <= 3, "weather-few-clouds-symbolic",
+  If(code <= 49, "weather-fog-symbolic",
+  If(code <= 59, "weather-showers-symbolic",
+  If(code <= 69, "weather-snow-symbolic",
+  If(code <= 79, "weather-snow-symbolic",
+  If(code <= 82, "weather-showers-symbolic",
+  If(code <= 86, "weather-snow-symbolic",
+  If(code <= 99, "weather-storm-symbolic",
+  "weather-clear-symbolic"))))))))
+}
+
+Function XWeatherDesc(code) {
+  If(code = 0, "Clear sky",
+  If(code <= 3, "Partly cloudy",
+  If(code <= 49, "Foggy",
+  If(code <= 59, "Rain",
+  If(code <= 69, "Snow",
+  If(code <= 79, "Snow showers",
+  If(code <= 82, "Rain showers",
+  If(code <= 86, "Heavy snow",
+  If(code <= 99, "Thunderstorm",
+  "Unknown"))))))))
+}
+
+export grid "weather" {
+  style = "module_pill"
+  interval = 600000
+  css = "* { font-size: 11px; }"
+
+  image {
+    value = XWeatherIcon(Val(XWeatherCode))
+  }
+  label {
+    value = Str(XWeatherTemp, 0) + "°C"
+  }
+}
+
+PopUp("WeatherPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "Weather"
+      style = "detail_header"
+    }
+    label {
+      style = "detail_value"
+      interval = 600000
+      value = XWeatherDesc(Val(XWeatherCode)) + "\n" +
+        "Temperature: " + Str(XWeatherTemp, 1) + "°C\n" +
+        "Wind: " + Str(XWeatherWind, 0) + " km/h\n" +
+        "Humidity: " + Str(XWeatherHumidity, 0) + "%"
+    }
+    label {
+      value = "Click to open weather app"
+      style = "detail_hint"
+      action = Exec("xdg-open 'https://wttr.in/'")
+    }
+  }
+}
+
+#CSS
+grid#weather {
+  padding: 4px 8px;
+  border-radius: 8px;
+  background-color: rgba(69, 71, 90, 0.3);
+}

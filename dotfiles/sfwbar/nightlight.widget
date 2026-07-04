@@ -1,0 +1,29 @@
+#Api2
+
+# Night Light Widget — toggle blue light filter
+file("/bin/sh -c 'pgrep -x gammastep >/dev/null && echo on || echo off'") {
+  XNightLight = Grab(First)
+}
+
+export button "nightlight" {
+  interval = 10000
+  style = "module_pill"
+  class = "module"
+  tooltip = If($XNightLight = "on", "Night Light: Active\nBlue light filter on", "Night Light: Inactive")
+  action = {
+    If($XNightLight = "on",
+      Exec("pkill gammastep"),
+      Exec("gammastep -O 3500 &"))
+  }
+
+  grid {
+    style = "pill_grid"
+    image {
+      value = "night-light-symbolic"
+      css = If($XNightLight = "on", "* { color: #fab387; }", "")
+    }
+    label { value = "Night" }
+  }
+}
+
+#CSS

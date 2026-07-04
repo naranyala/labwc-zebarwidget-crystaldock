@@ -36,10 +36,10 @@ if [[ -f "$SCRIPT_DIR/../dotfiles/install.sh" ]]; then
   PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 elif [[ -f "$SCRIPT_DIR/../../dotfiles/install.sh" ]]; then
   PROJECT_DIR="$(cd "$SCRIPT_DIR/../.." && pwd)"
-elif [[ -f "/media/naranyala/Data/projects-remote/labwc-crystaldock-barandwidgets/dotfiles/install.sh" ]]; then
-  PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-crystaldock-barandwidgets"
-elif [[ -f "$HOME/projects/labwc-crystaldock-barandwidgets/dotfiles/install.sh" ]]; then
-  PROJECT_DIR="$HOME/projects/labwc-crystaldock-barandwidgets"
+elif [[ -f "/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/dotfiles/install.sh" ]]; then
+  PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar"
+elif [[ -f "$HOME/projects/labwc-fuzzel-sfwbar/dotfiles/install.sh" ]]; then
+  PROJECT_DIR="$HOME/projects/labwc-fuzzel-sfwbar"
 fi
 
 if [[ -z "$PROJECT_DIR" ]]; then

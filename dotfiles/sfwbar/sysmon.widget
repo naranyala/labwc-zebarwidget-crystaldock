@@ -1,0 +1,67 @@
+#Api2
+
+# System Monitor — uptime, load, disk, processes
+file("/proc/uptime") {
+  XUptimeRaw = Grab(First)
+}
+
+file("/proc/loadavg") {
+  XLoadAvgRaw = Grab(First)
+}
+
+file("/proc/stat") {
+  XProcTotal = RegEx("^processes ([0-9]+)")
+  XProcRunning = RegEx("^procs_running ([0-9]+)")
+}
+
+Set XUptimeSec = Val(Extract($XUptimeRaw, "^([0-9]+)"))
+Set XUptimeH = XUptimeSec / 3600
+Set XUptimeM = (XUptimeSec % 3600) / 60
+
+Set XLoad1 = Extract($XLoadAvgRaw, "^([0-9.]+)")
+Set XLoad5 = Extract($XLoadAvgRaw, "^[0-9.]+ ([0-9.]+)")
+Set XLoad15 = Extract($XLoadAvgRaw, "^[0-9.]+ [0-9.]+ ([0-9.]+)")
+
+export button "sysmon" {
+  interval = 5000
+  style = "module_pill"
+  class = "module"
+  tooltip = "System\n" +
+    "Uptime: " + Str(XUptimeH, 0) + "h " + Str(XUptimeM, 0) + "m\n" +
+    "Load: " + $XLoad1 + " / " + $XLoad5 + " / " + $XLoad15 + "\n" +
+    "Processes: " + $XProcTotal + "\n" +
+    "Running: " + $XProcRunning
+  action = PopUp("SysmonPopup")
+
+  grid {
+    style = "pill_grid"
+    image { value = "system-run-symbolic" }
+    label { value = Str(XUptimeH, 0) + "h" }
+  }
+}
+
+PopUp("SysmonPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "System Monitor"
+      style = "detail_header"
+    }
+    label {
+      style = "detail_value"
+      interval = 5000
+      value = "Uptime: " + Str(XUptimeH, 0) + "h " + Str(XUptimeM, 0) + "m\n" +
+        "Load: " + $XLoad1 + " / " + $XLoad5 + " / " + $XLoad15 + "\n" +
+        "Processes: " + $XProcTotal + "\n" +
+        "Running: " + $XProcRunning
+    }
+    label {
+      value = "Click to open htop"
+      style = "detail_hint"
+      action = ExecTerm("htop")
+    }
+  }
+}
+
+#CSS

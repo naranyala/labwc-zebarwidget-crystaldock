@@ -1,14 +1,8 @@
 #Api2
 
-# Workspaces widget — workspace switcher
+# Workspaces widget — workspace switcher using sfwbar pager
+# Uses built-in WorkspaceActivate() action (Wayland protocol)
 Private {
-  Var ws_count = 9;
-
-  Function WsInit() {
-    for (Var i = 1; i <= ws_count; i = i + 1)
-      Config("button#ws_" + Str(i) + " { }");
-  }
-
   export button "workspaces" {
     style = "module"
     class = "module"
@@ -25,18 +19,16 @@ Private {
         value = "Workspaces"
         style = "detail_header"
       }
-      grid {
-        style = "ws_grid"
-        for (Var i = 1; i <= ws_count; i = i + 1)
-          button {
-            style = "ws_button"
-            value = Str(i)
-            tooltip = "Workspace " + Str(i)
-            action = Exec("labwc -e 'GoToDesktop " + Str(i) + "'")
-          }
+      pager {
+        style = "pager"
+        rows = 1
+        pins = "1","2","3","4","5","6","7","8","9"
+        preview = true
+        primary_axis = rows
+        action[Drag] = WorkspaceActivate()
       }
       label {
-        value = "Scroll or click to switch"
+        value = "Click or scroll to switch"
         style = "detail_hint"
       }
     }

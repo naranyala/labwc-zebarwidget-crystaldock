@@ -1,0 +1,61 @@
+#Api2
+
+# Custom Script Widget Template
+# Replace the command and parsing with your own
+
+# Example: Show disk temperature from smartctl
+Exec("smartctl -A /dev/sda 2>/dev/null | grep Temperature_Celsius | awk '{print $10}'") {
+  XSmartTemp = Grab(First)
+}
+
+# Example: Show git branch in current directory
+# Exec("git -C ~ branch --show-current 2>/dev/null || echo none") {
+#   XGitBranch = Grab(First)
+# }
+
+# Example: Show currently playing radio station
+# Exec("curl -s 'http://localhost:8000/status.xsl' | grep -o '<td>.*</td>' | head -1") {
+#   XRadioInfo = Grab(First)
+# }
+
+export button "custom-script" {
+  interval = 10000
+  style = "module_pill"
+  class = "module"
+  tooltip = "Custom Script\n" +
+    If($XSmartTemp != "", "HDD Temp: " + $XSmartTemp + "°C", "No data")
+  action = PopUp("CustomPopup")
+
+  grid {
+    style = "pill_grid"
+    image { value = "utilities-system-monitor-symbolic" }
+    label {
+      value = If($XSmartTemp != "", $XSmartTemp + "°C", "--")
+    }
+  }
+}
+
+PopUp("CustomPopup") {
+  style = "detail_popup"
+  grid {
+    style = "detail_grid"
+    label {
+      value = "Custom Script"
+      style = "detail_header"
+    }
+    label {
+      style = "detail_value"
+      interval = 10000
+      value = If($XSmartTemp != "",
+        "HDD Temperature: " + $XSmartTemp + "°C",
+        "No data available")
+    }
+    label {
+      value = "Click to run custom command"
+      style = "detail_hint"
+      action = ExecTerm("echo 'Custom command here'")
+    }
+  }
+}
+
+#CSS

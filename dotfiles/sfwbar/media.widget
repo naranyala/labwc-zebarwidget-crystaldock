@@ -15,11 +15,8 @@ file("/bin/sh -c 'playerctl status 2>/dev/null || echo none'") {
 
 export button "media" {
   interval = 2000
-  style = "module"
+  style = If(XStatus != "none", "module_pill", "hidden")
   class = "module"
-  value = If(XStatus = "Playing", "media-playback-pause-symbolic",
-           If(XStatus = "Paused", "media-playback-start-symbolic",
-            "multimedia-audio-player-symbolic"))
   tooltip = If(XStatus != "none",
     XArtist + " — " + XTitle + "\n" + XStatus,
     "No media playing")
@@ -29,6 +26,16 @@ export button "media" {
   action[scroll_up] = Exec("playerctl position 5+")
   action[scroll_down] = Exec("playerctl position 5-")
   action[middle] = Exec("playerctl next")
+
+  grid {
+    style = "pill_grid"
+    image {
+      value = If(XStatus = "Playing", "media-playback-pause-symbolic",
+               If(XStatus = "Paused", "media-playback-start-symbolic",
+                "multimedia-audio-player-symbolic"))
+    }
+    label { value = If(XTitle != "none", XTitle, "") }
+  }
 }
 
 #CSS
