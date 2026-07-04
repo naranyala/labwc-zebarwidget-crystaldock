@@ -1,0 +1,31 @@
+  [1;33m⚠[0m Unknown template variable: {{MAKO_FONT}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_MAX_WIDTH}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_MAX_VISIBLE}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_DEFAULT_TIMEOUT}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_MARKUP}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_ACTIONS}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_PADDING}}
+  [1;33m⚠[0m Unknown template variable: {{CORNER_RADIUS}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_BORDER_WIDTH}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_BG_COLOR}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_TEXT_COLOR}}
+  [1;33m⚠[0m Unknown template variable: {{MAKO_BORDER_COLOR}}
+[mako]
+font=
+width=
+height=300
+max-visible=
+default-timeout=
+markup=
+actions=
+layer=overlay
+anchor=top-right
+margin=20
+padding=
+border-radius=
+border-size=
+
+[colors]
+background=
+text=
+border=

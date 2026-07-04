@@ -50,7 +50,7 @@ build_engine() {
     ninja -C build
 
     info "Installing $NAME..."
-    sudo ninja -C build install
+    pkexec sh -c "cd \"$PWD\" && ninja -C build install"
 
     cd ..
     pass "$NAME successfully installed to $PREFIX!"

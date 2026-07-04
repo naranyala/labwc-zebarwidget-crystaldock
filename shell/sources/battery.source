@@ -1,5 +1,0 @@
-File("/sys/class/power_supply/BAT0/capacity")
-File("/sys/class/power_supply/BAT0/status")
-File("/sys/class/power_supply/BAT0/voltage_now")
-Exec("cat /sys/class/power_supply/BAT0/energy_now 2>/dev/null || echo '0'")
-Exec("cat /sys/class/power_supply/BAT0/energy_full 2>/dev/null || echo '0'")

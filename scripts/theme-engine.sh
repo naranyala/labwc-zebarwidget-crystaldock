@@ -106,7 +106,8 @@ expand_vars() {
             local new_val="$val"
 
             # Replace ${section.key} references
-            while [[ "$new_val" =~ \${([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)} ]]; do
+            local regex='\$\{([a-zA-Z0-9_]+)\.([a-zA-Z0-9_]+)\}'
+            while [[ "$new_val" =~ $regex ]]; do
                 local ref_section="${BASH_REMATCH[1]}"
                 local ref_key="${BASH_REMATCH[2]}"
                 local ref_val="${INI_VALUES[${ref_section}.${ref_key}]:-}"
@@ -142,7 +143,8 @@ render_template() {
     content="$(<"$template_file")"
 
     # Replace {{VARIABLE}} references
-    while [[ "$content" =~ \{\{([A-Z_][A-Z0-9_]+)\}\} ]]; do
+    local tpl_regex='\{\{([A-Z_][A-Z0-9_]+)\}\}'
+    while [[ "$content" =~ $tpl_regex ]]; do
         local var_name="${BASH_REMATCH[1]}"
         local var_value=""
 
@@ -162,9 +164,8 @@ render_template() {
             *) warn "Unknown template variable: {{$var_name}}" ;;
         esac
 
-        if [[ -n "$var_value" ]]; then
-            content="${content//\{\{$var_name\}\}/$var_value}"
-        fi
+        # Always replace to prevent infinite loops on empty/unknown variables
+        content="${content//\{\{$var_name\}\}/$var_value}"
     done
 
     echo "$content"
@@ -182,13 +183,13 @@ declare -A OUTPUT_MAP=(
     [gtk4-settings.ini.tmpl]="$HOME/.config/gtk-4.0/settings.ini"
     [themerc-override.tmpl]="$HOME/.config/labwc/themerc-override"
     [environment.tmpl]="$HOME/.config/labwc/environment"
-    [sfwbar.css.tmpl]="$HOME/.config/sfwbar/theme.css"
+    [sfwbar.css.tmpl]="$HOME/.config/ocws/theme.css"
     [rofi.rasi.tmpl]="$HOME/.config/rofi/config.rasi"
     [mako.ini.tmpl]="$HOME/.config/mako/config"
     [foot.ini.tmpl]="$HOME/.config/foot/foot.ini"
     [qt6ct.conf.tmpl]="$HOME/.config/qt6ct/qt6ct.conf"
     [fuzzel.ini.tmpl]="$HOME/.config/fuzzel/fuzzel.ini"
-    [ocws.css.tmpl]="$HOME/.config/sfwbar/ocws.css"
+    [ocws.css.tmpl]="$HOME/.config/ocws/ocws.css"
 )
 
 # Also write zebar CSS to both locations
@@ -291,8 +292,8 @@ cmd_apply() {
     local sfwbar_css
     sfwbar_css=$(render_template "$TEMPLATES_DIR/sfwbar.css.tmpl")
     if [[ -n "$sfwbar_css" ]]; then
-        echo "$sfwbar_css" > "$HOME/.config/sfwbar/theme.css"
-        pass "sfwbar.css"
+        echo "$sfwbar_css" > "$HOME/.config/ocws/theme.css"
+        pass "theme.css"
         ((applied++))
     fi
 
@@ -300,7 +301,7 @@ cmd_apply() {
     local ocws_css
     ocws_css=$(render_template "$TEMPLATES_DIR/ocws.css.tmpl")
     if [[ -n "$ocws_css" ]]; then
-        echo "$ocws_css" > "$HOME/.config/sfwbar/ocws.css"
+        echo "$ocws_css" > "$HOME/.config/ocws/ocws.css"
         pass "ocws.css"
         ((applied++))
     fi
@@ -397,9 +398,11 @@ cmd_export() {
             local dest
             dest="${OUTPUT_MAP[$name]:-}"
             if [[ -n "$dest" ]]; then
+                # Convert $HOME/.config to $DOTFILES_DIR
+                dest="${dest/$HOME\/.config/$DOTFILES_DIR}"
                 mkdir -p "$(dirname "$dest")"
                 echo "$content" > "$dest"
-                pass "$name → ${dest#$HOME/}"
+                pass "$name → ${dest#$PROJECT_DIR/}"
             else
                 warn "No output destination for $name"
             fi

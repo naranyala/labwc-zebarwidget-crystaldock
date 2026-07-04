@@ -1,0 +1,170 @@
+/* OCWS Glass Panel Theme
+ * Theme: Catppuccin Mocha */
+
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
+
+:root {
+  --blur-intensity: 5;
+  --border-width: 1;
+  --border-radius: 8;
+  --shadow-depth: 4;
+}
+
+/* ============================================================
+ * OCWS Glass Surface — Core shell panels
+ * ============================================================ */
+
+window#sfwbar {
+  background: linear-gradient(
+    to bottom,
+    rgba(#1e1e2e, calc(0.85 + var(--blur-intensity) * 0.15)),
+    rgba(#1e1e2e, calc(0.75 + var(--blur-intensity) * 0.1))
+  );
+  backdrop-filter: blur(calc(var(--blur-intensity) * 2px));
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity) * 2px));
+  border-radius: 0px;
+  border: none;
+  box-shadow: 0 calc(var(--shadow-depth) * 1px) calc(var(--shadow-depth) * 8px) rgba(0, 0, 0, calc(0.2 + var(--blur-intensity) * 0.1));
+  margin: 0px;
+  padding: 0px;
+}
+
+/* Top bar layout */
+grid#layout, grid#topbar {
+  background: transparent;
+  border-radius: calc(var(--border-radius) * 1px);
+  margin: 8px 12px;
+  padding: 0px;
+  border: calc(var(--border-width) * 1px) solid rgba(#45475a, calc(0.4 + var(--blur-intensity) * 0.05));
+  -GtkWidget-hexpand: true;
+}
+
+/* Bottom bar with gradient bottom edge */
+grid#bottombar {
+  background: linear-gradient(
+    to top,
+    rgba(#1e1e2e, calc(0.8 + var(--blur-intensity) * 0.2)),
+    rgba(#1e1e2e, calc(0.6 + var(--blur-intensity) * 0.15))
+  );
+  backdrop-filter: blur(calc(var(--blur-intensity) * 2px));
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity) * 2px));
+  border-radius: calc(var(--border-radius) * 1px);
+  margin: 8px 12px;
+  padding: 0px 8px;
+  border: calc(var(--border-width) * 1px) solid rgba(#45475a, calc(0.4 + var(--blur-intensity) * 0.05));
+  border-top: calc(var(--border-width) * 1px) solid rgba(#89b4fa, calc(0.3 + var(--blur-intensity) * 0.05));
+}
+
+/* Modern Typography */
+label, button, tooltip {
+  font-family: 'Inter', 'Noto Sans', 'Roboto', 'Helvetica Neue', sans-serif;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  color: #cdd6f4;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, calc(0.1 + var(--blur-intensity) * 0.05));
+}
+
+/* Enhanced module buttons with glass effect */
+button.module {
+  background: linear-gradient(
+    to bottom,
+    rgba(#1e1e2e, calc(0.3 + var(--blur-intensity) * 0.1)),
+    rgba(#1e1e2e, calc(0.2 + var(--blur-intensity) * 0.05))
+  );
+  backdrop-filter: blur(calc(var(--blur-intensity) * 1px));
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity) * 1px));
+  border-radius: calc(var(--border-radius) * 2px);
+  border: calc(var(--border-width) * 1px) solid rgba(#45475a, calc(0.3 + var(--blur-intensity) * 0.02));
+  box-shadow: 0 1px 3px rgba(0, 0, 0, calc(0.1 + var(--blur-intensity) * 0.1));
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 32px;
+  min-height: 32px;
+  padding: 6px 10px;
+  margin: 2px;
+}
+
+/* Interactive states for glass buttons */
+button.module:hover {
+  background: linear-gradient(
+    to bottom,
+    rgba(#1e1e2e, calc(0.4 + var(--blur-intensity) * 0.15)),
+    rgba(#1e1e2e, calc(0.3 + var(--blur-intensity) * 0.1))
+  );
+  border-color: rgba(#89b4fa, calc(0.5 + var(--blur-intensity) * 0.1));
+  box-shadow: 0 2px 8px rgba(#89b4fa, calc(0.2 + var(--blur-intensity) * 0.1));
+  transform: translateY(-1px);
+}
+
+button.module:active {
+  background: linear-gradient(
+    to bottom,
+    rgba(#89b4fa, calc(0.2 + var(--blur-intensity) * 0.1)),
+    rgba(#89b4fa, calc(0.3 + var(--blur-intensity) * 0.15))
+  );
+  border-color: #89b4fa;
+  box-shadow: 0 1px 4px rgba(#89b4fa, calc(0.3 + var(--blur-intensity) * 0.2));
+  transform: translateY(1px);
+}
+
+button.module:focus {
+  outline: none;
+  border-color: #89b4fa;
+  box-shadow: 0 0 0 3px rgba(#89b4fa, calc(0.2 + var(--blur-intensity) * 0.1));
+}
+
+/* Glass morphism for popups */
+window.detail_popup, grid.control_grid, grid.session_grid {
+  background: linear-gradient(
+    to bottom right,
+    rgba(#1e1e2e, calc(0.95 + var(--blur-intensity) * 0.05)),
+    rgba(#1e1e2e, calc(0.9 + var(--blur-intensity) * 0.1))
+  );
+  backdrop-filter: blur(calc(var(--blur-intensity) * 3px));
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity) * 3px));
+  border-radius: calc(var(--border-radius) * 3px);
+  border: calc(var(--border-width) * 1px) solid rgba(#45475a, calc(0.5 + var(--blur-intensity) * 0.05));
+  box-shadow: 0 calc(var(--shadow-depth) * 12px) calc(var(--shadow-depth) * 24px) rgba(0, 0, 0, calc(0.4 + var(--blur-intensity) * 0.1));
+  padding: 16px;
+  margin: 8px;
+}
+
+/* Enhanced scrollbars */
+scrollbar {
+  background: rgba(#1e1e2e, calc(0.3 + var(--blur-intensity) * 0.1));
+  backdrop-filter: blur(calc(var(--blur-intensity) * 1px));
+  -webkit-backdrop-filter: blur(calc(var(--blur-intensity) * 1px));
+  border-radius: calc(var(--border-radius) * 1px);
+}
+
+/* Custom status bar animations */
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(#89b4fa, calc(0.3 + var(--blur-intensity) * 0.1)); }
+  50% { box-shadow: 0 0 20px rgba(#89b4fa, calc(0.5 + var(--blur-intensity) * 0.2)); }
+}
+
+button.module.pulse {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* Glass morphism scrollbar for webkit */
+scrollbar {
+  background: rgba(#1e1e2e, calc(0.3 + var(--blur-intensity) * 0.1));
+}
+
+scrollbar thumb {
+  background: linear-gradient(
+    to bottom,
+    rgba(#89b4fa, calc(0.3 + var(--blur-intensity) * 0.1)),
+    rgba(#89b4fa, calc(0.5 + var(--blur-intensity) * 0.2))
+  );
+  border-radius: calc(var(--border-radius) * 1px);
+  border: calc(var(--border-width) * 1px) solid rgba(#45475a, calc(0.2 + var(--blur-intensity) * 0.1));
+}
+
+/* Current theme variables for OCWS */
+window#sfwbar.current-theme {
+  --blur-intensity: 5;
+  --border-width: 1;
+  --border-radius: 8;
+  --shadow-depth: 4;
+}

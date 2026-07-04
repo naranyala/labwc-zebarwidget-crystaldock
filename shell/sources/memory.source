@@ -1,3 +1,0 @@
-Exec("free | awk '/Mem:/{printf \"%.0f\", $3/$2*100}'")
-Exec("free | awk '/Mem:/{printf \"%.1f\", $3/1024}'")
-Exec("free | awk '/Mem:/{printf \"%.1f\", $2/1024}'")
