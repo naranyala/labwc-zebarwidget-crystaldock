@@ -32,7 +32,7 @@ export button "memory-monitor" {
 
   grid {
     style = "pill_grid"
-    image { value = "memory-symbolic" }
+    image { value = "utilities-system-monitor-symbolic" }
     progressbar {
       value = XMemUtilization
       style = "pill_progress pill_progress_mem"

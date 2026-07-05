@@ -41,7 +41,7 @@ export button "cpu-monitor" {
 
   grid {
     style = "pill_grid"
-    image { value = "cpu-symbolic" }
+    image { value = "utilities-system-monitor-symbolic" }
     progressbar {
       value = XCpuUtilization
       style = "pill_progress pill_progress_cpu"
