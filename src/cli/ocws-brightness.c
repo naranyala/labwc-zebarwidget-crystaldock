@@ -131,7 +131,7 @@ static void usage(const char *prog) {
         prog, prog, prog, prog);
 }
 
-int cli_brightness_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     static struct option long_options[] = {

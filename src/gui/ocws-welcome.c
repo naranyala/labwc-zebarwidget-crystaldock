@@ -118,8 +118,8 @@ static void on_prev(GtkWidget *w, gpointer data) {
 
 static void on_shell_select(GtkWidget *btn, gpointer data) {
     const char *mode = (const char *)data;
-    char cmd[256];
-    snprintf(cmd, sizeof(cmd), "toggle-shell %s", mode);
+    char cmd[512];
+    snprintf(cmd, sizeof(cmd), "toggle-shell %s 2>/dev/null || ~/.local/bin/toggle-shell %s", mode, mode);
 
     /* Run toggle-shell to completion (it kills the old shell and starts
      * the new one) BEFORE updating the UI, so the selection state always
@@ -910,7 +910,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
  * Entry point
  * ================================================================ */
 
-int gui_welcome_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     /* Honour --force to show even if disabled */
     gboolean force = FALSE;
     int new_argc = 0;

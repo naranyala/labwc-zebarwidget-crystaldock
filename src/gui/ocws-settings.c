@@ -20,7 +20,8 @@ static void activate(GtkApplication *app, gpointer user_data) {
     
     // Abstracted premium GTK injection
     ocws_gtk_enforce_premium_theme();
-    ocws_gtk_apply_dynamic_css(app, NULL); // NULL defaults to standard mocha accent
+    ocws_gtk_apply_dynamic_css(app, NULL);
+    apply_css(app);
 
     GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "OCWS Settings");
@@ -65,7 +66,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_show_all(window);
 }
 
-int gui_settings_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     GtkApplication *app = gtk_application_new("org.ocws.settings", G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     int status = g_application_run(G_APPLICATION(app), argc, argv);

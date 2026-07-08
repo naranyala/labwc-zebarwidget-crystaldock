@@ -53,6 +53,7 @@ Post-mortems and lessons learned from real bugs found in the OCWS codebase. Each
 
 | File | Topic |
 |------|-------|
+| c-system-command-injection.md | `system()` with unsanitized argv/metadata/clipboard content |
 | eval-unsanitized-input.md | `eval` on user-supplied strings (arbitrary code execution) |
 | ipc-command-injection.md | IPC command injection via unsanitized values |
 

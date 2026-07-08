@@ -15,6 +15,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <unistd.h>
+#include <sys/wait.h>
 
 #define MAX_ENTRIES 128
 #define KEY_LEN 64
@@ -169,7 +171,7 @@ static void write_tokens_css(const char* output_dir) {
     printf("Generated: %s\n", path);
 }
 
-int cli_style_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     if (argc < 2) {
@@ -186,9 +188,12 @@ int cli_style_main(int argc, char **argv) {
     snprintf(output_dir, sizeof(output_dir), "%s/.config/ocws", home);
 
     /* Ensure output directory exists */
-    char mkdir_cmd[600];
-    snprintf(mkdir_cmd, sizeof(mkdir_cmd), "mkdir -p %s", output_dir);
-    system(mkdir_cmd);
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp("mkdir", "mkdir", "-p", output_dir, NULL);
+        exit(1);
+    }
+    waitpid(pid, NULL, 0);
 
     int tokens_only = (argc > 2 && strcmp(argv[2], "--tokens") == 0);
     int preview = (argc > 2 && strcmp(argv[2], "--preview") == 0);

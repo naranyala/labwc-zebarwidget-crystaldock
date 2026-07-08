@@ -169,7 +169,7 @@ void print_temp() {
     }
 }
 
-int cli_sysmon_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     unsigned long long idle, tot;

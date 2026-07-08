@@ -502,19 +502,22 @@ static void check_media(void) {
 
         if (strncmp(line, "file://", 7) == 0) {
             const char *path = line + 7;
-            char cmd[512];
-            snprintf(cmd, sizeof(cmd), "cp '%s' /tmp/ocws-cover.jpg 2>/dev/null", path);
-            system(cmd);
+            pid_t cpid = fork();
+            if (cpid == 0) { execlp("cp", "cp", path, "/tmp/ocws-cover.jpg", NULL); _exit(1); }
+            else if (cpid > 0) waitpid(cpid, NULL, 0);
             log_msg("Media art: %s", path);
         } else if (strncmp(line, "http", 4) == 0) {
-            char cmd[1024];
-            snprintf(cmd, sizeof(cmd),
-                "curl -sSL --max-time 10 --connect-timeout 5 '%s' -o /tmp/ocws-cover.jpg 2>/dev/null",
-                line);
-            system(cmd);
+            pid_t cpid = fork();
+            if (cpid == 0) {
+                execlp("curl", "curl", "-sSL", "--max-time", "10",
+                       "--connect-timeout", "5", line,
+                       "-o", "/tmp/ocws-cover.jpg", NULL);
+                _exit(1);
+            }
+            else if (cpid > 0) waitpid(cpid, NULL, 0);
             log_msg("Media art downloaded");
         } else {
-            system("rm -f /tmp/ocws-cover.jpg 2>/dev/null");
+            unlink("/tmp/ocws-cover.jpg");
         }
 
         /* Also emit media metadata */

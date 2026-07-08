@@ -82,7 +82,7 @@ int run_fuzzel(const char *prompt, const char *input, char *output, size_t out_s
     return 1; // Failed or canceled
 }
 
-int cli_search_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     char input_list[4096] = {0};

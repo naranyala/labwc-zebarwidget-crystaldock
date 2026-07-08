@@ -1,7 +1,9 @@
 #ifndef OCWS_BUS_H
 #define OCWS_BUS_H
 
-#include "plugin.h"
+#include "plugin_api.h"
+
+typedef void (*ocws_event_cb)(const char *topic, const char *payload, void *user);
 
 /* In-process event bus used by the host (ocws-brokerd).
  * Subscribers registered with topic "*" receive every event. */

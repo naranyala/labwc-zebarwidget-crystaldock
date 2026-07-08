@@ -240,7 +240,7 @@ static void usage(const char *prog) {
         prog, MAX_COLORS, prog, prog, prog);
 }
 
-int cli_color_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     int ncolors = 6;

@@ -283,8 +283,6 @@ static void refresh_windows(void) {
 
 static void load_presets(void) {
     if (g_presets) {
-        for (int i = 0; i < g_npresets; i++)
-            g_free(g_presets[i].name);
         g_free(g_presets);
         g_presets = NULL;
         g_npresets = 0;
@@ -325,20 +323,20 @@ static void load_presets(void) {
 
 static void on_focus_window(GtkWidget *btn, gpointer data) {
     (void)btn;
-    struct zwlr_foreign_toplevel_handle_v1 *h = data;
-    if (h && g_wl_seat) zwlr_foreign_toplevel_handle_v1_activate(h, g_wl_seat);
+    WindowInfo *w = (WindowInfo *)data;
+    if (w->handle && g_wl_seat) zwlr_foreign_toplevel_handle_v1_activate(w->handle, g_wl_seat);
 }
 
 static void on_minimize_window(GtkWidget *btn, gpointer data) {
     (void)btn;
-    struct zwlr_foreign_toplevel_handle_v1 *h = data;
-    if (h) zwlr_foreign_toplevel_handle_v1_set_minimized(h);
+    WindowInfo *w = (WindowInfo *)data;
+    if (w->handle) zwlr_foreign_toplevel_handle_v1_set_minimized(w->handle);
 }
 
 static void on_close_window(GtkWidget *btn, gpointer data) {
     (void)btn;
-    struct zwlr_foreign_toplevel_handle_v1 *h = data;
-    if (h) zwlr_foreign_toplevel_handle_v1_close(h);
+    WindowInfo *w = (WindowInfo *)data;
+    if (w->handle) zwlr_foreign_toplevel_handle_v1_close(w->handle);
 }
 
 static void on_launch_app(GtkWidget *btn, gpointer data) {
@@ -348,7 +346,7 @@ static void on_launch_app(GtkWidget *btn, gpointer data) {
 }
 
 typedef struct {
-    struct zwlr_foreign_toplevel_handle_v1 *handle;
+    WindowInfo *win;
     int desktop;
 } MoveArgs;
 
@@ -366,11 +364,8 @@ static void free_move_args(gpointer data, GClosure *closure) {
 static gboolean do_send_move(gpointer data) {
     MoveArgs *a = (MoveArgs *)data;
     char cmd[64];
-    /* LabWC: Shift+Super+<n> = SendToDesktop <n> */
     snprintf(cmd, sizeof(cmd), "wtype -M super -M shift %d -m shift -m super", a->desktop + 1);
     run_cmd("%s", cmd);
-    /* ponytail: wtype sends to compositor, so focused window moves;
-       no way to restore focus to our app without our own handle */
     g_free(a);
     return G_SOURCE_REMOVE;
 }
@@ -379,14 +374,12 @@ static gboolean do_send_move(gpointer data) {
 static void on_move_window(GtkWidget *btn, gpointer data) {
     (void)btn;
     MoveArgs *a = (MoveArgs *)data;
-    if (!a->handle || !g_wl_seat) return;
+    if (!a->win->handle || !g_wl_seat) return;
 
-    /* Phase 1: focus the target window */
-    zwlr_foreign_toplevel_handle_v1_activate(a->handle, g_wl_seat);
+    zwlr_foreign_toplevel_handle_v1_activate(a->win->handle, g_wl_seat);
 
-    /* Phase 2: after compositor processes focus, send key shortcut */
     MoveArgs *copy = g_new(MoveArgs, 1);
-    copy->handle  = a->handle;
+    copy->win     = a->win;
     copy->desktop = a->desktop;
     g_timeout_add(80, do_send_move, copy);
 }
@@ -427,17 +420,17 @@ static GtkWidget* make_window_card(WindowInfo *win, WorkspaceData *parent_ws) {
     GtkWidget *btn;
     btn = gtk_button_new_from_icon_name("go-jump-symbolic", GTK_ICON_SIZE_MENU);
     gtk_widget_set_tooltip_text(btn, "Focus window");
-    g_signal_connect(btn, "clicked", G_CALLBACK(on_focus_window), win->handle);
+    g_signal_connect(btn, "clicked", G_CALLBACK(on_focus_window), win);
     gtk_box_pack_start(GTK_BOX(actions), btn, FALSE, FALSE, 0);
 
     btn = gtk_button_new_from_icon_name("window-minimize-symbolic", GTK_ICON_SIZE_MENU);
     gtk_widget_set_tooltip_text(btn, "Minimize");
-    g_signal_connect(btn, "clicked", G_CALLBACK(on_minimize_window), win->handle);
+    g_signal_connect(btn, "clicked", G_CALLBACK(on_minimize_window), win);
     gtk_box_pack_start(GTK_BOX(actions), btn, FALSE, FALSE, 0);
 
     btn = gtk_button_new_from_icon_name("window-close-symbolic", GTK_ICON_SIZE_MENU);
     gtk_widget_set_tooltip_text(btn, "Close window");
-    g_signal_connect(btn, "clicked", G_CALLBACK(on_close_window), win->handle);
+    g_signal_connect(btn, "clicked", G_CALLBACK(on_close_window), win);
     gtk_box_pack_start(GTK_BOX(actions), btn, FALSE, FALSE, 0);
 
     /* Move-to-workspace (xdotool, XWayland only) */
@@ -453,7 +446,7 @@ static GtkWidget* make_window_card(WindowInfo *win, WorkspaceData *parent_ws) {
         GtkWidget *ws_btn = gtk_button_new_with_label(ws_name);
         gtk_widget_set_size_request(ws_btn, 36, -1);
         MoveArgs *a = g_new(MoveArgs, 1);
-        a->handle  = win->handle;
+        a->win     = win;
         a->desktop = i;
         g_object_set_data_full(G_OBJECT(ws_btn), "move-args", a, g_free);
         g_signal_connect(ws_btn, "clicked", G_CALLBACK(on_move_window), a);
@@ -609,6 +602,11 @@ static gboolean delayed_refresh(gpointer user) {
     return G_SOURCE_REMOVE;
 }
 
+static void on_refresh(GtkWidget *widget, gpointer data) {
+    (void)widget; (void)data;
+    rebuild_columns();
+}
+
 static void activate(GtkApplication *app, gpointer user_data) {
     (void)user_data;
 
@@ -630,7 +628,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     /* Refresh button in header */
     g_refresh_btn = gtk_button_new_from_icon_name("view-refresh-symbolic", GTK_ICON_SIZE_BUTTON);
     gtk_widget_set_tooltip_text(g_refresh_btn, "Refresh window list");
-    g_signal_connect(g_refresh_btn, "clicked", G_CALLBACK(rebuild_columns), NULL);
+    g_signal_connect(g_refresh_btn, "clicked", G_CALLBACK(on_refresh), NULL);
     gtk_header_bar_pack_end(GTK_HEADER_BAR(header), g_refresh_btn);
 
     /* Main layout */
@@ -664,7 +662,7 @@ static GLogWriterOutput filter_log(GLogLevelFlags level, const GLogField *fields
     return g_log_writer_default(level, fields, n, user);
 }
 
-int gui_workspace_mgr_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     g_log_set_writer_func(filter_log, NULL, NULL);
     GtkApplication *app = gtk_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);

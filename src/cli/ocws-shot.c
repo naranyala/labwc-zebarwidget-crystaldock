@@ -193,7 +193,7 @@ void show_menu() {
     }
 }
 
-int cli_shot_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     const char *mode = "menu";

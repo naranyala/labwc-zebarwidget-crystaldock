@@ -21,13 +21,20 @@ bool check_cmd(const char *cmd) {
     return system(buf) == 0;
 }
 
-void run_playerctl(const char *args) {
+void run_playerctl(const char *arg1, const char *arg2) {
     if (!check_cmd("playerctl")) {
         fail("Playerctl not installed. Please install it first.");
     }
-    char buf[256];
-    snprintf(buf, sizeof(buf), "playerctl %s", args);
-    system(buf);
+    pid_t pid = fork();
+    if (pid == 0) {
+        if (arg2) {
+            execlp("playerctl", "playerctl", arg1, arg2, NULL);
+        } else {
+            execlp("playerctl", "playerctl", arg1, NULL);
+        }
+        exit(1);
+    }
+    waitpid(pid, NULL, 0);
 }
 
 void escape_json(char *out, const char *in, size_t out_size) {
@@ -139,9 +146,12 @@ void export_media_state() {
 
 void volume_cmd(const char *args, const char *msg) {
     if (check_cmd("wpctl")) {
-        char buf[256];
-        snprintf(buf, sizeof(buf), "wpctl set-volume @DEFAULT_AUDIO_SINK@ %s", args);
-        system(buf);
+        pid_t pid = fork();
+        if (pid == 0) {
+            execlp("wpctl", "wpctl", "set-volume", "@DEFAULT_AUDIO_SINK@", args, NULL);
+            exit(1);
+        }
+        waitpid(pid, NULL, 0);
         pass(msg);
     } else {
         warn("wpctl not available for system volume control");
@@ -150,46 +160,49 @@ void volume_cmd(const char *args, const char *msg) {
 
 void mute_cmd() {
     if (check_cmd("wpctl")) {
-        system("wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle");
+        pid_t pid = fork();
+        if (pid == 0) {
+            execlp("wpctl", "wpctl", "set-mute", "@DEFAULT_AUDIO_SINK@", "toggle", NULL);
+            exit(1);
+        }
+        waitpid(pid, NULL, 0);
         pass("Mute toggled");
     } else {
         warn("wpctl not available for system volume control");
     }
 }
 
-int cli_player_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     const char *mode = "help";
     if (argc > 1) mode = argv[1];
 
     if (strcmp(mode, "play") == 0 || strcmp(mode, "pause") == 0 || strcmp(mode, "stop") == 0) {
-        char buf[64];
-        snprintf(buf, sizeof(buf), "%s", mode);
-        run_playerctl(buf);
+        run_playerctl(mode, NULL);
         char msg[128];
         snprintf(msg, sizeof(msg), "%s executed", mode);
         pass(msg);
     } else if (strcmp(mode, "play-pause") == 0) {
-        run_playerctl("play-pause");
+        run_playerctl("play-pause", NULL);
         pass("Playback toggled");
     } else if (strcmp(mode, "next") == 0 || strcmp(mode, "forward") == 0) {
-        run_playerctl("next");
+        run_playerctl("next", NULL);
         pass("Next track");
     } else if (strcmp(mode, "previous") == 0 || strcmp(mode, "back") == 0) {
-        run_playerctl("previous");
+        run_playerctl("previous", NULL);
         pass("Previous track");
     } else if (strncmp(mode, "seek-forward", 12) == 0 || strcmp(mode, "seek+") == 0) {
         const char *sec = (argc > 2) ? argv[2] : "10";
         char buf[64];
-        snprintf(buf, sizeof(buf), "seek +%ss", sec);
-        run_playerctl(buf);
+        snprintf(buf, sizeof(buf), "+%ss", sec);
+        run_playerctl("seek", buf);
         printf("%s✓%s Seeked forward %ss\n", GREEN, NC, sec);
     } else if (strncmp(mode, "seek-backward", 13) == 0 || strcmp(mode, "seek-") == 0) {
         const char *sec = (argc > 2) ? argv[2] : "10";
         char buf[64];
-        snprintf(buf, sizeof(buf), "seek -%ss", sec);
-        run_playerctl(buf);
+        snprintf(buf, sizeof(buf), "-%ss", sec);
+        run_playerctl("seek", buf);
         printf("%s✓%s Seeked backward %ss\n", GREEN, NC, sec);
     } else if (strcmp(mode, "volume-up") == 0 || strcmp(mode, "volup") == 0 || strcmp(mode, "up") == 0) {
         const char *step = (argc > 2) ? argv[2] : "5%";

@@ -51,7 +51,7 @@ void get_home(char *home, size_t size) {
     snprintf(home, size, "%s", h);
 }
 
-int cli_validate_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     printf("%s=== OCWS Deep Validation & Healthcheck ===%s\n\n", BOLD, NC);

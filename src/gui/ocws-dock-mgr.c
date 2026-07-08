@@ -262,20 +262,22 @@ static void save_noctalia_pinned(void) {
     fclose(f);
 
     char pinned_str[2048] = "pinned = [";
-    for (int i = 0; i < current_config.app_count; i++) {
-        if (i > 0) strcat(pinned_str, ", ");
-        strcat(pinned_str, "\"");
-        strcat(pinned_str, current_config.apps[i].name);
-        strcat(pinned_str, "\"");
+    size_t pos = strlen(pinned_str);
+    for (int i = 0; i < current_config.app_count && pos < sizeof(pinned_str) - 12; i++) {
+        if (i > 0) pos += snprintf(pinned_str + pos, sizeof(pinned_str) - pos, ", ");
+        pos += snprintf(pinned_str + pos, sizeof(pinned_str) - pos, "\"%s\"", current_config.apps[i].name);
     }
-    strcat(pinned_str, "]");
+    snprintf(pinned_str + pos, sizeof(pinned_str) - pos, "]");
 
     char *start = strstr(content, "pinned");
     if (start) {
         char *end = strchr(start, '\n');
         if (end) {
-            memmove(start + strlen(pinned_str), end, strlen(end) + 1);
-            memcpy(start, pinned_str, strlen(pinned_str));
+            size_t new_len = (start - content) + strlen(pinned_str) + strlen(end);
+            if (new_len < sizeof(content)) {
+                memmove(start + strlen(pinned_str), end, strlen(end) + 1);
+                memcpy(start, pinned_str, strlen(pinned_str));
+            }
         }
     }
 
@@ -291,18 +293,21 @@ static void save_crystaldock_pinned(void) {
     fclose(f);
 
     char launchers_str[2048] = "launchers=\"show-desktop;";
-    for (int i = 0; i < current_config.app_count; i++) {
-        strcat(launchers_str, current_config.apps[i].name);
-        strcat(launchers_str, ";");
+    size_t pos = strlen(launchers_str);
+    for (int i = 0; i < current_config.app_count && pos < sizeof(launchers_str) - 60; i++) {
+        pos += snprintf(launchers_str + pos, sizeof(launchers_str) - pos, "%s;", current_config.apps[i].name);
     }
-    strcat(launchers_str, "separator;lxqt-lockscreen;lxqt-logout;separator\"");
+    snprintf(launchers_str + pos, sizeof(launchers_str) - pos, "separator;lxqt-lockscreen;lxqt-logout;separator\"");
 
     char *start = strstr(content, "launchers");
     if (start) {
         char *end = strchr(start, '\n');
         if (end) {
-            memmove(start + strlen(launchers_str), end, strlen(end) + 1);
-            memcpy(start, launchers_str, strlen(launchers_str));
+            size_t new_len = (start - content) + strlen(launchers_str) + strlen(end);
+            if (new_len < sizeof(content)) {
+                memmove(start + strlen(launchers_str), end, strlen(end) + 1);
+                memcpy(start, launchers_str, strlen(launchers_str));
+            }
         }
     }
 
@@ -522,7 +527,8 @@ static void save_clicked(GtkWidget *widget, gpointer data) {
 
 static void backup_dock(GtkWidget *widget, gpointer data) {
     (void)widget;
-    const char *name = (const char *)data;
+    const char *name = gtk_entry_get_text(GTK_ENTRY(data));
+    if (!name || !name[0]) { gtk_label_set_text(GTK_LABEL(status_label), "Enter a backup name"); return; }
     const char *home = getenv("HOME");
     if (!home) return;
 
@@ -547,7 +553,8 @@ static void backup_dock(GtkWidget *widget, gpointer data) {
 
 static void restore_dock(GtkWidget *widget, gpointer data) {
     (void)widget;
-    const char *name = (const char *)data;
+    const char *name = gtk_entry_get_text(GTK_ENTRY(data));
+    if (!name || !name[0]) { gtk_label_set_text(GTK_LABEL(status_label), "Enter a backup name"); return; }
     const char *home = getenv("HOME");
     if (!home) return;
 
@@ -652,11 +659,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_box_pack_start(GTK_BOX(backup_box), backup_entry, TRUE, TRUE, 0);
 
     GtkWidget *backup_btn = gtk_button_new_with_label("Backup");
-    g_signal_connect_swapped(backup_btn, "clicked", G_CALLBACK(backup_dock), backup_entry);
+    g_signal_connect(backup_btn, "clicked", G_CALLBACK(backup_dock), backup_entry);
     gtk_box_pack_start(GTK_BOX(backup_box), backup_btn, FALSE, FALSE, 0);
 
     GtkWidget *restore_btn = gtk_button_new_with_label("Restore");
-    g_signal_connect_swapped(restore_btn, "clicked", G_CALLBACK(restore_dock), backup_entry);
+    g_signal_connect(restore_btn, "clicked", G_CALLBACK(restore_dock), backup_entry);
     gtk_box_pack_start(GTK_BOX(backup_box), restore_btn, FALSE, FALSE, 0);
 
     /* Status */
@@ -672,7 +679,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_show_all(window);
 }
 
-int gui_dock_mgr_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     detect_shell();
     GtkApplication *app = gtk_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);

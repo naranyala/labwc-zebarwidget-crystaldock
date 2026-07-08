@@ -48,7 +48,7 @@ void print_help(const char* prog) {
     printf("Example: %s System.Volume 75\n", prog);
 }
 
-int cli_emit_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     if (argc < 3) {

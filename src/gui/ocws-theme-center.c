@@ -848,7 +848,7 @@ static void activate(GtkApplication *gtk_app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(window), overlay);
     gtk_widget_show_all(window);
 }
-int gui_theme_center_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     init_paths();
     discover_themes();
 

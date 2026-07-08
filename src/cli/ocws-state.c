@@ -175,7 +175,7 @@ void cmd_sync() {
     printf("Widget state synchronized (native)\n");
 }
 
-int cli_state_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     const char *cmd = (argc > 1) ? argv[1] : "help";

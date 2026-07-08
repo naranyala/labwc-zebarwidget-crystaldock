@@ -57,7 +57,7 @@ static void usage(const char *prog) {
         prog, DEFAULT_STORE);
 }
 
-int cli_kv_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     const char *path = NULL;

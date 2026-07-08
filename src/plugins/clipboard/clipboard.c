@@ -10,14 +10,15 @@ static time_t g_last_clipboard_time = 0;
 static int g_clipboard_history_count = 0;
 
 static void update_clipboard_history(void) {
-    char cmd[256];
-    snprintf(cmd, sizeof(cmd), "which cliphist >/dev/null 2>&1 && cliphist -n 5 | while read -r line; do echo \"{\"type\":\"history\",\"content\":%s\"}\" $line; done");
-    FILE *fp = popen(cmd, "r");
+    FILE *fp = popen("cliphist list -n 5 2>/dev/null", "r");
     if (!fp) return;
     
     char line[1024];
     while (fgets(line, sizeof(line), fp)) {
-        ocws_plugin_emit("Clipboard.Event", line);
+        line[strcspn(line, "\n")] = '\0';
+        char json[2048];
+        snprintf(json, sizeof(json), "{\"type\":\"history\",\"content\":\"%s\"}", line);
+        ocws_plugin_emit("Clipboard.Event", json);
     }
     pclose(fp);
 }

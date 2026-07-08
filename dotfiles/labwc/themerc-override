@@ -3,11 +3,13 @@
 
 # Active window title
 window.active.label.text.color: #cdd6f4
+window.active.title.bg: Solid
 window.active.title.bg.color: #313244
 window.active.border.color: #45475a
 
 # Inactive window title
 window.inactive.label.text.color: #6c7086
+window.inactive.title.bg: Solid
 window.inactive.title.bg.color: #181825
 window.inactive.border.color: #45475a
 

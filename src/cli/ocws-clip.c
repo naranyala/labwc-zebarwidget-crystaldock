@@ -78,7 +78,6 @@ void clear_history() {
 void copy_text(int argc, char *argv[]) {
     if (!check_cmd("wl-copy")) return;
     
-    // Concat args
     char text[4096] = {0};
     for (int i = 2; i < argc; i++) {
         strncat(text, argv[i], sizeof(text) - strlen(text) - 1);
@@ -86,10 +85,12 @@ void copy_text(int argc, char *argv[]) {
     }
     
     if (strlen(text) > 0) {
-        char cmd[4096 + 128];
-        snprintf(cmd, sizeof(cmd), "echo -n \"%s\" | wl-copy", text);
-        system(cmd);
-        printf("%s✓%s Copied: %s\n", GREEN, NC, text);
+        FILE *fp = popen("wl-copy", "w");
+        if (fp) {
+            fwrite(text, 1, strlen(text), fp);
+            pclose(fp);
+            printf("%s✓%s Copied: %s\n", GREEN, NC, text);
+        }
     }
 }
 
@@ -99,7 +100,7 @@ void paste_text() {
     }
 }
 
-int cli_clip_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     const char *mode = "show";

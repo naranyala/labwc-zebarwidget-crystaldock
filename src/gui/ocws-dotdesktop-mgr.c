@@ -132,8 +132,10 @@ static void load_file_to_editor(const char *path) {
         g_free(categories);
         
         strncpy(current_file_path, path, sizeof(current_file_path) - 1);
+        char *basename = g_path_get_basename(path);
         char msg[1024];
-        snprintf(msg, sizeof(msg), "Loaded: %s", g_path_get_basename(path));
+        snprintf(msg, sizeof(msg), "Loaded: %s", basename);
+        g_free(basename);
         gtk_label_set_text(GTK_LABEL(status_label), msg);
     }
     g_key_file_free(key_file);
@@ -184,7 +186,9 @@ static void on_save_clicked(GtkWidget *widget, gpointer data) {
             char *basename = g_path_get_basename(current_file_path);
             snprintf(save_path, sizeof(save_path), "%s/.local/share/applications/%s", home, basename);
             g_free(basename);
-            g_mkdir_with_parents(g_path_get_dirname(save_path), 0755);
+            char *dir = g_path_get_dirname(save_path);
+            g_mkdir_with_parents(dir, 0755);
+            g_free(dir);
         }
     }
 
@@ -488,7 +492,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_show_all(window);
 }
 
-int gui_dotdesktop_mgr_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     GtkApplication *app = gtk_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     int status = g_application_run(G_APPLICATION(app), argc, argv);

@@ -9,7 +9,6 @@
 #include <dirent.h>
 #include "../libocws/notify.h"
 
-#define PID_FILE "/tmp/ocws-recorder.pid"
 #define RECORD_DIR_DEFAULT "$HOME/Videos/recordings"
 #define CODEC_DEFAULT "libx264"
 #define CRF_DEFAULT "23"
@@ -17,9 +16,44 @@
 
 static volatile int running = 1;
 
+static const char *pid_path(void) {
+    static char buf[256] = {0};
+    if (buf[0]) return buf;
+    const char *rt = getenv("XDG_RUNTIME_DIR");
+    if (rt && *rt)
+        snprintf(buf, sizeof(buf), "%s/ocws-recorder.pid", rt);
+    else
+        snprintf(buf, sizeof(buf), "/tmp/ocws-recorder.pid");
+    return buf;
+}
+
 static void on_signal(int sig) {
     (void)sig;
     running = 0;
+}
+
+static int is_safe_ident(const char *s) {
+    for (; *s; s++)
+        if (!((*s >= 'a' && *s <= 'z') || (*s >= 'A' && *s <= 'Z') ||
+              (*s >= '0' && *s <= '9') || *s == '_' || *s == '-' || *s == '.'))
+            return 0;
+    return 1;
+}
+
+static int is_safe_codec(const char *c) {
+    static const char *allowed[] = {
+        "libx264", "libx265", "libvp8", "libvp9",
+        "libaom-av1", "h264_vaapi", "hevc_vaapi", "mjpeg", NULL
+    };
+    for (int i = 0; allowed[i]; i++)
+        if (strcmp(c, allowed[i]) == 0) return 1;
+    return 0;
+}
+
+static int is_safe_crf(const char *c) {
+    char *end;
+    long v = strtol(c, &end, 10);
+    return *c && *end == '\0' && v >= 0 && v <= 51;
 }
 
 static int check_cmd(const char *cmd) {
@@ -29,7 +63,7 @@ static int check_cmd(const char *cmd) {
 }
 
 static pid_t read_pid(void) {
-    FILE *f = fopen(PID_FILE, "r");
+    FILE *f = fopen(pid_path(), "r");
     if (!f) return -1;
     pid_t pid = -1;
     fscanf(f, "%d", &pid);
@@ -38,12 +72,12 @@ static pid_t read_pid(void) {
 }
 
 static void write_pid(pid_t pid) {
-    FILE *f = fopen(PID_FILE, "w");
+    FILE *f = fopen(pid_path(), "w");
     if (f) { fprintf(f, "%d\n", pid); fclose(f); }
 }
 
 static void remove_pid(void) {
-    remove(PID_FILE);
+    remove(pid_path());
 }
 
 static int is_recording(void) {
@@ -76,15 +110,21 @@ static void start_recording(const char *audio, const char *codec, const char *cr
 
     /* Create output directory */
     char dir_expanded[512];
-    snprintf(dir_expanded, sizeof(dir_expanded), "mkdir -p %s 2>/dev/null", get_record_dir());
-    system(dir_expanded);
+    const char *dir = get_record_dir();
+    if (strncmp(dir, "$HOME", 5) == 0)
+        snprintf(dir_expanded, sizeof(dir_expanded), "%s%s", getenv("HOME") ?: "/tmp", dir + 5);
+    else
+        snprintf(dir_expanded, sizeof(dir_expanded), "%s", dir);
+    pid_t mkpid = fork();
+    if (mkpid == 0) { execlp("mkdir", "mkdir", "-p", dir_expanded, NULL); _exit(1); }
+    else if (mkpid > 0) waitpid(mkpid, NULL, 0);
 
     /* Generate filename with timestamp */
     time_t now = time(NULL);
     struct tm *tm = localtime(&now);
     char filename[256];
     snprintf(filename, sizeof(filename), "%s/recording-%04d%02d%02d-%02d%02d%02d.mp4",
-        get_record_dir(),
+        dir_expanded,
         tm->tm_year + 1900, tm->tm_mon + 1, tm->tm_mday,
         tm->tm_hour, tm->tm_min, tm->tm_sec);
 
@@ -201,9 +241,17 @@ static void show_status(void) {
 
 static void list_recordings(void) {
     const char *dir = get_record_dir();
-    char cmd[512];
-    snprintf(cmd, sizeof(cmd), "ls -lt %s/*.mp4 2>/dev/null | head -20", dir);
-    system(cmd);
+    if (strncmp(dir, "$HOME", 5) == 0) {
+        char expanded[512];
+        snprintf(expanded, sizeof(expanded), "%s%s", getenv("HOME") ?: "/tmp", dir + 5);
+        dir = expanded;
+    }
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp("ls", "ls", "-lt", dir, NULL);
+        _exit(1);
+    } else if (pid > 0)
+        waitpid(pid, NULL, 0);
 }
 
 static void usage(const char *prog) {
@@ -234,7 +282,7 @@ static void usage(const char *prog) {
         prog, prog, prog, prog);
 }
 
-int cli_recorder_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     signal(SIGINT, on_signal);
@@ -252,9 +300,27 @@ int cli_recorder_main(int argc, char **argv) {
 
         for (int i = 2; i < argc; i++) {
             if (strcmp(argv[i], "-r") == 0) fullscreen = 1;
-            else if (strcmp(argv[i], "-a") == 0 && i + 1 < argc) audio = argv[++i];
-            else if (strcmp(argv[i], "-c") == 0 && i + 1 < argc) codec = argv[++i];
-            else if (strcmp(argv[i], "--crf") == 0 && i + 1 < argc) crf = argv[++i];
+            else if (strcmp(argv[i], "-a") == 0 && i + 1 < argc) {
+                audio = argv[++i];
+                if (strcmp(audio, "none") != 0 && strcmp(audio, "auto") != 0 && !is_safe_ident(audio)) {
+                    fprintf(stderr, "warning: invalid audio device name, using 'auto'\n");
+                    audio = AUDIO_DEFAULT;
+                }
+            }
+            else if (strcmp(argv[i], "-c") == 0 && i + 1 < argc) {
+                codec = argv[++i];
+                if (!is_safe_codec(codec)) {
+                    fprintf(stderr, "warning: invalid codec '%s', using '%s'\n", codec, CODEC_DEFAULT);
+                    codec = CODEC_DEFAULT;
+                }
+            }
+            else if (strcmp(argv[i], "--crf") == 0 && i + 1 < argc) {
+                crf = argv[++i];
+                if (!is_safe_crf(crf)) {
+                    fprintf(stderr, "warning: invalid CRF '%s', using '%s'\n", crf, CRF_DEFAULT);
+                    crf = CRF_DEFAULT;
+                }
+            }
         }
 
         start_recording(audio, codec, crf, fullscreen);

@@ -866,6 +866,10 @@ static void on_rebuild_cache(GtkWidget *widget, gpointer data) {
  * UI Construction
  * ================================================================ */
 
+static void on_clear_log(void) {
+    gtk_text_buffer_set_text(g_log_buffer, "", -1);
+}
+
 static void activate(GtkApplication *app, gpointer user_data) {
     (void)user_data;
     init_paths();
@@ -1440,7 +1444,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_box_pack_start(GTK_BOX(log_header), log_title, TRUE, TRUE, 0);
 
     GtkWidget *clear_btn = gtk_button_new_with_label("Clear");
-    g_signal_connect(clear_btn, "clicked", G_CALLBACK(on_rebuild_cache), NULL);
+    g_signal_connect(clear_btn, "clicked", G_CALLBACK(on_clear_log), NULL);
     gtk_box_pack_start(GTK_BOX(log_header), clear_btn, FALSE, FALSE, 0);
 
     gtk_box_pack_start(GTK_BOX(log_box), log_header, FALSE, FALSE, 0);
@@ -1486,7 +1490,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
  * Entry point
  * ================================================================ */
 
-int gui_fonts_mgr_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     GtkApplication *app = gtk_application_new(APP_ID, G_APPLICATION_DEFAULT_FLAGS);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     int status = g_application_run(G_APPLICATION(app), argc, argv);

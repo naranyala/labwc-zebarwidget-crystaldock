@@ -11,16 +11,16 @@ CURRENT="$(cat "$CFG" 2>/dev/null || echo noctalia)"
 
 # Define available modes with descriptions
 declare -A MODES=(
-    ["dms"]="  Dank Material Shell — Integrated shell (default)"
-    ["noctalia"]="  Noctalia Shell — Full-featured shell"
-    ["sfwbar-plus"]="  OCWS Full — Dual panel with dock, desktop widgets, all features"
-    ["sfwbar"]="  OCWS Minimal — Single top panel, lightweight"
-    ["crystal"]="  Crystal Dock — External dock"
+    ["doublepanel"]="  OCWS Double Panel — Dual sfwbar panels (default)"
+    ["crystaldock"]="  Crystal Dock — SFWBar statusbar + macOS-style dock"
+    ["minimal"]="  OCWS Minimal — Single top panel, lightweight"
+    ["dms"]="  Dank Material Shell — Material 3 bar + dock"
+    ["noctalia"]="  Noctalia Shell — Minimal config shell"
 )
 
 # Build rofi input: current mode marker + all modes
 OPTIONS=""
-for mode in "dms" "noctalia" "sfwbar-plus" "sfwbar" "crystal"; do
+for mode in "doublepanel" "crystaldock" "minimal" "dms" "noctalia"; do
     desc="${MODES[$mode]}"
     if [ "$mode" = "$CURRENT" ]; then
         OPTIONS="${OPTIONS} [active] ${desc}\n"
@@ -47,11 +47,11 @@ fi
 # Parse the selected mode
 NEW_MODE=""
 case "$SELECTED" in
-    *"Dank Material Shell"*) NEW_MODE="dms" ;;
+    *"Double Panel"*)  NEW_MODE="doublepanel" ;;
+    *"Crystal Dock"*)  NEW_MODE="crystaldock" ;;
+    *"OCWS Minimal"*)  NEW_MODE="minimal" ;;
+    *"Dank Material"*) NEW_MODE="dms" ;;
     *"Noctalia"*)      NEW_MODE="noctalia" ;;
-    *"OCWS Full"*)     NEW_MODE="sfwbar-plus" ;;
-    *"OCWS Minimal"*)  NEW_MODE="sfwbar" ;;
-    *"Crystal Dock"*)  NEW_MODE="crystal" ;;
     *) exit 1 ;;
 esac
 

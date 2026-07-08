@@ -532,6 +532,10 @@ GtkWidget* fonts_mgr_build_font_config_tab(void) {
  * Tab 5: Output Log
  * ============================================================ */
 
+static void fonts_mgr_on_clear_log(void) {
+    gtk_text_buffer_set_text(g_log_buffer, "", -1);
+}
+
 GtkWidget* fonts_mgr_build_output_log_tab(void) {
     GtkWidget *log_box = gtk_box_new(GTK_ORIENTATION_VERTICAL, 0);
     gtk_container_set_border_width(GTK_CONTAINER(log_box), 10);
@@ -546,7 +550,7 @@ GtkWidget* fonts_mgr_build_output_log_tab(void) {
     gtk_box_pack_start(GTK_BOX(log_header), log_title, TRUE, TRUE, 0);
 
     GtkWidget *clear_btn = gtk_button_new_with_label("Clear");
-    g_signal_connect(clear_btn, "clicked", G_CALLBACK(fonts_mgr_on_rebuild_cache), NULL);
+    g_signal_connect(clear_btn, "clicked", G_CALLBACK(fonts_mgr_on_clear_log), NULL);
     gtk_box_pack_start(GTK_BOX(log_header), clear_btn, FALSE, FALSE, 0);
 
     gtk_box_pack_start(GTK_BOX(log_box), log_header, FALSE, FALSE, 0);

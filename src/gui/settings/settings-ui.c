@@ -100,8 +100,8 @@ typedef struct {
     gboolean expanded;
 } CollapsibleData;
 
-static void on_collapse_clicked(GtkWidget *button, gpointer user_data) {
-    (void)button;
+static gboolean on_collapse_clicked(GtkWidget *widget, GdkEventButton *event, gpointer user_data) {
+    (void)widget; (void)event;
     CollapsibleData *data = (CollapsibleData *)user_data;
     data->expanded = !data->expanded;
 
@@ -112,6 +112,7 @@ static void on_collapse_clicked(GtkWidget *button, gpointer user_data) {
         gtk_widget_hide(data->content_box);
         gtk_label_set_markup(GTK_LABEL(data->expand_icon), "▶");
     }
+    return GDK_EVENT_STOP;
 }
 
 GtkWidget* create_collapsible_card(const char *title, const char *icon, gboolean start_expanded) {

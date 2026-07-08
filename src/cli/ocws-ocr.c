@@ -152,7 +152,7 @@ static void usage(const char *prog) {
         prog, prog, prog, prog, prog);
 }
 
-int cli_ocr_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     const char *lang = NULL;

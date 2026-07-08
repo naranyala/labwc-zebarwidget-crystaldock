@@ -35,7 +35,7 @@ static void show_notification(const gchar *summary, const gchar *body) {
     gtk_widget_show_all(window);
     
     // Auto-close after 3 seconds
-    g_timeout_add_seconds(3, (GSourceFunc)gtk_widget_destroy, window);
+    g_timeout_add_seconds(3, (GSourceFunc)(gtk_widget_destroy + 0), window);
 }
 
 static void handle_method_call(GDBusConnection *connection, const gchar *sender,
@@ -57,6 +57,16 @@ static void handle_method_call(GDBusConnection *connection, const gchar *sender,
         g_variant_unref(actions); g_variant_unref(hints);
         
         g_dbus_method_invocation_return_value(invocation, g_variant_new("(u)", 1));
+    } else if (g_strcmp0(method_name, "GetCapabilities") == 0) {
+        GVariantBuilder *b = g_variant_builder_new(G_VARIANT_TYPE_ARRAY);
+        g_variant_builder_add(b, "s", "body");
+        g_dbus_method_invocation_return_value(invocation, g_variant_new("(as)", b));
+        g_variant_builder_unref(b);
+    } else if (g_strcmp0(method_name, "GetServerInformation") == 0) {
+        g_dbus_method_invocation_return_value(invocation,
+            g_variant_new("(ssss)", "ocws-osd-notify", "OCWS", "1.0", "1.0"));
+    } else if (g_strcmp0(method_name, "CloseNotification") == 0) {
+        g_dbus_method_invocation_return_value(invocation, NULL);
     }
 }
 
@@ -84,6 +94,7 @@ static void on_bus_acquired(GDBusConnection *connection, const gchar *name, gpoi
         
     g_dbus_connection_register_object(connection, "/org/freedesktop/Notifications",
         introspection_data->interfaces[0], &interface_vtable, NULL, NULL, NULL);
+    g_dbus_node_info_unref(introspection_data);
 }
 
 int main(int argc, char **argv) {

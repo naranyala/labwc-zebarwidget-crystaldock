@@ -358,6 +358,10 @@ pub fn build(b: *std.Build) void {
             .file = b.path("src/libocws/bus.c"),
             .flags = c_flags,
         });
+        brokerd.root_module.addCSourceFile(.{
+            .file = b.path("src/libocws/plugin_rt.c"),
+            .flags = c_flags,
+        });
 
         brokerd.root_module.linkSystemLibrary("glib-2.0", .{});
         brokerd.root_module.linkSystemLibrary("gio-2.0", .{});
@@ -631,7 +635,7 @@ pub fn build(b: *std.Build) void {
             .flags = c_flags,
         });
         const install_dummy = b.addInstallArtifact(dummy_plugin, .{
-            .dest_dir = .{ .custom = "lib/ocws/plugins" },
+            .dest_dir = .{ .override = .{ .custom = "lib/ocws/plugins" } },
         });
         b.getInstallStep().dependOn(&install_dummy.step);
 
@@ -650,7 +654,7 @@ pub fn build(b: *std.Build) void {
             .flags = c_flags,
         });
         const install_sysmon = b.addInstallArtifact(sysmon_plugin, .{
-            .dest_dir = .{ .custom = "lib/ocws/plugins" },
+            .dest_dir = .{ .override = .{ .custom = "lib/ocws/plugins" } },
         });
         b.getInstallStep().dependOn(&install_sysmon.step);
 
@@ -669,7 +673,7 @@ pub fn build(b: *std.Build) void {
             .flags = c_flags,
         });
         const install_battery = b.addInstallArtifact(battery_plugin, .{
-            .dest_dir = .{ .custom = "lib/ocws/plugins" },
+            .dest_dir = .{ .override = .{ .custom = "lib/ocws/plugins" } },
         });
         b.getInstallStep().dependOn(&install_battery.step);
 

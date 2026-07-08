@@ -212,7 +212,7 @@ void cmd_update() {
                 found_daily = 1;
                 if (strcmp(daily_stats[k].date_str, cur_date) != 0) {
                     // New day! Reset
-                    strcpy(daily_stats[k].date_str, cur_date);
+                    strncpy(daily_stats[k].date_str, cur_date, sizeof(daily_stats[k].date_str) - 1);
                     daily_stats[k].total_rx = 0;
                     daily_stats[k].total_tx = 0;
                 }
@@ -248,8 +248,8 @@ void cmd_update() {
                     cur_date, current[i].name, current[i].rx_bytes, current[i].tx_bytes);
             
             // Add to in-memory so we track it next loop
-            strcpy(daily_stats[daily_count].date_str, cur_date);
-            strcpy(daily_stats[daily_count].name, current[i].name);
+            strncpy(daily_stats[daily_count].date_str, cur_date, sizeof(daily_stats[daily_count].date_str) - 1);
+            strncpy(daily_stats[daily_count].name, current[i].name, sizeof(daily_stats[daily_count].name) - 1);
             daily_stats[daily_count].total_rx = 0;
             daily_stats[daily_count].total_tx = 0;
             daily_stats[daily_count].last_rx_abs = current[i].rx_bytes;
@@ -407,7 +407,7 @@ void cmd_cleanup() {
     printf("Network stats cleaned\n");
 }
 
-int cli_network_bandwidth_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     if (argc < 2) {

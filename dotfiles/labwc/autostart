@@ -63,10 +63,17 @@ else
 fi
 
 # --- Notification daemon ---
-if command -v mako >/dev/null 2>&1; then
+if command -v swaync >/dev/null 2>&1; then
+  swaync &
+elif command -v mako >/dev/null 2>&1; then
   mako &
 elif command -v dunst >/dev/null 2>&1; then
   dunst &
+fi
+
+# --- OSD (Volume / Brightness) ---
+if command -v swayosd-server >/dev/null 2>&1; then
+  swayosd-server &
 fi
 
 # --- Clipboard manager ---

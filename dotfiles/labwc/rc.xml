@@ -99,9 +99,9 @@
 
 
     <!-- Media keys -->
-    <keybind key="XF86AudioRaiseVolume"><action name="Execute"><command>wpctl set-volume @DEFAULT_SINK@ 5%+</command></action></keybind>
-    <keybind key="XF86AudioLowerVolume"><action name="Execute"><command>wpctl set-volume @DEFAULT_SINK@ 5%-</command></action></keybind>
-    <keybind key="XF86AudioMute"><action name="Execute"><command>wpctl set-mute @DEFAULT_SINK@ toggle</command></action></keybind>
+    <keybind key="XF86AudioRaiseVolume"><action name="Execute"><command>swayosd-client --output-volume raise || wpctl set-volume @DEFAULT_SINK@ 5%+</command></action></keybind>
+    <keybind key="XF86AudioLowerVolume"><action name="Execute"><command>swayosd-client --output-volume lower || wpctl set-volume @DEFAULT_SINK@ 5%-</command></action></keybind>
+    <keybind key="XF86AudioMute"><action name="Execute"><command>swayosd-client --output-volume mute-toggle || wpctl set-mute @DEFAULT_SINK@ toggle</command></action></keybind>
     <keybind key="XF86AudioPlay"><action name="Execute"><command>playerctl play-pause</command></action></keybind>
     <keybind key="XF86AudioNext"><action name="Execute"><command>playerctl next</command></action></keybind>
     <keybind key="XF86AudioPrev"><action name="Execute"><command>playerctl previous</command></action></keybind>
@@ -164,8 +164,10 @@
     <keybind key="A-F12"><action name="Execute"><command>theme next</command></action></keybind>
     <keybind key="A-S-F12"><action name="Execute"><command>theme</command></action></keybind>
 
-    <!-- Superkey+f - Global Command Bar -->
-    <keybind key="W-f"><action name="Execute"><command>ocws-cmdbar.sh</command></action></keybind>
+    <!-- Superkey+f - Toggle Launcher (fuzzel/rofi) and Theme Reload -->
+    <keybind key="W-f"><action name="Execute"><command>actions.sh launcher-toggle</command></action></keybind>
+    <!-- Superkey+Shift+f - Quick Theme Reload (Catppuccin Mocha) -->
+    <keybind key="S-W-f"><action name="Execute"><command>actions.sh launcher-toggle theme catppuccin-mocha</command></action></keybind>
 
     <!-- Superkey+g - Quick Actions (fallback) -->
     <keybind key="W-g"><action name="Execute"><command>workspace-actions.sh</command></action></keybind>

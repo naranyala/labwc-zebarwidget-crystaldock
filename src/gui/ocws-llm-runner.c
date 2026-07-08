@@ -5,6 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <dirent.h>
+#include <signal.h>
 
 static GtkWidget *chat_view = NULL;
 static GtkTextBuffer *chat_buffer = NULL;
@@ -180,6 +181,7 @@ static void on_clear_clicked(GtkButton *button, gpointer user_data) {
 
 static void scan_models(GtkComboBoxText *combo) {
     const char *home = getenv("HOME");
+    if (!home) home = "/tmp";
     char paths[2][512];
     snprintf(paths[0], sizeof(paths[0]), "%s/Models", home);
     snprintf(paths[1], sizeof(paths[1]), "%s/.local/share/ocws/models", home);
@@ -284,6 +286,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     /* Spawn server */
     int server_stdout_fd = -1;
     const char *home = getenv("HOME");
+    if (!home) home = "/tmp";
     char server_path[512];
     snprintf(server_path, sizeof(server_path), "%s/.local/bin/ocws-llm-server", home);
     
@@ -320,7 +323,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_show_all(window);
 }
 
-int gui_llm_runner_main(int argc, char **argv) {
+int main(int argc, char **argv) {
     GtkApplication *app = gtk_application_new("org.ocws.llm_runner", G_APPLICATION_FLAGS_NONE);
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     int status = g_application_run(G_APPLICATION(app), argc, argv);
