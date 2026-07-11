@@ -113,11 +113,12 @@ case "$PM" in
           libutempter fmt mesa cmake ninja)
     ;;
   dnf)
-    DEPS=(yaml-cpp-devel fontconfig-devel harfbuzz-devel freetype-devel
-          lcms2-devel libpng-devel libxkbcommon-devel libutempter-devel
-          fmt-devel mesa-libGL-devel cmake ninja-build
-          qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtmultimedia-devel
-          qt6-qtbase-private-devel qt6-qtshadertools-devel)
+    DEPS=(lib64yaml-cpp-devel lib64fontconfig-devel lib64harfbuzz-devel lib64freetype6-devel
+          lib64lcms2-devel lib64png-devel lib64xkbcommon-devel lib64utempter-devel
+          lib64fmt-devel lib64GL-devel cmake ninja
+          lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Widgets-devel lib64Qt6Network-devel 
+          lib64Qt6Multimedia-devel lib64Qt6Qml-devel lib64Qt6Quick-devel lib64Qt6MultimediaWidgets-devel 
+          lib64Qt6OpenGLWidgets-devel lib64Qt6QuickControls2-devel lib64Qt6ShaderTools-devel qt6-qtwayland lib64Qt6WaylandClient-devel lib64Qt6WaylandCompositor-devel)
     ;;
   zypper)
     DEPS=(libyaml-cpp-devel fontconfig-devel harfbuzz-devel freetype2-devel

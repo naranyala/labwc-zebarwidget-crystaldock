@@ -152,10 +152,10 @@ esac
 
 echo -e "  Tmux config: ${CYAN}${USE_TMUX}${NC}"
 
-echo -e "\n  Deploy single-file Neovim config?"
-echo -e "    Installs a self-contained ~/.config/nvim/init.lua with lazy.nvim,"
-echo -e "    LSP/Mason integration, Telescope, Treesitter, and OCWS theme support."
-echo -e "    Your existing config will be backed up to dotfiles/nvim/init.lua.bak"
+echo -e "\n  Deploy modular Neovim config?"
+echo -e "    Installs ~/.config/nvim/ with lazy.nvim, LSP/Mason, Treesitter,"
+echo -e "    and OCWS theme support. Modular lua/plugins/* for easy swaps."
+echo -e "    Your existing config will be backed up before changes."
 echo -n "  Enter choice [y/N] (default: N): "
 read -r nvim_choice
 
@@ -525,18 +525,17 @@ if [ "$USE_TMUX" = true ]; then
     fi
 fi
 
-# Deploy Neovim
+# Deploy Neovim (modular structure)
 if [ "$USE_NVIM" = true ]; then
     info "Deploying OCWS Neovim configuration..."
-    if [ -f ~/.config/nvim/init.lua ]; then
-        mkdir -p "$SCRIPT_DIR/dotfiles/nvim"
-        cp ~/.config/nvim/init.lua "$SCRIPT_DIR/dotfiles/nvim/init.lua.bak" 2>/dev/null || true
-        pass "Existing init.lua backed up to dotfiles/nvim/init.lua.bak"
+    if [ -d ~/.config/nvim ]; then
+        cp -r ~/.config/nvim "$SCRIPT_DIR/dotfiles/nvim.bak" 2>/dev/null || true
+        pass "Existing nvim config backed up to dotfiles/nvim.bak"
     fi
     mkdir -p ~/.config/nvim
-    if [ -f "$SCRIPT_DIR/dotfiles/nvim/init.lua" ]; then
-        cp "$SCRIPT_DIR/dotfiles/nvim/init.lua" ~/.config/nvim/init.lua 2>/dev/null || true
-        pass "OCWS nvim/init.lua deployed."
+    if [ -d "$SCRIPT_DIR/dotfiles/nvim" ]; then
+        cp -r "$SCRIPT_DIR/dotfiles/nvim"/* ~/.config/nvim/ 2>/dev/null || true
+        pass "OCWS nvim/ deployed (modular)."
     fi
 fi
 

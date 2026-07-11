@@ -478,7 +478,11 @@ declare -A OUTPUT_MAP=(
     [contour.yml.tmpl]="$HOME/.config/contour/contour.yml"
     [crystal-dock-appearance.conf.tmpl]="$HOME/.config/crystal-dock/appearance.conf"
     [tmux.conf.tmpl]="$HOME/.tmux.conf"
-    [nvim.lua.tmpl]="$HOME/.config/nvim/init.lua"
+    [init.lua.tmpl]="$HOME/.config/nvim/init.lua"
+    [lua/plugins/colorscheme.lua.tmpl]="$HOME/.config/nvim/lua/plugins/colorscheme.lua"
+    [lua/plugins/ui/indent.lua.tmpl]="$HOME/.config/nvim/lua/plugins/ui/indent.lua"
+    [lua/plugins/ui/icons.lua]="$HOME/.config/nvim/lua/plugins/ui/icons.lua"
+    [lua/plugins/ui/illuminate.lua]="$HOME/.config/nvim/lua/plugins/ui/illuminate.lua"
     [qt6ct.conf.tmpl]="$HOME/.config/qt6ct/qt6ct.conf"
     [dms-settings.json.tmpl]="$HOME/.config/DankMaterialShell/settings.json"
     [noctalia.toml.tmpl]="$HOME/.config/noctalia/config.toml"
@@ -746,14 +750,42 @@ cmd_apply() {
         applied=$((applied + 1))
     fi
 
-    # Neovim
-    local nvim_lua
-    nvim_lua=$(render_template "$TEMPLATES_DIR/nvim.lua.tmpl")
-    if [[ -n "$nvim_lua" ]]; then
+    # Neovim (modular: copy base structure, then render theme templates)
+    local dotfiles_nvim="$SCRIPT_DIR/../dotfiles/nvim"
+    if [[ -d "$dotfiles_nvim" ]]; then
         mkdir -p "$HOME/.config/nvim"
-        echo "$nvim_lua" > "$HOME/.config/nvim/init.lua"
-        pass "nvim/init.lua"
+        cp -r "$dotfiles_nvim"/* "$HOME/.config/nvim/" 2>/dev/null || true
+        pass "nvim/ (modular structure)"
         applied=$((applied + 1))
+    fi
+    local nvim_init
+    nvim_init=$(render_template "$TEMPLATES_DIR/init.lua.tmpl")
+    if [[ -n "$nvim_init" ]]; then
+        echo "$nvim_init" > "$HOME/.config/nvim/init.lua"
+        pass "nvim/init.lua"
+    fi
+    local nvim_cs
+    nvim_cs=$(render_template "$TEMPLATES_DIR/lua/plugins/colorscheme.lua.tmpl")
+    if [[ -n "$nvim_cs" ]]; then
+        mkdir -p "$HOME/.config/nvim/lua/plugins"
+        echo "$nvim_cs" > "$HOME/.config/nvim/lua/plugins/colorscheme.lua"
+        pass "nvim/lua/plugins/colorscheme.lua"
+    fi
+    local nvim_ui_indent
+    nvim_ui_indent=$(render_template "$TEMPLATES_DIR/lua/plugins/ui/indent.lua.tmpl")
+    if [[ -n "$nvim_ui_indent" ]]; then
+        mkdir -p "$HOME/.config/nvim/lua/plugins/ui"
+        echo "$nvim_ui_indent" > "$HOME/.config/nvim/lua/plugins/ui/indent.lua"
+        pass "nvim/lua/plugins/ui/indent.lua"
+    fi
+    local nvim_ui_icons="$TEMPLATES_DIR/lua/plugins/ui/icons.lua"
+    if [[ -f "$nvim_ui_icons" ]]; then
+        mkdir -p "$HOME/.config/nvim/lua/plugins/ui"
+        cp "$nvim_ui_icons" "$HOME/.config/nvim/lua/plugins/ui/icons.lua" 2>/dev/null || true
+    fi
+    local nvim_ui_illum="$TEMPLATES_DIR/lua/plugins/ui/illuminate.lua"
+    if [[ -f "$nvim_ui_illum" ]]; then
+        cp "$nvim_ui_illum" "$HOME/.config/nvim/lua/plugins/ui/illuminate.lua" 2>/dev/null || true
     fi
 
     # Qt (Qt5 and Qt6)
