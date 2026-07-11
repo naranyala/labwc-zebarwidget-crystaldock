@@ -14,6 +14,6 @@ border-radius=8
 border-size=2
 
 [colors]
-background=${base}
-text=${text}
-border=${surface1}
+background=#1e1e2e
+text=#cdd6f4
+border=#45475a

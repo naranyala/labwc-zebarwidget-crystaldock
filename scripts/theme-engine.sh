@@ -169,7 +169,7 @@ render_template() {
                     THEME_NAME)      var_value=$(ini_get "meta.name" "$(basename "${theme_file:-$template_file}" .ini)" ) ;;
                     COLOR_BG)        var_value=$(ini_get "colors.bg" "#1e1e2e") ;;
                     COLOR_FG)        var_value=$(ini_get "colors.fg" "#cdd6f4") ;;
-                    COLOR_SURFACE)   var_value=$(ini_get "colors.surface" "#1e1e2e") ;;
+                    COLOR_SURFACE)   var_value=$(ini_get "colors.color_surface" "#45475a") ;;
                     COLOR_BORDER)    var_value=$(ini_get "colors.border" "#45475a") ;;
                     COLOR_ACCENT)    var_value=$(ini_get "colors.accent" "#89b4fa") ;;
                     COLOR_URGENT)     var_value=$(ini_get "colors.urgent" "#f38ba8") ;;
@@ -247,57 +247,57 @@ render_template() {
                             local key="${var_name#ROFI_}"
                             key="${key,,}"
                             case "$key" in
-                                bg)             var_value=$(ini_get "colors.bg" "#1e1e2e") ;;
-                                bg_alt)         var_value=$(ini_get "colors.surface" "#313244") ;;
-                                fg)             var_value=$(ini_get "colors.fg" "#cdd6f4") ;;
-                                fg_alt)         var_value=$(ini_get "colors.muted" "#a6adc8") ;;
-                                accent)         var_value=$(ini_get "colors.accent" "#89b4fa") ;;
-                                urgent)         var_value=$(ini_get "colors.urgent" "#f38ba8") ;;
-                                error)          var_value=$(ini_get "colors.urgent" "#f38ba8") ;;
-                                selected)       var_value=$(ini_get "colors.surface" "#45475a") ;;
-                                border_width)   var_value=$(ini_get "ocws.border" "2") ;;
-                                border_radius)  var_value=$(ini_get "ocws.radius" "8") ;;
-                                icon_theme)     var_value=$(ini_get "gtk3.icon_theme" "Papirus-Dark") ;;
-                                font)           var_value=$(ini_get "fonts.interface" "Noto Sans 10") ;;
-                                terminal)       var_value="foot" ;;
+                                bg)             var_value=$(ini_get "rofi.bg" "#1e1e2e") ;;
+                                bg_alt)         var_value=$(ini_get "rofi.bg_alt" "#313244") ;;
+                                fg)             var_value=$(ini_get "rofi.fg" "#cdd6f4") ;;
+                                fg_alt)         var_value=$(ini_get "rofi.fg_alt" "#a6adc8") ;;
+                                accent)         var_value=$(ini_get "rofi.accent" "#89b4fa") ;;
+                                urgent)         var_value=$(ini_get "rofi.urgent" "#f38ba8") ;;
+                                error)          var_value=$(ini_get "rofi.error" "#f38ba8") ;;
+                                selected)       var_value=$(ini_get "rofi.selected" "#45475a") ;;
+                                border_width)   var_value=$(ini_get "rofi.border_width" "2") ;;
+                                border_radius)  var_value=$(ini_get "rofi.border_radius" "12") ;;
+                                icon_theme)     var_value=$(ini_get "rofi.icon_theme" "elementary") ;;
+                                font)           var_value=$(ini_get "rofi.font" "Noto Sans 10") ;;
+                                terminal)       var_value=$(ini_get "rofi.terminal" "foot") ;;
                                 *)              var_value=$(ini_get "rofi.${key}" "") ;;
                             esac
                         elif [[ "$var_name" == FUZZEL_* ]]; then
                             local key="${var_name#FUZZEL_}"
                             key="${key,,}"
                             case "$key" in
-                                bg)             var_value=$(ini_get "colors.bg" "#1e1e2e") ;;
-                                fg)             var_value=$(ini_get "colors.fg" "#cdd6f4") ;;
-                                fg_alt)         var_value=$(ini_get "colors.muted" "#a6adc8") ;;
-                                accent)         var_value=$(ini_get "colors.accent" "#89b4fa") ;;
-                                urgent)         var_value=$(ini_get "colors.urgent" "#f38ba8") ;;
-                                selected)       var_value=$(ini_get "colors.surface" "#45475a") ;;
-                                border_color)   var_value=$(ini_get "colors.border" "#45475a") ;;
-                                border_width)   var_value=$(ini_get "ocws.border" "2") ;;
-                                border_radius)  var_value=$(ini_get "ocws.radius" "8") ;;
-                                icon_theme)     var_value=$(ini_get "gtk3.icon_theme" "Papirus-Dark") ;;
-                                font)           var_value=$(ini_get "fonts.interface" "Noto Sans 10") ;;
-                                prompt)         var_value="\"> \"" ;;
-                                placeholder)    var_value="Search..." ;;
-                                width)          var_value="40" ;;
-                                lines)          var_value="10" ;;
-                                hpad)           var_value="20" ;;
-                                vpad)           var_value="20" ;;
+                                bg)             var_value=$(ini_get "colors.color_bg" "#1e1e2e") ;;
+                                fg)             var_value=$(ini_get "colors.color_fg" "#cdd6f4") ;;
+                                fg_alt)         var_value=$(ini_get "colors.color_muted" "#a6adc8") ;;
+                                accent)         var_value=$(ini_get "colors.color_accent" "#89b4fa") ;;
+                                urgent)         var_value=$(ini_get "colors.color_urgent" "#f38ba8") ;;
+                                selected)       var_value=$(ini_get "colors.color_surface" "#45475a") ;;
+                                border_color)   var_value=$(ini_get "colors.color_border" "#45475a") ;;
+                                border_width)   var_value=$(ini_get "fuzzel.border_width" "$(ini_get 'ocws.border' '2')") ;;
+                                border_radius)  var_value=$(ini_get "fuzzel.border_radius" "$(ini_get 'ocws.radius' '8')") ;;
+                                icon_theme)     var_value=$(ini_get "fuzzel.icon_theme" "$(ini_get 'gtk3.icon_theme' 'elementary')") ;;
+                                font)           var_value=$(ini_get "fuzzel.font" "$(ini_get 'fonts.interface' 'Noto Sans 10')") ;;
+                                prompt)         var_value=$(ini_get "fuzzel.prompt" "\"> \"") ;;
+                                placeholder)    var_value=$(ini_get "fuzzel.placeholder" "Search...") ;;
+                                width)          var_value=$(ini_get "fuzzel.width" "40") ;;
+                                lines)          var_value=$(ini_get "fuzzel.lines" "10") ;;
+                                hpad)           var_value=$(ini_get "fuzzel.hpad" "20") ;;
+                                vpad)           var_value=$(ini_get "fuzzel.vpad" "20") ;;
                                 *)              var_value=$(ini_get "fuzzel.${key}" "") ;;
                             esac
                         elif [[ "$var_name" == MAKO_* ]]; then
                             local key="${var_name#MAKO_}"
                             key="${key,,}"
                             case "$key" in
-                                bg)             var_value=$(ini_get "colors.bg" "#1e1e2e") ;;
-                                text)           var_value=$(ini_get "colors.fg" "#cdd6f4") ;;
-                                border)         var_value=$(ini_get "colors.accent" "#89b4fa") ;;
-                                border_size)    var_value=$(ini_get "ocws.border" "2") ;;
-                                border_radius)  var_value=$(ini_get "ocws.radius" "8") ;;
-                                font)           var_value=$(ini_get "fonts.interface" "Noto Sans 10") ;;
-                                width)          var_value="350" ;;
-                                max_visible)    var_value="5" ;;
-                                default_timeout) var_value="5000" ;;
+                                bg_color)       var_value=$(ini_get "mako.bg_color" "#1e1e2e") ;;
+                                text_color)     var_value=$(ini_get "mako.text_color" "#cdd6f4") ;;
+                                border_color)   var_value=$(ini_get "mako.border_color" "#45475a") ;;
+                                border_width)   var_value=$(ini_get "mako.border_width" "2") ;;
+                                padding)        var_value=$(ini_get "mako.padding" "12") ;;
+                                font)           var_value=$(ini_get "mako.font" "$(ini_get 'fonts.interface' 'Noto Sans 10')") ;;
+                                max_width)      var_value=$(ini_get "mako.max_width" "400") ;;
+                                max_visible)    var_value=$(ini_get "mako.max_visible" "5") ;;
+                                default_timeout) var_value=$(ini_get "mako.default_timeout" "5000") ;;
                                 *)              var_value=$(ini_get "mako.${key}" "") ;;
                             esac
                         elif [[ "$var_name" == CONTOUR_* ]]; then
@@ -435,7 +435,7 @@ render_template() {
             case "$var_name" in
                 COLOR_BG)      var_value="#1e1e2e" ;;
                 COLOR_FG)      var_value="#cdd6f4" ;;
-                COLOR_SURFACE) var_value="#1e1e2e" ;;
+                COLOR_SURFACE) var_value="#45475a" ;;
                 COLOR_BORDER)  var_value="#45475a" ;;
                 COLOR_ACCENT)  var_value="#89b4fa" ;;
                 COLOR_URGENT)  var_value="#f38ba8" ;;
