@@ -1,0 +1,32 @@
+LABWC DOTFILES DEPLOYMENT GUIDE
+
+✅ IMPLEMENTATION STATUS:
+   - Project configuration: ./dotfiles/labwc/rc.xml
+   - System configuration: ~/.config/labwc/rc.xml  
+   - Sync tool: scripts/dotfiles-sync.sh
+   - Two-way sync between project and system
+
+✅ FIXES APPLIED:
+   1. Context menu right-click:
+      - Titlebar Top Right Bottom Left: right-click → client-menu
+      - Title context: right-click → client-menu
+      - Root context: right-click → root-menu
+
+   2. Double-tap/double-click separation:
+      - <default/> loads standard labwc mouse bindings
+      - No custom overrides for tap/click behavior
+      - Standard tap/click behavior preserved
+
+   3. Tap configuration:
+      - tapButtonMap: lrm (left/middle/right)
+      - Correct finger-to-button mapping
+
+USAGE:
+   diff    : Show differences between project and system
+   push    : Copy project config → system (~/.config/labwc)
+   pull    : Copy system config → project
+
+Commands:
+   scripts/dotfiles-sync.sh diff    # Check differences
+   scripts/dotfiles-sync.sh push    # Deploy fixes
+   scripts/dotfiles-sync.sh pull    # Restore system

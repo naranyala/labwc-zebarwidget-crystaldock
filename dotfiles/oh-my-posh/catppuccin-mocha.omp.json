@@ -1,0 +1,70 @@
+{
+  "$schema": "https://raw.githubusercontent.com/JanDeDobbeleer/oh-my-posh/main/schema/json/config.json",
+  "final_space": true,
+  "console_title_template": "{{ .Shell }} in {{ .Folder }}",
+  "blocks": [
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "newline": true,
+      "segments": [
+        {
+          "type": "session",
+          "style": "plain",
+          "foreground": "#cba6f7",
+          "properties": {
+            "display_ssh": true
+          }
+        },
+        {
+          "type": "path",
+          "style": "plain",
+          "foreground": "#89b4fa",
+          "properties": {
+            "home_icon": "~",
+            "folder_separator_icon": " > ",
+            "folder_icon": " ",
+            "style": "short"
+          }
+        },
+        {
+          "type": "git",
+          "style": "plain",
+          "foreground": "#f38ba8",
+          "properties": {
+            "branch_icon": " ",
+            "commit_icon": "@",
+            "fetch_status": true,
+            "fetch_stash_count": true,
+            "fetch_upstream_icon": true
+          }
+        },
+        {
+          "type": "exit",
+          "style": "plain",
+          "foreground": "#f38ba8",
+          "properties": {
+            "always_enabled": true,
+            "display_exit_code": true,
+            "success_icon": ""
+          }
+        }
+      ]
+    },
+    {
+      "type": "prompt",
+      "alignment": "left",
+      "segments": [
+        {
+          "type": "text",
+          "style": "plain",
+          "foreground": "#a6e3a1",
+          "properties": {
+            "prefix": "❯ ",
+            "command": "whoami"
+          }
+        }
+      ]
+    }
+  ]
+}

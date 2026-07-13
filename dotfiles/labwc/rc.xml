@@ -254,7 +254,7 @@
 
     <context name="Titlebar">
       <mousebind button="Left" action="Drag"><action name="Move"/></mousebind>
-      <mousebind button="Left" action="DoubleClick"><action name="ShowMenu"><menu>client-menu</menu></action></mousebind>
+      <mousebind button="Left" action="DoubleClick"><action name="ToggleMaximize"/></mousebind>
       <mousebind button="Up" action="Click"><action name="DesktopPrevious"/></mousebind>
       <mousebind button="Down" action="Click"><action name="DesktopNext"/></mousebind>
     </context>
@@ -307,7 +307,6 @@
     <!-- Right-click on the desktop shows the root menu -->
     <context name="Root">
       <mousebind button="Right" action="Press"><action name="ShowMenu"><menu>root-menu</menu></action></mousebind>
-      <mousebind button="Left" action="DoubleClick"><action name="ShowMenu"><menu>root-menu</menu></action></mousebind>
     </context>
 
     <!-- Window menu on titlebar right-click (matches labwc default).
@@ -315,7 +314,6 @@
          will swallow every application right-click. -->
     <context name="Title">
       <mousebind button="Right" action="Press"><action name="ShowMenu"><menu>client-menu</menu></action></mousebind>
-      <mousebind button="Left" action="DoubleClick"><action name="ShowMenu"><menu>client-menu</menu></action></mousebind>
     </context>
   </mouse>
 
@@ -329,7 +327,7 @@
       <dragLock>no</dragLock>
       <naturalScroll>no</naturalScroll>
       <disableWhileTyping>yes</disableWhileTyping>
-      <middleEmulation>yes</middleEmulation>
+      <middleEmulation>no</middleEmulation>
       <scrollMethod>twofinger</scrollMethod>
       <clickMethod>clickfinger</clickMethod>
       <sendEventsMode>yes</sendEventsMode>

@@ -11,6 +11,7 @@ CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
+DIM='\033[2m'
 NC='\033[0m'
 
 info() { echo -e "\n${CYAN}==>${NC} $*"; }
@@ -110,17 +111,20 @@ echo -e "  Terminal: ${GREEN}foot${NC}"
 echo -e "\n  ${CYAN}Extras:${NC}"
 echo -n "    Tmux theme? [y/N]: " && read -r tmux_choice
 echo -n "    Neovim config? [y/N]: " && read -r nvim_choice
+echo -n "    Oh My Posh (prompt)? [y/N]: " && read -r posh_choice
 echo -n "    Antigravity CLI + MCP? [y/N]: " && read -r mcp_choice
 echo -n "    OpenCode CLI + MCP? [y/N]: " && read -r opencode_choice
 
 USE_TMUX="${tmux_choice:-N}"
 USE_NVIM="${nvim_choice:-N}"
+USE_POSH="${posh_choice:-N}"
 USE_MCP="${mcp_choice:-N}"
 USE_OPENCODE="${opencode_choice:-N}"
 
 # Normalize to booleans
 [[ "$USE_TMUX" =~ ^[Yy]$ ]] && USE_TMUX=true || USE_TMUX=false
 [[ "$USE_NVIM" =~ ^[Yy]$ ]] && USE_NVIM=true || USE_NVIM=false
+[[ "$USE_POSH" =~ ^[Yy]$ ]] && USE_POSH=true || USE_POSH=false
 [[ "$USE_MCP" =~ ^[Yy]$ ]] && USE_MCP=true || USE_MCP=false
 [[ "$USE_OPENCODE" =~ ^[Yy]$ ]] && USE_OPENCODE=true || USE_OPENCODE=false
 
@@ -312,12 +316,112 @@ if [ "$USE_OPENCODE" = true ]; then
 fi
 
 # -------------------------------------------------------------------
+# Oh My Posh — cross-platform prompt prompt
+# -------------------------------------------------------------------
+install_oh_my_posh() {
+    info "Installing Oh My Posh..."
+    if command -v oh-my-posh &>/dev/null; then
+        local omp_ver
+        omp_ver=$(oh-my-posh --version 2>/dev/null | head -1)
+        pass "Oh My Posh already installed ($omp_ver)"
+    else
+        echo -e "  ${CYAN}Oh My Posh${NC} is a cross-platform prompt theme engine for bash/zsh/fish."
+        echo -e "  It shows git status, execution time, error codes, and more in your terminal."
+        echo -e "  ${DIM}https://github.com/jandedobbeleer/oh-my-posh${NC}"
+        echo ""
+        echo -n "  Install Oh My Posh now? [Y/n]: "
+        read -r omp_confirm
+        if [[ "${omp_confirm:-Y}" =~ ^[Nn]$ ]]; then
+            warn "Skipping Oh My Posh install."
+            return 0
+        fi
+
+        # Install via the official install script
+        echo -e "  ${DIM}Downloading oh-my-posh...${NC}"
+        curl -fsSL https://ohmyposh.dev/install.sh | bash -s 2>&1 | tail -5
+
+        # Verify install
+        if command -v oh-my-posh &>/dev/null; then
+            local omp_ver
+            omp_ver=$(oh-my-posh --version 2>/dev/null | head -1)
+            pass "Oh My Posh installed ($omp_ver)"
+        else
+            # Check common install locations
+            for dir in "$HOME/.local/bin" "$HOME/.oh-my-posh/bin" "/usr/local/bin"; do
+                if [ -x "$dir/oh-my-posh" ]; then
+                    export PATH="$dir:$PATH"
+                    pass "Oh My Posh installed at $dir"
+                    break
+                fi
+            done
+            if ! command -v oh-my-posh &>/dev/null; then
+                warn "Oh My Posh installed but not found in PATH. You may need to restart your shell."
+            fi
+        fi
+    fi
+
+    # Deploy config
+    local omp_config_dir="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh"
+    local omp_theme="catppuccin-mocha"
+
+    mkdir -p "$omp_config_dir"
+    if [ -f "$SCRIPT_DIR/dotfiles/oh-my-posh/${omp_theme}.omp.json" ]; then
+        cp "$SCRIPT_DIR/dotfiles/oh-my-posh/${omp_theme}.omp.json" "$omp_config_dir/${omp_theme}.omp.json"
+        pass "Oh My Posh theme deployed: $omp_theme"
+    fi
+
+    # Create shell init snippet
+    local bash_init="$omp_config_dir/omp-init.sh"
+    cat > "$bash_init" << 'SHELLEOF'
+# Oh My Posh — initialize prompt (added by OCWS installer)
+if command -v oh-my-posh &>/dev/null; then
+    OMP_CONFIG="${XDG_CONFIG_HOME:-$HOME/.config}/oh-my-posh/catppuccin-mocha.omp.json"
+    if [ -f "$OMP_CONFIG" ]; then
+        eval "$(oh-my-posh init bash --config "$OMP_CONFIG")"
+    fi
+fi
+SHELLEOF
+    pass "Shell init snippet: $bash_init"
+
+    # Add to .bashrc if not already present
+    local bashrc="$HOME/.bashrc"
+    local omp_marker="# Oh My Posh (OCWS)"
+    if [ -f "$bashrc" ] && grep -q "$omp_marker" "$bashrc"; then
+        pass "Oh My Posh already configured in .bashrc"
+    elif [ -f "$bashrc" ]; then
+        echo "" >> "$bashrc"
+        echo "$omp_marker" >> "$bashrc"
+        echo "[ -f \"$bash_init\" ] && source \"$bash_init\"" >> "$bashrc"
+        pass "Oh My Posh added to .bashrc"
+    else
+        warn ".bashrc not found — add this to your shell init:"
+        echo "    [ -f \"$bash_init\" ] && source \"$bash_init\""
+    fi
+
+    echo -e "\n  ${GREEN}Oh My Posh setup complete!${NC}"
+    echo -e "  Restart your shell or run: ${CYAN}source ~/.bashrc${NC}"
+    echo -e "  Customize: ${CYAN}oh-my-posh init bash --config ~/.config/oh-my-posh/catppuccin-mocha.omp.json${NC}"
+}
+
+if [ "$USE_POSH" = true ]; then
+    case "${dep_choice:-1}" in
+        1) install_oh_my_posh ;;
+        *)
+            echo -e "\n${YELLOW}⚠${NC} Skipping Oh My Posh install (configs-only mode)."
+            echo "  To install later:"
+            echo "    curl -fsSL https://ohmyposh.dev/install.sh | bash"
+            echo "  Config already deployed to ~/.config/oh-my-posh/"
+            ;;
+    esac
+fi
+
+# -------------------------------------------------------------------
 # Deploy Configurations
 # -------------------------------------------------------------------
 
 # Pre-deploy confirmation
 echo -e "\n  ${CYAN}Deploy:${NC} $MODE_DESC | $LAUNCHER | foot"
-echo -e "  ${CYAN}Extras:${NC} tmux=$USE_TMUX nvim=$USE_NVIM mcp=$USE_MCP opencode=$USE_OPENCODE"
+echo -e "  ${CYAN}Extras:${NC} tmux=$USE_TMUX nvim=$USE_NVIM posh=$USE_POSH mcp=$USE_MCP opencode=$USE_OPENCODE"
 echo -e "  ${YELLOW}Target: ~/.config/ ~/.local/bin/${NC}"
 
 echo -n "  Deploy? [y/N]: "
