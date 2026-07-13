@@ -321,7 +321,7 @@
     <!-- Touchpad: enable tap-to-click, drag, dwt -->
     <device category="touchpad">
       <tap>yes</tap>
-      <tapButtonMap>lmr</tapButtonMap>
+      <tapButtonMap>lrm</tapButtonMap>
       <tapAndDrag>yes</tapAndDrag>
       <dragLock>yes</dragLock>
       <naturalScroll>no</naturalScroll>
