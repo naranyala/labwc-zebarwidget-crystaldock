@@ -61,32 +61,32 @@ static void detect_shell(void) {
     /* DMS */
     snprintf(path, sizeof(path), "%s/.local/state/DankMaterialShell/session.json", home);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
-        strcpy(current_config.shell, "dms");
-        strcpy(current_config.config_path, path);
+        snprintf(current_config.shell, sizeof(current_config.shell), "%s", "dms");
+        snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
     /* Noctalia */
     snprintf(path, sizeof(path), "%s/.config/noctalia/config.toml", home);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
-        strcpy(current_config.shell, "noctalia");
-        strcpy(current_config.config_path, path);
+        snprintf(current_config.shell, sizeof(current_config.shell), "%s", "noctalia");
+        snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
     /* Crystal Dock */
     snprintf(path, sizeof(path), "%s/.config/crystal-dock/panel_1.conf", home);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
-        strcpy(current_config.shell, "crystaldock");
-        strcpy(current_config.config_path, path);
+        snprintf(current_config.shell, sizeof(current_config.shell), "%s", "crystaldock");
+        snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
     /* sfwbar */
     snprintf(path, sizeof(path), "%s/.config/ocws/sfwbar-dock.config", home);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
-        strcpy(current_config.shell, "sfwbar");
-        strcpy(current_config.config_path, path);
+        snprintf(current_config.shell, sizeof(current_config.shell), "%s", "sfwbar");
+        snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
-    strcpy(current_config.shell, "unknown");
+    snprintf(current_config.shell, sizeof(current_config.shell), "%s", "unknown");
 }
 
 /* ============================================================
@@ -100,6 +100,7 @@ static void parse_dms_pinned(void) {
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
     char *content = malloc(size + 1);
+    if (!content) { fclose(f); return; }
     fread(content, 1, size, f);
     fclose(f);
     content[size] = '\0';
@@ -193,6 +194,7 @@ static void parse_sfwbar_pinned(void) {
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
     char *content = malloc(size + 1);
+    if (!content) { fclose(f); return; }
     fread(content, 1, size, f);
     fclose(f);
     content[size] = '\0';
@@ -231,6 +233,7 @@ static void save_dms_pinned(void) {
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
     char *content = malloc(size + 1);
+    if (!content) { fclose(f); return; }
     fread(content, 1, size, f);
     fclose(f);
     content[size] = '\0';
@@ -567,6 +570,7 @@ static void restore_dock(GtkWidget *widget, gpointer data) {
     long size = ftell(f);
     fseek(f, 0, SEEK_SET);
     char *content = malloc(size + 1);
+    if (!content) { fclose(f); gtk_label_set_text(GTK_LABEL(status_label), "Memory allocation failed"); return; }
     fread(content, 1, size, f);
     fclose(f);
     content[size] = '\0';

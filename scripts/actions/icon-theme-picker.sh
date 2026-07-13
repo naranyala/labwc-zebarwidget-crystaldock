@@ -26,13 +26,16 @@ if [ -z "$CHOSEN" ]; then
     exit 0
 fi
 
+# Escape sed special characters in CHOSEN
+ESCAPED_CHOSEN=$(printf '%s\n' "$CHOSEN" | sed 's/[.[\/*^$]/\\&/g')
+
 notify_msg "Applying $CHOSEN..."
 
 # Apply to crystal-dock
 DOCK_CONF="$HOME/.config/crystal-dock/labwc/appearance.conf"
 if [ -f "$DOCK_CONF" ]; then
     if grep -q "^iconTheme=" "$DOCK_CONF"; then
-        sed -i "s/^iconTheme=.*/iconTheme=$CHOSEN/" "$DOCK_CONF"
+        sed -i "s/^iconTheme=.*/iconTheme=$ESCAPED_CHOSEN/" "$DOCK_CONF"
     else
         sed -i "/^\[General\]/a iconTheme=$CHOSEN" "$DOCK_CONF"
     fi
@@ -46,7 +49,7 @@ GTK3_CONF="$HOME/.config/gtk-3.0/settings.ini"
 mkdir -p "$(dirname "$GTK3_CONF")"
 if [ -f "$GTK3_CONF" ]; then
     if grep -q "^gtk-icon-theme-name=" "$GTK3_CONF"; then
-        sed -i "s/^gtk-icon-theme-name=.*/gtk-icon-theme-name=$CHOSEN/" "$GTK3_CONF"
+        sed -i "s/^gtk-icon-theme-name=.*/gtk-icon-theme-name=$ESCAPED_CHOSEN/" "$GTK3_CONF"
     else
         sed -i "/^\[Settings\]/a gtk-icon-theme-name=$CHOSEN" "$GTK3_CONF"
     fi
@@ -59,7 +62,7 @@ GTK4_CONF="$HOME/.config/gtk-4.0/settings.ini"
 mkdir -p "$(dirname "$GTK4_CONF")"
 if [ -f "$GTK4_CONF" ]; then
     if grep -q "^gtk-icon-theme-name=" "$GTK4_CONF"; then
-        sed -i "s/^gtk-icon-theme-name=.*/gtk-icon-theme-name=$CHOSEN/" "$GTK4_CONF"
+        sed -i "s/^gtk-icon-theme-name=.*/gtk-icon-theme-name=$ESCAPED_CHOSEN/" "$GTK4_CONF"
     else
         sed -i "/^\[Settings\]/a gtk-icon-theme-name=$CHOSEN" "$GTK4_CONF"
     fi

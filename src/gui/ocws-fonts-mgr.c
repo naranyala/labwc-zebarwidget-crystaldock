@@ -140,19 +140,36 @@ static void log_msg(const char *fmt, ...) {
 
 static void run_cmd_logged(const char *cmd) {
     log_msg("$ %s", cmd);
-    FILE *fp = popen(cmd, "r");
-    if (!fp) {
-        log_msg("ERROR: Failed to execute command");
+    GError *error = NULL;
+    gchar *stdout_buf = NULL;
+    gchar *argv[4] = {"/bin/sh", "-c", (gchar*)cmd, NULL};
+    gint exit_status;
+    if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &stdout_buf, NULL, &exit_status, &error)) {
+        log_msg("ERROR: Failed to execute command: %s", error->message);
+        g_error_free(error);
         return;
     }
-    char line[512];
-    while (fgets(line, sizeof(line), fp)) {
-        line[strcspn(line, "\n")] = 0;
-        log_msg("  %s", line);
+    if (stdout_buf) {
+        char line[512];
+        char *p = stdout_buf;
+        char *next;
+        while (p && *p) {
+            next = strchr(p, '\n');
+            if (next) *next = '\0';
+            strncpy(line, p, sizeof(line) - 1);
+            line[sizeof(line) - 1] = '\0';
+            log_msg("  %s", line);
+            if (next) {
+                *next = '\n';
+                p = next + 1;
+            } else {
+                break;
+            }
+        }
+        g_free(stdout_buf);
     }
-    int ret = pclose(fp);
-    if (WIFEXITED(ret) && WEXITSTATUS(ret) != 0) {
-        log_msg("Exit code: %d", WEXITSTATUS(ret));
+    if (WIFEXITED(exit_status) && WEXITSTATUS(exit_status) != 0) {
+        log_msg("Exit code: %d", WEXITSTATUS(exit_status));
     }
 }
 
@@ -681,8 +698,8 @@ static gpointer install_worker(gpointer user_data) {
         run_cmd_logged(cmd);
 
         /* Cleanup temp */
-        snprintf(cmd, sizeof(cmd), "rm -f '%s'", tmp_path);
-        system(cmd);
+        snprintf(cmd, sizeof(cmd), "rm -f '%s' 2>&1", tmp_path);
+        run_cmd_logged(cmd);
     }
 
     /* Mark as managed */

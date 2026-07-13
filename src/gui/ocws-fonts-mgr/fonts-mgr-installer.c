@@ -61,8 +61,8 @@ gpointer fonts_mgr_install_worker(gpointer user_data) {
         fonts_mgr_run_cmd_logged(cmd);
 
         /* Cleanup temp */
-        snprintf(cmd, sizeof(cmd), "rm -f '%s'", tmp_path);
-        system(cmd);
+        snprintf(cmd, sizeof(cmd), "rm -f '%s' 2>&1", tmp_path);
+        fonts_mgr_run_cmd_logged(cmd);
     }
 
     /* Mark as managed */

@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include <glib.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
@@ -26,7 +27,14 @@ static void push_eq(double values[10]) {
     gchar cmd[256];
     snprintf(cmd, sizeof(cmd), "ocws-eq-apply apply \"%s\"", csv);
     g_print("Applying EQ: %s\n", csv);
-    system(cmd);
+    GError *error = NULL;
+    gchar *argv[4] = {"/bin/sh", "-c", cmd, NULL};
+    g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+                  NULL, NULL, NULL, &error);
+    if (error) {
+        g_warning("spawn eq failed: %s", error->message);
+        g_error_free(error);
+    }
 }
 
 static void preset_to_bands(const gchar *name, double out[10]) {

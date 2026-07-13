@@ -13,7 +13,10 @@ notify_msg() {
 }
 
 mkdir -p "$HOME/.local/share/icons"
-cd "/tmp" || exit 1
+TMPDIR=$(mktemp -d /tmp/ocws-download-icons-XXXXXX)
+cleanup() { rm -rf "$TMPDIR"; }
+trap cleanup EXIT
+cd "$TMPDIR" || exit 1
 
 declare -A REPOS
 REPOS=(
@@ -42,10 +45,10 @@ fi
 URL="${REPOS[$CHOSEN]}"
 if [ -n "$URL" ]; then
     notify_msg "Downloading $CHOSEN... (this may take a minute)"
-    rm -rf "/tmp/$CHOSEN"
-    if git clone --depth 1 "$URL" "/tmp/$CHOSEN"; then
+    rm -rf "$TMPDIR/$CHOSEN"
+    if git clone --depth 1 "$URL" "$TMPDIR/$CHOSEN"; then
         notify_msg "Installing $CHOSEN..."
-        cd "/tmp/$CHOSEN" || exit 1
+        cd "$TMPDIR/$CHOSEN" || exit 1
         
         # Most of these repos have an install.sh
         if [ -x "install.sh" ]; then
@@ -55,7 +58,7 @@ if [ -n "$URL" ]; then
         fi
         
         notify_msg "$CHOSEN installed successfully! Run Icon Picker to apply."
-        rm -rf "/tmp/$CHOSEN"
+        rm -rf "$TMPDIR/$CHOSEN"
     else
         notify_msg "Failed to download $CHOSEN."
     fi

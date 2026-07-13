@@ -117,9 +117,16 @@ static GtkWidget *g_log_view = NULL;
 
 static int check_installed(const char *check_cmd) {
     if (!check_cmd) return -1; /* unknown */
-    char cmd[256];
-    snprintf(cmd, sizeof(cmd), "%s >/dev/null 2>&1", check_cmd);
-    return system(cmd) == 0 ? 1 : 0;
+    GError *error = NULL;
+    gint exit_status;
+    gchar *argv[4] = {"/bin/sh", "-c", (gchar*)check_cmd, NULL};
+    gboolean ok = g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &exit_status, &error);
+    if (error) {
+        g_error_free(error);
+        return 0;
+    }
+    if (!ok) return 0;
+    return WIFEXITED(exit_status) && WEXITSTATUS(exit_status) == 0 ? 1 : 0;
 }
 
 static gboolean append_log_idle(gpointer data) {
@@ -149,19 +156,36 @@ static void log_msg(const char *fmt, ...) {
 
 static void run_cmd_logged(const char *cmd) {
     log_msg("$ %s", cmd);
-    FILE *fp = popen(cmd, "r");
-    if (!fp) {
-        log_msg("ERROR: Failed to execute command");
+    GError *error = NULL;
+    gchar *stdout_buf = NULL;
+    gchar *argv[4] = {"/bin/sh", "-c", (gchar*)cmd, NULL};
+    gint exit_status;
+    if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &stdout_buf, NULL, &exit_status, &error)) {
+        log_msg("ERROR: Failed to execute command: %s", error->message);
+        g_error_free(error);
         return;
     }
-    char line[512];
-    while (fgets(line, sizeof(line), fp)) {
-        line[strcspn(line, "\n")] = 0;
-        log_msg("  %s", line);
+    if (stdout_buf) {
+        char line[512];
+        char *p = stdout_buf;
+        char *next;
+        while (p && *p) {
+            next = strchr(p, '\n');
+            if (next) *next = '\0';
+            strncpy(line, p, sizeof(line) - 1);
+            line[sizeof(line) - 1] = '\0';
+            log_msg("  %s", line);
+            if (next) {
+                *next = '\n';
+                p = next + 1;
+            } else {
+                break;
+            }
+        }
+        g_free(stdout_buf);
     }
-    int ret = pclose(fp);
-    if (WIFEXITED(ret)) {
-        log_msg("Exit code: %d", WEXITSTATUS(ret));
+    if (WIFEXITED(exit_status)) {
+        log_msg("Exit code: %d", WEXITSTATUS(exit_status));
     }
 }
 
@@ -211,14 +235,19 @@ static void on_install_missing(GtkWidget *widget, gpointer data) {
     /* Detect distro */
     const char *distro = "unknown";
     if (access("/etc/os-release", R_OK) == 0) {
-        FILE *fp = popen(". /etc/os-release && echo $ID", "r");
-        if (fp) {
+        GError *error = NULL;
+        gchar *stdout_buf = NULL;
+        gchar *argv[] = {"/bin/sh", "-c", ". /etc/os-release && echo $ID", NULL};
+        if (g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &stdout_buf, NULL, NULL, &error)) {
             char buf[64] = {0};
-            if (fgets(buf, sizeof(buf), fp)) {
+            if (stdout_buf) {
+                strncpy(buf, stdout_buf, sizeof(buf) - 1);
                 buf[strcspn(buf, "\n")] = 0;
                 distro = strdup(buf);
+                g_free(stdout_buf);
             }
-            pclose(fp);
+        } else {
+            g_error_free(error);
         }
     }
     log_msg("Detected distro: %s", distro);
@@ -236,14 +265,15 @@ static void on_install_missing(GtkWidget *widget, gpointer data) {
             else if (is_fedora) pkg_name = DEPS[i].fedora_pkg;
             
             if (pkg_name) {
-                strcat(pkgs, pkg_name);
-                strcat(pkgs, " ");
+                size_t rem = sizeof(pkgs) - strlen(pkgs) - 1;
+                snprintf(pkgs + strlen(pkgs), rem, "%s ", pkg_name);
             } else {
                 log_msg("WARN: No package mapping for %s on this distro, or must be built from source.", DEPS[i].name);
             }
         }
     }
 
+    /* Safe: package names are compile-time constants from DEPS[] array */
     if (strlen(pkgs) > 0) {
         char cmd[2048];
         if (is_arch) {
@@ -292,7 +322,7 @@ static gpointer build_worker(gpointer user_data) {
 
     /* Clean previous build */
     snprintf(cmd, sizeof(cmd), "rm -rf '%s'", build_dir);
-    system(cmd);
+    run_cmd_logged(cmd);
 
     /* Clone */
     snprintf(cmd, sizeof(cmd), "git clone --depth=1 '%s' '%s' 2>&1", t->repo_url, build_dir);
@@ -392,6 +422,15 @@ static void on_health_check(GtkWidget *widget, gpointer data) {
     g_thread_new("health", health_worker, status_lbl);
 }
 
+static gboolean run_check_cmd(const char *check_cmd) {
+    GError *error = NULL;
+    gint exit_status;
+    gchar *argv[4] = {"/bin/sh", "-c", (gchar*)check_cmd, NULL};
+    gboolean ok = g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &exit_status, &error);
+    if (error) g_error_free(error);
+    return ok && WIFEXITED(exit_status) && WEXITSTATUS(exit_status) == 0;
+}
+
 static gpointer quick_health_worker(gpointer user_data) {
     const char *section = (const char *)user_data;
 
@@ -399,33 +438,31 @@ static gpointer quick_health_worker(gpointer user_data) {
 
     if (strcmp(section, "system") == 0) {
         /* Memory */
-        FILE *fp = popen("awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{printf \"%.0f\", (t-a)*100/t}' /proc/meminfo", "r");
-        if (fp) {
+        GError *e1 = NULL;
+        gchar *out1 = NULL;
+        gchar *argv1[] = {"/bin/sh", "-c", "awk '/MemTotal/{t=$2} /MemAvailable/{a=$2} END{printf \"%.0f\", (t-a)*100/t}' /proc/meminfo", NULL};
+        if (g_spawn_sync(NULL, argv1, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out1, NULL, NULL, &e1)) {
             char buf[32] = {0};
-            if (fgets(buf, sizeof(buf), fp)) {
-                buf[strcspn(buf, "\n")] = 0;
-                int pct = atoi(buf);
-                log_msg("[%s] Memory: %d%% used", pct < 70 ? "PASS" : (pct < 85 ? "WARN" : "FAIL"), pct);
-            }
-            pclose(fp);
-        }
+            if (out1) { strncpy(buf, out1, sizeof(buf) - 1); buf[strcspn(buf, "\n")] = 0; g_free(out1); }
+            int pct = atoi(buf);
+            log_msg("[%s] Memory: %d%% used", pct < 70 ? "PASS" : (pct < 85 ? "WARN" : "FAIL"), pct);
+        } else { g_error_free(e1); }
         /* Disk */
-        fp = popen("df / | tail -1 | awk '{print $5}'", "r");
-        if (fp) {
+        GError *e2 = NULL;
+        gchar *out2 = NULL;
+        gchar *argv2[] = {"/bin/sh", "-c", "df / | tail -1 | awk '{print $5}'", NULL};
+        if (g_spawn_sync(NULL, argv2, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out2, NULL, NULL, &e2)) {
             char buf[32] = {0};
-            if (fgets(buf, sizeof(buf), fp)) {
-                buf[strcspn(buf, "\n")] = 0;
-                int pct = atoi(buf);
-                log_msg("[%s] Disk: %d%% used", pct < 70 ? "PASS" : (pct < 85 ? "WARN" : "FAIL"), pct);
-            }
-            pclose(fp);
-        }
+            if (out2) { strncpy(buf, out2, sizeof(buf) - 1); buf[strcspn(buf, "\n")] = 0; g_free(out2); }
+            int pct = atoi(buf);
+            log_msg("[%s] Disk: %d%% used", pct < 70 ? "PASS" : (pct < 85 ? "WARN" : "FAIL"), pct);
+        } else { g_error_free(e2); }
     } else if (strcmp(section, "services") == 0) {
         const char *svcs[] = {"labwc", "sfwbar", "mako", "swayidle", NULL};
         for (int i = 0; svcs[i]; i++) {
-            char cmd[128];
-            snprintf(cmd, sizeof(cmd), "pgrep -x %s >/dev/null 2>&1", svcs[i]);
-            int running = system(cmd) == 0;
+            char check[128];
+            snprintf(check, sizeof(check), "pgrep -x %s >/dev/null 2>&1", svcs[i]);
+            int running = run_check_cmd(check);
             log_msg("[%s] %s", running ? "PASS" : "WARN", svcs[i]);
         }
     } else if (strcmp(section, "config") == 0) {
@@ -446,9 +483,9 @@ static gpointer quick_health_worker(gpointer user_data) {
     } else if (strcmp(section, "binaries") == 0) {
         const char *bins[] = {"ocws", "ocws-kv", "ocws-emit", "ocws-welcome", "ocws-settings", "ocws-pkgmgr", NULL};
         for (int i = 0; bins[i]; i++) {
-            char cmd[128];
-            snprintf(cmd, sizeof(cmd), "which %s >/dev/null 2>&1", bins[i]);
-            int found = system(cmd) == 0;
+            char check[128];
+            snprintf(check, sizeof(check), "which %s >/dev/null 2>&1", bins[i]);
+            int found = run_check_cmd(check);
             log_msg("[%s] %s", found ? "PASS" : "FAIL", bins[i]);
         }
     }
@@ -476,60 +513,68 @@ static gpointer update_check_worker(gpointer user_data) {
 
     /* Check GitHub API for latest labwc release */
     log_msg("Checking labwc...");
-    FILE *fp = popen("curl -sL 'https://api.github.com/repos/labwc/labwc/releases/latest' 2>/dev/null | grep '\"tag_name\"' | head -1 | sed 's/.*\"tag_name\": \"\\(.*\\)\".*/\\1/'", "r");
-    if (fp) {
+    GError *e = NULL;
+    gchar *out = NULL;
+    gchar *argv_labwc[] = {"/bin/sh", "-c", "curl -sL 'https://api.github.com/repos/labwc/labwc/releases/latest' 2>/dev/null | grep '\"tag_name\"' | head -1 | sed 's/.*\"tag_name\": \"\\(.*\\)\".*/\\1/'", NULL};
+    if (g_spawn_sync(NULL, argv_labwc, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out, NULL, NULL, &e)) {
         char buf[128] = {0};
-        if (fgets(buf, sizeof(buf), fp)) {
+        if (out) {
+            strncpy(buf, out, sizeof(buf) - 1);
             buf[strcspn(buf, "\n")] = 0;
-            if (buf[0]) {
-                log_msg("  Latest labwc: %s", buf);
-
-                /* Compare with installed */
-                FILE *fp2 = popen("labwc --version 2>/dev/null | head -1", "r");
-                if (fp2) {
-                    char installed[128] = {0};
-                    if (fgets(installed, sizeof(installed), fp2)) {
-                        installed[strcspn(installed, "\n")] = 0;
-                        log_msg("  Installed:   %s", installed);
-                    }
-                    pclose(fp2);
-                }
-            } else {
-                log_msg("  Could not fetch latest labwc version");
-            }
+            g_free(out); out = NULL;
         }
-        pclose(fp);
-    }
+        if (buf[0]) {
+            log_msg("  Latest labwc: %s", buf);
+            GError *e2 = NULL;
+            gchar *out2 = NULL;
+            gchar *argv_inst[] = {"/bin/sh", "-c", "labwc --version 2>/dev/null | head -1", NULL};
+            if (g_spawn_sync(NULL, argv_inst, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out2, NULL, NULL, &e2)) {
+                char installed[128] = {0};
+                if (out2) {
+                    strncpy(installed, out2, sizeof(installed) - 1);
+                    installed[strcspn(installed, "\n")] = 0;
+                    g_free(out2);
+                }
+                log_msg("  Installed:   %s", installed);
+            } else { g_error_free(e2); }
+        } else {
+            log_msg("  Could not fetch latest labwc version");
+        }
+    } else { g_error_free(e); }
 
     /* Check sfwbar */
     log_msg("Checking sfwbar...");
-    fp = popen("curl -sL 'https://api.github.com/repos/LBCrion/sfwbar/releases/latest' 2>/dev/null | grep '\"tag_name\"' | head -1 | sed 's/.*\"tag_name\": \"\\(.*\\)\".*/\\1/'", "r");
-    if (fp) {
+    e = NULL; out = NULL;
+    gchar *argv_sfwbar[] = {"/bin/sh", "-c", "curl -sL 'https://api.github.com/repos/LBCrion/sfwbar/releases/latest' 2>/dev/null | grep '\"tag_name\"' | head -1 | sed 's/.*\"tag_name\": \"\\(.*\\)\".*/\\1/'", NULL};
+    if (g_spawn_sync(NULL, argv_sfwbar, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out, NULL, NULL, &e)) {
         char buf[128] = {0};
-        if (fgets(buf, sizeof(buf), fp)) {
+        if (out) {
+            strncpy(buf, out, sizeof(buf) - 1);
             buf[strcspn(buf, "\n")] = 0;
-            if (buf[0]) {
-                log_msg("  Latest sfwbar: %s", buf);
-            } else {
-                log_msg("  Could not fetch latest sfwbar version");
-            }
+            g_free(out);
         }
-        pclose(fp);
-    }
+        if (buf[0]) {
+            log_msg("  Latest sfwbar: %s", buf);
+        } else {
+            log_msg("  Could not fetch latest sfwbar version");
+        }
+    } else { g_error_free(e); }
 
     /* Check OCWS repo */
     log_msg("Checking OCWS...");
-    fp = popen("curl -sL 'https://api.github.com/repos/naranyala/labwc-fuzzel-sfwbar/commits?per_page=1' 2>/dev/null | grep '\"sha\"' | head -1 | sed 's/.*\"sha\": \"\\(.*\\)\".*/\\1/' | head -c 7", "r");
-    if (fp) {
+    e = NULL; out = NULL;
+    gchar *argv_ocws[] = {"/bin/sh", "-c", "curl -sL 'https://api.github.com/repos/naranyala/labwc-fuzzel-sfwbar/commits?per_page=1' 2>/dev/null | grep '\"sha\"' | head -1 | sed 's/.*\"sha\": \"\\(.*\\)\".*/\\1/' | head -c 7", NULL};
+    if (g_spawn_sync(NULL, argv_ocws, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out, NULL, NULL, &e)) {
         char buf[64] = {0};
-        if (fgets(buf, sizeof(buf), fp)) {
+        if (out) {
+            strncpy(buf, out, sizeof(buf) - 1);
             buf[strcspn(buf, "\n")] = 0;
-            if (buf[0]) {
-                log_msg("  Latest OCWS commit: %s", buf);
-            }
+            g_free(out);
         }
-        pclose(fp);
-    }
+        if (buf[0]) {
+            log_msg("  Latest OCWS commit: %s", buf);
+        }
+    } else { g_error_free(e); }
 
     log_msg("Update check complete.");
     gdk_threads_add_idle_full(G_PRIORITY_HIGH,

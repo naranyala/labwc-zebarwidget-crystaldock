@@ -5,6 +5,25 @@
 #include <time.h>
 #include <unistd.h>
 
+/* Escape a string for safe JSON embedding: escapes " and \ */
+static void json_escape(char *dst, size_t dstsz, const char *src) {
+    if (!dst || dstsz == 0) return;
+    size_t di = 0;
+    for (const char *p = src; *p && di < dstsz - 1; p++) {
+        if (*p == '"' || *p == '\\') {
+            if (di + 2 >= dstsz) break;
+            dst[di++] = '\\';
+            dst[di++] = *p;
+        } else if ((unsigned char)*p < 0x20) {
+            /* Skip control characters */
+            continue;
+        } else {
+            dst[di++] = *p;
+        }
+    }
+    dst[di] = '\0';
+}
+
 static char g_clipboard_content[4096] = {0};
 static time_t g_last_clipboard_time = 0;
 static int g_clipboard_history_count = 0;
@@ -16,8 +35,10 @@ static void update_clipboard_history(void) {
     char line[1024];
     while (fgets(line, sizeof(line), fp)) {
         line[strcspn(line, "\n")] = '\0';
+        char escaped[1024];
+        json_escape(escaped, sizeof(escaped), line);
         char json[2048];
-        snprintf(json, sizeof(json), "{\"type\":\"history\",\"content\":\"%s\"}", line);
+        snprintf(json, sizeof(json), "{\"type\":\"history\",\"content\":\"%s\"}", escaped);
         ocws_plugin_emit("Clipboard.Event", json);
     }
     pclose(fp);
@@ -52,8 +73,10 @@ static void on_tick(void) {
     if (g_clipboard_content[0] && now - g_last_clipboard_time > 3600) {
         /* Notify about clipboard content after being visible for 1 hour */
         if (now - last_notify >= 3600) {
+            char escaped[4096];
+            json_escape(escaped, sizeof(escaped), g_clipboard_content);
             char payload[512];
-            snprintf(payload, sizeof(payload), "{\"content\":\"%s\",duration:%ld}", g_clipboard_content, now - g_last_clipboard_time);
+            snprintf(payload, sizeof(payload), "{\"content\":\"%s\",duration:%ld}", escaped, now - g_last_clipboard_time);
             ocws_plugin_notify("Clipboard", "Clipboard content has been saved:", g_clipboard_content);
             last_notify = now;
         }

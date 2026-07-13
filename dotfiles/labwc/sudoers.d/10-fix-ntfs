@@ -1,0 +1,8 @@
+# Allow passwordless NTFS fix at startup
+# Install: sudo cp this-file /etc/sudoers.d/10-fix-ntfs && sudo chmod 440 /etc/sudoers.d/10-fix-ntfs
+#
+# Allows the current user (via sudo -n) to run ntfsfix, mount, and umount
+# without a password prompt — required for fix-ntfs-autostart.sh.
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/ntfsfix
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/mount
+%wheel ALL=(ALL) NOPASSWD: /usr/bin/umount

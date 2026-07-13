@@ -1,0 +1,30 @@
+#!/bin/bash
+# toggle-gammastep — Toggle gammastep/redshift on/off
+# Usage: toggle-gammastep [true|false]
+set -euo pipefail
+
+TOOL=""
+if command -v gammastep &>/dev/null; then
+    TOOL="gammastep"
+elif command -v redshift &>/dev/null; then
+    TOOL="redshift"
+else
+    echo "toggle-gammastep: no tool found (gammastep/redshift)"
+    exit 1
+fi
+
+case "${1:-}" in
+    true|on|start|1)
+        pkill "$TOOL" 2>/dev/null || true
+        "$TOOL" &
+        notify-send -i "weather-clear" "Night Light" "Enabled ($TOOL)"
+        ;;
+    false|off|stop|0)
+        pkill "$TOOL" 2>/dev/null || true
+        notify-send -i "weather-clear-night" "Night Light" "Disabled"
+        ;;
+    *)
+        echo "Usage: toggle-gammastep [true|false]"
+        exit 1
+        ;;
+esac

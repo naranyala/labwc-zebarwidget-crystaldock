@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <math.h>
+#include <limits.h>
 #include <cairo/cairo.h>
 
 #define MAX_COLORS 32
@@ -117,10 +118,15 @@ static int cmp_weight_desc(const void *a, const void *b) {
 static int extract_colors(cairo_surface_t *surface, int ncolors, DominantColor *out) {
     int w = cairo_image_surface_get_width(surface);
     int h = cairo_image_surface_get_height(surface);
+    if (w <= 0 || h <= 0 || w > INT_MAX / h) {
+        fprintf(stderr, "Invalid image dimensions\n");
+        return 0;
+    }
+    size_t total = (size_t)w * h;
     unsigned char *data = cairo_image_surface_get_data(surface);
     int stride = cairo_image_surface_get_stride(surface);
 
-    ColorEntry *entries = malloc(sizeof(ColorEntry) * (w * h / SAMPLE_STRIDE + 1));
+    ColorEntry *entries = malloc(sizeof(ColorEntry) * (total / SAMPLE_STRIDE + 1));
     int nentries = 0;
 
     for (int y = 0; y < h; y += SAMPLE_STRIDE) {

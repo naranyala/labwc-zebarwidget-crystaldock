@@ -86,9 +86,12 @@ int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
     char input_list[4096] = {0};
+    size_t pos = 0;
     for (int i = 0; i < sizeof(engines)/sizeof(engines[0]); i++) {
-        strcat(input_list, engines[i].name);
-        strcat(input_list, "\n");
+        size_t rem = sizeof(input_list) - pos;
+        int ret = snprintf(input_list + pos, rem, "%s\n", engines[i].name);
+        if (ret > 0 && (size_t)ret < rem) pos += ret;
+        else break;
     }
 
     char engine_choice[256] = {0};

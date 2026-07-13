@@ -29,21 +29,27 @@ void init_paths(void) {
 // ============================================================
 
 char* kv_get(const char *key) {
-    char cmd[256];
-    snprintf(cmd, sizeof(cmd), "%s get %s 2>/dev/null", KV_BIN, key);
-    FILE *fp = popen(cmd, "r");
-    if (!fp) return g_strdup("");
-    char buf[256] = {0};
-    if (fgets(buf, sizeof(buf), fp)) {
-        buf[strcspn(buf, "\n")] = 0;
+    GError *error = NULL;
+    gchar *stdout_buf = NULL;
+    gchar *argv[5] = {KV_BIN, "get", (gchar*)key, NULL};
+    if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &stdout_buf, NULL, NULL, &error)) {
+        g_error_free(error);
+        return g_strdup("");
     }
-    pclose(fp);
+    char buf[256] = {0};
+    if (stdout_buf) {
+        strncpy(buf, stdout_buf, sizeof(buf) - 1);
+        buf[strcspn(buf, "\n")] = 0;
+        g_free(stdout_buf);
+    }
     return g_strdup(buf);
 }
 
 void kv_set(const char *key, const char *value) {
+    char escaped_val[512] = {0};
+    ocws_shell_escape(escaped_val, sizeof(escaped_val), value);
     char cmd[512];
-    snprintf(cmd, sizeof(cmd), "%s set %s '%s'", KV_BIN, key, value);
+    snprintf(cmd, sizeof(cmd), "%s set %s '%s'", KV_BIN, key, escaped_val);
     run_cmd_async(cmd);
 }
 
@@ -199,7 +205,16 @@ static void on_toggle_row_changed(GObject *gobject, GParamSpec *pspec, gpointer 
     ToggleRowData *d = (ToggleRowData *)user_data;
     gboolean active = gtk_switch_get_active(GTK_SWITCH(gobject));
     const char *cmd = active ? d->cmd_on : d->cmd_off;
-    if (cmd && cmd[0]) system(cmd);
+    if (cmd && cmd[0]) {
+        GError *error = NULL;
+        gchar *argv[4] = {"/bin/sh", "-c", (gchar*)cmd, NULL};
+        g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+                      NULL, NULL, NULL, &error);
+        if (error) {
+            g_warning("spawn failed: %s", error->message);
+            g_error_free(error);
+        }
+    }
 }
 
 GtkWidget* create_toggle_row(const char *label, const char *description, gboolean active) {
@@ -268,16 +283,24 @@ static void on_slider_changed(GtkRange *range, gpointer user_data) {
         snprintf(val_text, sizeof(val_text), "%.1f%s", val, d->unit ? d->unit : "");
     gtk_label_set_text(GTK_LABEL(d->val_label), val_text);
 
-    // Execute command
+    /* Execute command — safe: val is bounded by GTK scale min/max,
+     * cmd_template is a compile-time constant */
     char cmd[512];
     if (d->step < 1.0) {
-        // Float-capable command (e.g. font-scale.sh) — pass double for %f
         snprintf(cmd, sizeof(cmd), d->cmd_template, val);
     } else {
-        // Integer-only command
         snprintf(cmd, sizeof(cmd), d->cmd_template, (int)(val + 0.5));
     }
-    if (cmd[0]) system(cmd);
+    if (cmd[0]) {
+        GError *error = NULL;
+        gchar *argv[4] = {"/bin/sh", "-c", (gchar*)cmd, NULL};
+        g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+                      NULL, NULL, NULL, &error);
+        if (error) {
+            g_warning("spawn failed: %s", error->message);
+            g_error_free(error);
+        }
+    }
 }
 
 GtkWidget* create_slider_row(const char *label, int value, int min, int max, const char *unit) {
@@ -469,15 +492,24 @@ void load_healthcheck(GtkWidget *textview) {
     gtk_text_buffer_set_text(buffer, "Running system validation...\n", -1);
     gtk_widget_queue_draw(textview);
 
-    FILE *fp = popen("ocws-validate 2>&1", "r");
-    if (!fp) {
+    GError *error = NULL;
+    gchar *stdout_buf = NULL;
+    gchar *argv[] = {"ocws-validate", NULL};
+    if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &stdout_buf, NULL, NULL, &error)) {
         gtk_text_buffer_set_text(buffer, "Failed to run ocws-validate. Is it in your PATH?", -1);
+        g_error_free(error);
         return;
     }
 
     char result[16384] = {0};
     char line[512];
-    while (fgets(line, sizeof(line), fp)) {
+    char *p = stdout_buf;
+    char *next;
+    while (p && *p) {
+        next = strchr(p, '\n');
+        if (next) *next = '\0';
+        strncpy(line, p, sizeof(line) - 1);
+        line[sizeof(line) - 1] = '\0';
         // Strip ANSI escape codes
         char clean[512] = {0};
         int j = 0;
@@ -486,8 +518,14 @@ void load_healthcheck(GtkWidget *textview) {
             if (j < (int)sizeof(clean) - 1) clean[j++] = line[i];
         }
         strncat(result, clean, sizeof(result) - strlen(result) - 1);
+        if (next) {
+            *next = '\n';
+            p = next + 1;
+        } else {
+            break;
+        }
     }
-    pclose(fp);
+    g_free(stdout_buf);
     gtk_text_buffer_set_text(buffer, result, -1);
 }
 
@@ -499,35 +537,46 @@ void load_system_info(GtkWidget *textview) {
     GtkTextBuffer *buffer = gtk_text_view_get_buffer(GTK_TEXT_VIEW(textview));
     char info[4096] = {0};
 
+    // Helper: run a command and append its first output line to info buffer
+    #define RUN_CAPTURE(cmd_argv, label) do { \
+        GError *e = NULL; \
+        gchar *out = NULL; \
+        if (g_spawn_sync(NULL, (gchar**)cmd_argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out, NULL, NULL, &e)) { \
+            char _buf[128] = {0}; \
+            if (out) { \
+                strncpy(_buf, out, sizeof(_buf) - 1); \
+                _buf[strcspn(_buf, "\n")] = 0; \
+                g_free(out); \
+            } \
+            strcat(info, label); strcat(info, _buf); strcat(info, "\n"); \
+        } else { g_error_free(e); } \
+    } while(0)
+
     // Kernel
-    FILE *fp = popen("uname -r 2>/dev/null", "r");
-    if (fp) { char buf[128] = {0}; fgets(buf, sizeof(buf), fp); pclose(fp);
-        buf[strcspn(buf, "\n")] = 0; strcat(info, "Kernel: "); strcat(info, buf); strcat(info, "\n"); }
+    gchar *argv_kernel[] = {"uname", "-r", NULL};
+    RUN_CAPTURE(argv_kernel, "Kernel: ");
 
     // labwc version
-    fp = popen("labwc --version 2>/dev/null | head -1", "r");
-    if (fp) { char buf[128] = {0}; fgets(buf, sizeof(buf), fp); pclose(fp);
-        buf[strcspn(buf, "\n")] = 0; strcat(info, "Compositor: "); strcat(info, buf); strcat(info, "\n"); }
+    gchar *argv_labwc[] = {"/bin/sh", "-c", "labwc --version 2>/dev/null | head -1", NULL};
+    RUN_CAPTURE(argv_labwc, "Compositor: ");
 
     // sfwbar version
-    fp = popen("sfwbar --version 2>/dev/null | head -1", "r");
-    if (fp) { char buf[128] = {0}; fgets(buf, sizeof(buf), fp); pclose(fp);
-        buf[strcspn(buf, "\n")] = 0; strcat(info, "Bar Engine: "); strcat(info, buf); strcat(info, "\n"); }
+    gchar *argv_sfwbar[] = {"/bin/sh", "-c", "sfwbar --version 2>/dev/null | head -1", NULL};
+    RUN_CAPTURE(argv_sfwbar, "Bar Engine: ");
 
     // Memory
-    fp = popen("free -h 2>/dev/null | awk '/Mem:/{print $3\"/\"$2}'", "r");
-    if (fp) { char buf[128] = {0}; fgets(buf, sizeof(buf), fp); pclose(fp);
-        buf[strcspn(buf, "\n")] = 0; strcat(info, "Memory: "); strcat(info, buf); strcat(info, "\n"); }
+    gchar *argv_mem[] = {"/bin/sh", "-c", "free -h 2>/dev/null | awk '/Mem:/{print $3\"/\"$2}'", NULL};
+    RUN_CAPTURE(argv_mem, "Memory: ");
 
     // Disk
-    fp = popen("df -h / 2>/dev/null | awk 'NR==2{print $3\"/\"$2\" (\"$5\" used)\"}'", "r");
-    if (fp) { char buf[128] = {0}; fgets(buf, sizeof(buf), fp); pclose(fp);
-        buf[strcspn(buf, "\n")] = 0; strcat(info, "Disk: "); strcat(info, buf); strcat(info, "\n"); }
+    gchar *argv_disk[] = {"/bin/sh", "-c", "df -h / 2>/dev/null | awk 'NR==2{print $3\"/\"$2\" (\"$5\" used)\"}'", NULL};
+    RUN_CAPTURE(argv_disk, "Disk: ");
 
     // CPU
-    fp = popen("nproc 2>/dev/null", "r");
-    if (fp) { char buf[32] = {0}; fgets(buf, sizeof(buf), fp); pclose(fp);
-        buf[strcspn(buf, "\n")] = 0; strcat(info, "CPU Cores: "); strcat(info, buf); strcat(info, "\n"); }
+    gchar *argv_cpu[] = {"nproc", NULL};
+    RUN_CAPTURE(argv_cpu, "CPU Cores: ");
+
+    #undef RUN_CAPTURE
 
     // OCWS version
     strcat(info, "OCWS Version: "); strcat(info, VERSION); strcat(info, "\n");

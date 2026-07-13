@@ -52,6 +52,18 @@ void print_help(const char* prog) {
     printf("Example: %s System.Volume 75\n", prog);
 }
 
+/* Validate namespace: alphanumeric, dots, and underscores only */
+static int is_safe_namespace(const char *s) {
+    if (!s || !*s) return 0;
+    for (const char *p = s; *p; p++) {
+        char c = *p;
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == '.' || c == '_'))
+            return 0;
+    }
+    return 1;
+}
+
 int main(int argc, char **argv) {
     (void)argc;
     (void)argv;
@@ -62,6 +74,10 @@ int main(int argc, char **argv) {
     }
 
     const char* ns = argv[1];
+    if (!is_safe_namespace(ns)) {
+        fprintf(stderr, "Invalid namespace: %s\n", ns);
+        return 1;
+    }
     const char* engine_var = map_namespace(ns);
     
     // Concatenate all remaining arguments into a single value string (space separated)

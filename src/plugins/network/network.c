@@ -1,4 +1,5 @@
 #include "../../libocws/plugin_api.h"
+#include "../../libocws/ocws_string.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -6,16 +7,29 @@
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 
 /* Simple IP parsing for demonstration */
 static char g_current_ip[64] = "0.0.0.0";
 static char g_interface[32] = "unknown";
 static time_t g_last_check = 0;
 
+/* Validate interface name: alphanumeric, colons, dots, hyphens only */
+static int is_valid_interface(const char *s) {
+    if (!s || !*s) return 0;
+    for (const char *p = s; *p; p++) {
+        char c = *p;
+        if (!((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+              (c >= '0' && c <= '9') || c == ':' || c == '.' || c == '-'))
+            return 0;
+    }
+    return 1;
+}
+
 static void discover_network(void) {
     FILE *fp = fopen("/proc/net/dev", "r");
     if (!fp) return;
-    
+
     char line[256];
     while (fgets(line, sizeof(line), fp)) {
         if (strstr(line, "eth0") || strstr(line, "wlan0") || strstr(line, "enp0s25")) {
@@ -29,15 +43,31 @@ static void discover_network(void) {
     }
     fclose(fp);
 
-    /* Try to get IP via ip command */
+    /* Validate interface name before using in shell command */
+    if (!is_valid_interface(g_interface)) return;
+
+    /* Try to get IP via ip command with fork+exec+pipe */
     char cmd[256];
-    snprintf(cmd, sizeof(cmd), "ip -4 addr show %s | grep -oP '\\K\d+\.\d+\.\d+\.\d+' | head -1", g_interface);
-    FILE *ipfp = popen(cmd, "r");
-    if (ipfp) {
-        if (fgets(g_current_ip, sizeof(g_current_ip), ipfp)) {
-            g_current_ip[strcspn(g_current_ip, "\n")] = '\0';
+    snprintf(cmd, sizeof(cmd), "ip -4 addr show %s | grep -oP '\\K\\d+\\.\\d+\\.\\d+\\.\\d+' | head -1", g_interface);
+    int pipefd[2];
+    if (pipe(pipefd) == 0) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            close(pipefd[0]);
+            dup2(pipefd[1], 1);
+            close(pipefd[1]);
+            execlp("/bin/sh", "sh", "-c", cmd, NULL);
+            _exit(127);
         }
-        pclose(ipfp);
+        if (pid > 0) {
+            close(pipefd[1]);
+            int n = (int)read(pipefd[0], g_current_ip, sizeof(g_current_ip) - 1);
+            close(pipefd[0]);
+            if (n > 0) g_current_ip[n] = '\0';
+            g_current_ip[strcspn(g_current_ip, "\n")] = '\0';
+            int status;
+            waitpid(pid, &status, 0);
+        }
     }
 }
 
@@ -69,7 +99,9 @@ static void on_tick(void) {
             char payload[256];
             snprintf(payload, sizeof(payload), "{\"old_ip\":\"%s\",\"new_ip\":\"%s\",\"interface\":\"%s\"}", old_ip, g_current_ip, g_interface);
             ocws_plugin_emit("Network.IPChanged", payload);
-            ocws_plugin_notify("Network", "IP address changed: "g_current_ip, "network-wireless");
+            char notify_body[256];
+            snprintf(notify_body, sizeof(notify_body), "IP address changed: %s", g_current_ip);
+            ocws_plugin_notify("Network", notify_body, "network-wireless");
         }
         
         g_last_check = now;

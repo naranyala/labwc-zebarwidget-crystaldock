@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <unistd.h>
 #include <sys/stat.h>
 #include <errno.h>
 
@@ -218,14 +219,21 @@ int ocws_kv_list(ocws_kv *kv, const char *prefix, ocws_kv_list_fn callback, void
 int ocws_kv_flush(ocws_kv *kv) {
     if (!kv) return -1;
 
-    /* atomic write: write to temp, then rename */
+    /* atomic write: write to temp via mkstemp, then rename */
     size_t path_len = strlen(kv->path);
-    char *tmppath = malloc(path_len + 5);
+    char *tmppath = malloc(path_len + 8);
     if (!tmppath) return -1;
-    snprintf(tmppath, path_len + 5, "%s.tmp", kv->path);
+    snprintf(tmppath, path_len + 8, "%s.XXXXXX", kv->path);
 
-    FILE *f = fopen(tmppath, "w");
+    int fd = mkstemp(tmppath);
+    if (fd < 0) {
+        free(tmppath);
+        return -1;
+    }
+    FILE *f = fdopen(fd, "w");
     if (!f) {
+        close(fd);
+        unlink(tmppath);
         free(tmppath);
         return -1;
     }

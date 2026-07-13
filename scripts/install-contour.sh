@@ -25,7 +25,7 @@ section() { echo -e "\n${BOLD}[$1]${NC}"; }
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PREFIX="${PREFIX:-/usr/local}"
-BUILD_DIR="/tmp/ocws-contour-build"
+BUILD_DIR="${XDG_RUNTIME_DIR:-$HOME/.cache}/ocws-contour-build"
 REPO_URL="https://github.com/contour-terminal/contour.git"
 
 elevate() {

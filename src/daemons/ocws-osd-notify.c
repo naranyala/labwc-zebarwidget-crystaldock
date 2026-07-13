@@ -1,6 +1,25 @@
 #include <gtk/gtk.h>
 #include <gtk-layer-shell/gtk-layer-shell.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
+
+static gboolean check_caller_uid(GDBusMethodInvocation *invocation) {
+    GCredentials *creds = g_dbus_method_invocation_get_credentials(invocation);
+    if (!creds) {
+        g_dbus_method_invocation_return_error(invocation,
+            G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED,
+            "No credentials provided");
+        return FALSE;
+    }
+    uid_t caller_uid = g_credentials_get_unix_user(creds, NULL);
+    if (caller_uid != getuid() && caller_uid != 0) {
+        g_dbus_method_invocation_return_error(invocation,
+            G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED,
+            "Access denied");
+        return FALSE;
+    }
+    return TRUE;
+}
 
 static void show_notification(const gchar *summary, const gchar *body) {
     GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
@@ -41,7 +60,8 @@ static void show_notification(const gchar *summary, const gchar *body) {
 static void handle_method_call(GDBusConnection *connection, const gchar *sender,
                                const gchar *object_path, const gchar *interface_name,
                                const gchar *method_name, GVariant *parameters,
-                               GDBusMethodInvocation *invocation, gpointer user_data) {
+                                GDBusMethodInvocation *invocation, gpointer user_data) {
+    if (!check_caller_uid(invocation)) return;
     if (g_strcmp0(method_name, "Notify") == 0) {
         gchar *app_name, *summary, *body, *icon;
         guint32 replaces_id, expire_timeout;

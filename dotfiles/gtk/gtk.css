@@ -18,7 +18,7 @@ window, dialog, messagedialog, filechooser {
 }
 
 window:backdrop, dialog:backdrop {
-  opacity: 0.92;
+  background-color: @ocws_mantle;
 }
 
 /* === Headerbar === */

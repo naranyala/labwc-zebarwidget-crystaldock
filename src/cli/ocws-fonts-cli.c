@@ -10,6 +10,8 @@
 #include "ocws-fonts.h"
 #include <getopt.h>
 #include <ctype.h>
+#include <sys/wait.h>
+#include <unistd.h>
 
 static ocws_font_paths_t g_paths;
 
@@ -38,6 +40,48 @@ static void usage(const char *prog) {
         "  %s scale up             # Increase font size globally\n"
         "  %s scale set 12         # Set all fonts to 12pt\n",
         prog, prog, prog, prog, prog, prog);
+}
+
+/* ================================================================
+ * Helper: run a command via fork+exec, wait for completion, return exit code
+ * ================================================================ */
+
+static int run_cmd(const char *cmd) {
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp("/bin/sh", "sh", "-c", cmd, NULL);
+        _exit(127);
+    }
+    if (pid > 0) {
+        int status;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status)) return WEXITSTATUS(status);
+    }
+    return -1;
+}
+
+static int run_cmd_capture(const char *cmd, char *buf, size_t bufsz) {
+    int pipefd[2];
+    if (pipe(pipefd) < 0) return -1;
+    pid_t pid = fork();
+    if (pid == 0) {
+        close(pipefd[0]);
+        dup2(pipefd[1], 1);
+        close(pipefd[1]);
+        execlp("/bin/sh", "sh", "-c", cmd, NULL);
+        _exit(127);
+    }
+    if (pid > 0) {
+        close(pipefd[1]);
+        int n = (int)read(pipefd[0], buf, bufsz - 1);
+        close(pipefd[0]);
+        if (n > 0) buf[n] = '\0';
+        else buf[0] = '\0';
+        int status;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status)) return WEXITSTATUS(status);
+    }
+    return -1;
 }
 
 /* ================================================================
@@ -214,7 +258,7 @@ static int cmd_install(const char *pkg_name) {
                  "curl -fLsS -o '%s' '%s' || wget -q -O '%s' '%s'",
                  tmp_path, pkg->url, tmp_path, pkg->url);
     }
-    if (system(cmd) != 0) {
+    if (run_cmd(cmd) != 0) {
         fprintf(stderr, "ERROR: Download failed\n");
         return 1;
     }
@@ -231,9 +275,9 @@ static int cmd_install(const char *pkg_name) {
         } else {
             snprintf(cmd, sizeof(cmd), "cp '%s' '%s/'", tmp_path, install_dir);
         }
-        system(cmd);
+        run_cmd(cmd);
         snprintf(cmd, sizeof(cmd), "rm -f '%s'", tmp_path);
-        system(cmd);
+        run_cmd(cmd);
     }
 
     /* Mark as managed */
@@ -374,8 +418,7 @@ static int cmd_config(void) {
         char buf[256] = {0};
         snprintf(buf, sizeof(buf), "grep '^gtk-font-name=' '%s'", path);
         char line[256] = {0};
-        FILE *fp = popen(buf, "r");
-        if (fp) { fgets(line, sizeof(line), fp); pclose(fp); }
+        run_cmd_capture(buf, line, sizeof(line));
         line[strcspn(line, "\n")] = 0;
         printf("  GTK3:        %s\n", line[0] ? line : "(no font set)");
     } else {
@@ -388,8 +431,7 @@ static int cmd_config(void) {
         char buf[256] = {0};
         snprintf(buf, sizeof(buf), "grep '^gtk-font-name=' '%s'", path);
         char line[256] = {0};
-        FILE *fp = popen(buf, "r");
-        if (fp) { fgets(line, sizeof(line), fp); pclose(fp); }
+        run_cmd_capture(buf, line, sizeof(line));
         line[strcspn(line, "\n")] = 0;
         printf("  GTK4:        %s\n", line[0] ? line : "(no font set)");
     } else {

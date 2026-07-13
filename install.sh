@@ -238,7 +238,13 @@ install_mcp_tools() {
     if command -v agy &>/dev/null; then
         pass "Antigravity CLI already installed ($(agy --version 2>/dev/null || true))"
     else
-        bash -c "$(curl -fsSL https://antigravity.google/cli/install.sh)" 2>&1 || warn "Antigravity CLI install had issues"
+        TEMP_INSTALLER=$(mktemp /tmp/antigravity-install-XXXXXX.sh)
+        if curl -fsSL -o "$TEMP_INSTALLER" https://antigravity.google/cli/install.sh; then
+            bash "$TEMP_INSTALLER" 2>&1 || warn "Antigravity CLI install had issues"
+            rm -f "$TEMP_INSTALLER"
+        else
+            warn "Failed to download antigravity installer"
+        fi
         if command -v agy &>/dev/null; then
             pass "Antigravity CLI installed"
         fi
@@ -248,7 +254,13 @@ install_mcp_tools() {
     if command -v codebase-memory-mcp &>/dev/null; then
         pass "codebase-memory-mcp already installed ($(codebase-memory-mcp --version 2>/dev/null || true))"
     else
-        bash -c "$(curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh)" 2>&1 || warn "codebase-memory-mcp install had issues"
+        TEMP_INSTALLER=$(mktemp /tmp/codebase-memory-mcp-install-XXXXXX.sh)
+        if curl -fsSL -o "$TEMP_INSTALLER" https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh; then
+            bash "$TEMP_INSTALLER" 2>&1 || warn "codebase-memory-mcp install had issues"
+            rm -f "$TEMP_INSTALLER"
+        else
+            warn "Failed to download codebase-memory-mcp installer"
+        fi
         if command -v codebase-memory-mcp &>/dev/null; then
             pass "codebase-memory-mcp installed"
         fi
@@ -267,7 +279,13 @@ install_opencode_mcp() {
     if command -v opencode &>/dev/null; then
         pass "OpenCode CLI already installed ($(opencode --version 2>/dev/null || true))"
     else
-        bash -c "$(curl -fsSL https://opencode.ai/install)" 2>&1 || warn "OpenCode CLI install had issues"
+        TEMP_INSTALLER=$(mktemp /tmp/opencode-install-XXXXXX.sh)
+        if curl -fsSL -o "$TEMP_INSTALLER" https://opencode.ai/install; then
+            bash "$TEMP_INSTALLER" 2>&1 || warn "OpenCode CLI install had issues"
+            rm -f "$TEMP_INSTALLER"
+        else
+            warn "Failed to download opencode installer"
+        fi
         if command -v opencode &>/dev/null; then
             pass "OpenCode CLI installed"
         fi
@@ -277,7 +295,13 @@ install_opencode_mcp() {
     if command -v codebase-memory-mcp &>/dev/null; then
         pass "codebase-memory-mcp already installed ($(codebase-memory-mcp --version 2>/dev/null || true))"
     else
-        bash -c "$(curl -fsSL https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh)" 2>&1 || warn "codebase-memory-mcp install had issues"
+        TEMP_INSTALLER=$(mktemp /tmp/codebase-memory-mcp-install-XXXXXX.sh)
+        if curl -fsSL -o "$TEMP_INSTALLER" https://raw.githubusercontent.com/DeusData/codebase-memory-mcp/main/install.sh; then
+            bash "$TEMP_INSTALLER" 2>&1 || warn "codebase-memory-mcp install had issues"
+            rm -f "$TEMP_INSTALLER"
+        else
+            warn "Failed to download codebase-memory-mcp installer"
+        fi
         if command -v codebase-memory-mcp &>/dev/null; then
             pass "codebase-memory-mcp installed"
         fi
@@ -338,7 +362,13 @@ install_oh_my_posh() {
 
         # Install via the official install script
         echo -e "  ${DIM}Downloading oh-my-posh...${NC}"
-        curl -fsSL https://ohmyposh.dev/install.sh | bash -s 2>&1 | tail -5
+        TEMP_INSTALLER=$(mktemp /tmp/ohmyposh-install-XXXXXX.sh)
+        if curl -fsSL -o "$TEMP_INSTALLER" https://ohmyposh.dev/install.sh; then
+            bash "$TEMP_INSTALLER" 2>&1 | tail -5 || warn "oh-my-posh installation failed"
+            rm -f "$TEMP_INSTALLER"
+        else
+            warn "Failed to download oh-my-posh installer"
+        fi
 
         # Verify install
         if command -v oh-my-posh &>/dev/null; then

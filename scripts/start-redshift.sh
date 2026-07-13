@@ -28,11 +28,12 @@ GAMMA="${REDSHIFT_GAMMA:-1.0}"
 # Latitude/Longitude (auto-detected if geoclue available)
 LAT="${REDSHIFT_LAT:-}"
 LON="${REDSHIFT_LON:-}"
+PID_FILE="${XDG_RUNTIME_DIR:-$HOME/.cache}/redshift.pid"
 
 # --- Detect existing instance ---
 REDshift_PID=""
-if [ -f /tmp/redshift.pid ]; then
-  OLD_PID=$(cat /tmp/redshift.pid)
+if [ -f "$PID_FILE" ]; then
+  OLD_PID=$(cat "$PID_FILE")
   if kill -0 "$OLD_PID" 2>/dev/null; then
     REDshift_PID="$OLD_PID"
   fi
@@ -119,7 +120,7 @@ case "$TOOL" in
 
     gammastep "${GAMMASTEP_ARGS[@]}" &
     GAMMASTEP_PID=$!
-    echo "$GAMMASTEP_PID" > /tmp/redshift.pid
+    echo "$GAMMASTEP_PID" > "$PID_FILE"
     pass "gammastep started (PID: $GAMMASTEP_PID)"
     ;;
 
@@ -138,7 +139,7 @@ case "$TOOL" in
 
     redshift "${REDSHIFT_ARGS[@]}" &
     REDSHIFT_PID=$!
-    echo "$REDSHIFT_PID" > /tmp/redshift.pid
+    echo "$REDSHIFT_PID" > "$PID_FILE"
     pass "redshift started (PID: $REDSHIFT_PID)"
     ;;
 
@@ -156,7 +157,7 @@ case "$TOOL" in
 
     gamma-randr "${GAMMA_RANDR_ARGS[@]}" &
     GAMMA_PID=$!
-    echo "$GAMMA_PID" > /tmp/redshift.pid
+    echo "$GAMMA_PID" > "$PID_FILE"
     pass "gamma-randr started (PID: $GAMMA_PID)"
     ;;
 esac
@@ -168,7 +169,7 @@ echo "Status:     Running (auto-adjusts to time of day)"
 echo "Day:        ${DAY_TEMP}K (cool/blue)"
 echo "Night:      ${NIGHT_TEMP}K (warm/orange)"
 echo ""
-echo "Stop:       kill \$(cat /tmp/redshift.pid)"
+echo "Stop:       kill \$(cat "$PID_FILE")"
 echo "Or:         pkill -x $TOOL"
 echo ""
 echo "To add to autostart, add to ~/.config/labwc/autostart:"

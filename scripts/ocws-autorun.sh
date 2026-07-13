@@ -45,7 +45,7 @@ while IFS= read -r line || [ -n "$line" ]; do
     fi
 
     log "Starting: $line"
-    nohup $line >> "$LOG" 2>&1 &
+    nohup sh -c "$line" >> "$LOG" 2>&1 &
     log "Started: $line (PID: $!)"
 
 done < "$CFG"

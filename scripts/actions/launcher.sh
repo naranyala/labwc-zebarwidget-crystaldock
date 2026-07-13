@@ -45,7 +45,7 @@ run_command() {
   fi
   
   if [ -n "$cmd" ]; then
-    eval "$cmd" &
+    $cmd &
     pass "Running: $cmd"
   fi
 }
@@ -80,7 +80,7 @@ show_favorites() {
   fi
   
   if [ -n "${selected:-}" ]; then
-    eval "$selected" &
+    $selected &
   fi
 }
 
@@ -117,13 +117,14 @@ show_emoji() {
     selected=$(echo "$emojis" | tr ' ' '\n' | rofi -dmenu -p "Emoji" -theme-str 'window {width: 400px; height: 400px;}')
   elif command -v fuzzel &>/dev/null; then
     selected=$(echo "$emojis" | tr ' ' '\n' | fuzzel -d -p "Emoji: ")
-  fi
-    if [ -n "$selected" ]; then
-      echo -n "$selected" | wl-copy 2>/dev/null || echo -n "$selected" | xclip 2>/dev/null
-      pass "Copied: $selected"
-    fi
   else
     echo "$emojis"
+    return
+  fi
+
+  if [ -n "$selected" ]; then
+    echo -n "$selected" | wl-copy 2>/dev/null || echo -n "$selected" | xclip 2>/dev/null
+    pass "Copied: $selected"
   fi
 }
 

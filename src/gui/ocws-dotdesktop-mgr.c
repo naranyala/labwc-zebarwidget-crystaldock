@@ -2,6 +2,16 @@
  * ocws-dotdesktop-mgr.c — Desktop Entry (.desktop) Manager GUI
  *
  * GTK3 application to manage, edit, backup, and restore .desktop files.
+ *
+ * Features:
+ *   - Browse/search system + user .desktop files
+ *   - Edit Name, Exec, Icon, Comment, Categories, Terminal
+ *   - Icon picker with image preview
+ *   - Quick category picker dropdown
+ *   - Validation (required fields, Exec path check)
+ *   - Bulk enable/disable (rename .desktop ↔ .desktop.disabled)
+ *   - Backup/restore
+ *   - File info panel (size, permissions, last modified)
  */
 
 #include <gtk/gtk.h>
@@ -10,11 +20,24 @@
 #include <gio/gio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/stat.h>
+#include <time.h>
 
 #define APP_ID "org.ocws.dotdesktop-mgr"
 #define BACKUP_DIR "/.local/share/ocws/dotdesktop-backups"
 
+/* Common .desktop categories */
+static const char *COMMON_CATEGORIES[] = {
+    "AudioVideo", "Audio", "Video", "Development", "Education",
+    "Game", "Graphics", "Network", "Office", "Science",
+    "Settings", "System", "Utility", "Calendar", "Database",
+    "Dictionary", "TextEditor", "FileManager", "TerminalEmulator",
+    "FileTransfer", "InstantMessaging", "ContactManagement",
+    NULL
+};
+
 enum {
+    COL_ENABLED,
     COL_ICON,
     COL_NAME,
     COL_FILE,
@@ -32,6 +55,9 @@ static GtkWidget *entry_categories = NULL;
 static GtkWidget *check_terminal = NULL;
 static GtkWidget *status_label = NULL;
 static GtkWidget *search_entry = NULL;
+static GtkWidget *icon_preview = NULL;
+static GtkWidget *category_combo = NULL;
+static GtkWidget *info_label = NULL;
 static GtkTreeModelFilter *filter_model = NULL;
 
 static char current_file_path[512] = {0};
@@ -54,42 +80,47 @@ static void load_desktop_files_from_dir(const char *dir_path) {
 
     const char *filename;
     while ((filename = g_dir_read_name(dir)) != NULL) {
-        if (g_str_has_suffix(filename, ".desktop")) {
-            char path[1024];
-            snprintf(path, sizeof(path), "%s/%s", dir_path, filename);
+        gboolean enabled = TRUE;
+        const char *check_name = filename;
 
-            GKeyFile *key_file = g_key_file_new();
-            if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL)) {
-                gchar *name = g_key_file_get_locale_string(key_file, "Desktop Entry", "Name", NULL, NULL);
-                gchar *icon_name = g_key_file_get_string(key_file, "Desktop Entry", "Icon", NULL);
-                if (!name) name = g_strdup(filename);
-                if (!icon_name) icon_name = g_strdup("application-x-executable");
-
-                GtkTreeIter iter;
-                gtk_list_store_append(store, &iter);
-                gtk_list_store_set(store, &iter,
-                    COL_ICON, icon_name,
-                    COL_NAME, name,
-                    COL_FILE, filename,
-                    COL_PATH, path,
-                    -1);
-
-                g_free(name);
-                g_free(icon_name);
-            }
-            g_key_file_free(key_file);
+        /* Also load .desktop.disabled files */
+        if (g_str_has_suffix(filename, ".desktop.disabled")) {
+            enabled = FALSE;
+        } else if (!g_str_has_suffix(filename, ".desktop")) {
+            continue;
         }
+
+        char path[1024];
+        snprintf(path, sizeof(path), "%s/%s", dir_path, check_name);
+
+        GKeyFile *key_file = g_key_file_new();
+        if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL)) {
+            gchar *name = g_key_file_get_locale_string(key_file, "Desktop Entry", "Name", NULL, NULL);
+            gchar *icon_name = g_key_file_get_string(key_file, "Desktop Entry", "Icon", NULL);
+            if (!name) name = g_strdup(filename);
+            if (!icon_name) icon_name = g_strdup("application-x-executable");
+
+            GtkTreeIter iter;
+            gtk_list_store_append(store, &iter);
+            gtk_list_store_set(store, &iter,
+                COL_ENABLED, enabled,
+                COL_ICON, icon_name,
+                COL_NAME, name,
+                COL_FILE, filename,
+                COL_PATH, path,
+                -1);
+
+            g_free(name);
+            g_free(icon_name);
+        }
+        g_key_file_free(key_file);
     }
     g_dir_close(dir);
 }
 
 static void load_all_desktop_files(void) {
     gtk_list_store_clear(store);
-    
-    /* Load system wide */
     load_desktop_files_from_dir("/usr/share/applications");
-    
-    /* Load user local (overrides system) */
     const char *home = getenv("HOME");
     if (home) {
         char path[512];
@@ -105,40 +136,262 @@ static void clear_editor(void) {
     gtk_entry_set_text(GTK_ENTRY(entry_comment), "");
     gtk_entry_set_text(GTK_ENTRY(entry_categories), "");
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_terminal), FALSE);
+    gtk_combo_box_set_active(GTK_COMBO_BOX(category_combo), -1);
+    if (icon_preview) gtk_image_set_from_icon_name(GTK_IMAGE(icon_preview), "application-x-executable", GTK_ICON_SIZE_DIALOG);
+    if (info_label) gtk_label_set_text(GTK_LABEL(info_label), "");
     current_file_path[0] = '\0';
 }
 
-static void load_file_to_editor(const char *path) {
-    GKeyFile *key_file = g_key_file_new();
-    if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL)) {
-        gchar *name = g_key_file_get_locale_string(key_file, "Desktop Entry", "Name", NULL, NULL);
-        gchar *exec = g_key_file_get_string(key_file, "Desktop Entry", "Exec", NULL);
-        gchar *icon = g_key_file_get_string(key_file, "Desktop Entry", "Icon", NULL);
-        gchar *comment = g_key_file_get_locale_string(key_file, "Desktop Entry", "Comment", NULL, NULL);
-        gchar *categories = g_key_file_get_string(key_file, "Desktop Entry", "Categories", NULL);
-        gboolean terminal = g_key_file_get_boolean(key_file, "Desktop Entry", "Terminal", NULL);
+/* ============================================================
+ * Icon Preview
+ * ============================================================ */
 
-        gtk_entry_set_text(GTK_ENTRY(entry_name), name ? name : "");
-        gtk_entry_set_text(GTK_ENTRY(entry_exec), exec ? exec : "");
-        gtk_entry_set_text(GTK_ENTRY(entry_icon), icon ? icon : "");
-        gtk_entry_set_text(GTK_ENTRY(entry_comment), comment ? comment : "");
-        gtk_entry_set_text(GTK_ENTRY(entry_categories), categories ? categories : "");
-        gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_terminal), terminal);
+static void update_icon_preview(const char *icon_value) {
+    if (!icon_preview || !icon_value || !*icon_value) {
+        if (icon_preview) gtk_image_set_from_icon_name(GTK_IMAGE(icon_preview), "application-x-executable", GTK_ICON_SIZE_DIALOG);
+        return;
+    }
 
-        g_free(name);
-        g_free(exec);
-        g_free(icon);
-        g_free(comment);
-        g_free(categories);
-        
-        strncpy(current_file_path, path, sizeof(current_file_path) - 1);
-        char *basename = g_path_get_basename(path);
-        char msg[1024];
-        snprintf(msg, sizeof(msg), "Loaded: %s", basename);
+    /* If it's a full path to a file, load it directly */
+    if (g_path_is_absolute(icon_value) && g_file_test(icon_value, G_FILE_TEST_EXISTS)) {
+        GdkPixbuf *pixbuf = gdk_pixbuf_new_from_file_at_scale(icon_value, 64, 64, TRUE, NULL);
+        if (pixbuf) {
+            gtk_image_set_from_pixbuf(GTK_IMAGE(icon_preview), pixbuf);
+            g_object_unref(pixbuf);
+            return;
+        }
+    }
+
+    /* Otherwise treat as icon theme name */
+    GtkIconTheme *theme = gtk_icon_theme_get_default();
+    GdkPixbuf *pixbuf = gtk_icon_theme_load_icon(theme, icon_value, 48, 0, NULL);
+    if (pixbuf) {
+        gtk_image_set_from_pixbuf(GTK_IMAGE(icon_preview), pixbuf);
+        g_object_unref(pixbuf);
+    } else {
+        gtk_image_set_from_icon_name(GTK_IMAGE(icon_preview), "application-x-executable", GTK_ICON_SIZE_DIALOG);
+    }
+}
+
+static void on_icon_changed(GtkEditable *editable, gpointer data) {
+    (void)data;
+    const char *text = gtk_entry_get_text(GTK_ENTRY(editable));
+    update_icon_preview(text);
+}
+
+static void on_browse_icon_clicked(GtkWidget *widget, gpointer data) {
+    (void)widget;
+    (void)data;
+
+    GtkWidget *dialog = gtk_file_chooser_dialog_new("Select Icon",
+        NULL, GTK_FILE_CHOOSER_ACTION_OPEN,
+        "_Cancel", GTK_RESPONSE_CANCEL,
+        "_Open", GTK_RESPONSE_ACCEPT,
+        NULL);
+
+    /* Add filters for image files */
+    GtkFileFilter *filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(filter, "Image files");
+    gtk_file_filter_add_mime_type(filter, "image/png");
+    gtk_file_filter_add_mime_type(filter, "image/svg+xml");
+    gtk_file_filter_add_mime_type(filter, "image/jpeg");
+    gtk_file_filter_add_pattern(filter, "*.png");
+    gtk_file_filter_add_pattern(filter, "*.svg");
+    gtk_file_filter_add_pattern(filter, "*.jpg");
+    gtk_file_filter_add_pattern(filter, "*.jpeg");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), filter);
+
+    GtkFileFilter *all_filter = gtk_file_filter_new();
+    gtk_file_filter_set_name(all_filter, "All files");
+    gtk_file_filter_add_pattern(all_filter, "*");
+    gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), all_filter);
+
+    /* Start in common icon directories */
+    const char *home = getenv("HOME");
+    if (home) {
+        char icon_dir[512];
+        snprintf(icon_dir, sizeof(icon_dir), "%s/.local/share/icons", home);
+        if (g_file_test(icon_dir, G_FILE_TEST_IS_DIR))
+            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), icon_dir);
+        else
+            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), "/usr/share/icons");
+    }
+
+    if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
+        char *filename = gtk_file_chooser_get_filename(GTK_FILE_CHOOSER(dialog));
+        if (filename) {
+            gtk_entry_set_text(GTK_ENTRY(entry_icon), filename);
+            update_icon_preview(filename);
+            g_free(filename);
+        }
+    }
+    gtk_widget_destroy(dialog);
+}
+
+/* ============================================================
+ * File Info
+ * ============================================================ */
+
+static void update_file_info(const char *path) {
+    if (!info_label || !path || !*path) {
+        if (info_label) gtk_label_set_text(GTK_LABEL(info_label), "");
+        return;
+    }
+
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        gtk_label_set_text(GTK_LABEL(info_label), "Cannot read file info");
+        return;
+    }
+
+    char size_str[64];
+    if (st.st_size < 1024)
+        snprintf(size_str, sizeof(size_str), "%ld B", (long)st.st_size);
+    else if (st.st_size < 1024 * 1024)
+        snprintf(size_str, sizeof(size_str), "%.1f KB", st.st_size / 1024.0);
+    else
+        snprintf(size_str, sizeof(size_str), "%.1f MB", st.st_size / (1024.0 * 1024.0));
+
+    char time_str[64];
+    struct tm *tm = localtime(&st.st_mtime);
+    strftime(time_str, sizeof(time_str), "%Y-%m-%d %H:%M", tm);
+
+    char perms[11];
+    snprintf(perms, sizeof(perms), "%c%c%c%c%c%c%c%c%c%c",
+        S_ISDIR(st.st_mode) ? 'd' : '-',
+        (st.st_mode & S_IRUSR) ? 'r' : '-',
+        (st.st_mode & S_IWUSR) ? 'w' : '-',
+        (st.st_mode & S_IXUSR) ? 'x' : '-',
+        (st.st_mode & S_IRGRP) ? 'r' : '-',
+        (st.st_mode & S_IWGRP) ? 'w' : '-',
+        (st.st_mode & S_IXGRP) ? 'x' : '-',
+        (st.st_mode & S_IROTH) ? 'r' : '-',
+        (st.st_mode & S_IWOTH) ? 'w' : '-',
+        (st.st_mode & S_IXOTH) ? 'x' : '-');
+
+    char info[512];
+    snprintf(info, sizeof(info), "%s  |  %s  |  %s", size_str, perms, time_str);
+    gtk_label_set_text(GTK_LABEL(info_label), info);
+}
+
+/* ============================================================
+ * Validation
+ * ============================================================ */
+
+static gboolean validate_entry(void) {
+    const char *name = gtk_entry_get_text(GTK_ENTRY(entry_name));
+    const char *exec = gtk_entry_get_text(GTK_ENTRY(entry_exec));
+
+    if (!name || strlen(name) == 0) {
+        gtk_label_set_text(GTK_LABEL(status_label), "Validation: Name is required!");
+        return FALSE;
+    }
+    if (!exec || strlen(exec) == 0) {
+        gtk_label_set_text(GTK_LABEL(status_label), "Validation: Command (Exec) is required!");
+        return FALSE;
+    }
+
+    /* Check if exec path exists (first word is the command) */
+    char cmd_name[256] = {0};
+    sscanf(exec, "%255s", cmd_name);
+    if (cmd_name[0] != '\0') {
+        char which_cmd[280];
+        snprintf(which_cmd, sizeof(which_cmd), "command -v %s >/dev/null 2>&1", cmd_name);
+        if (system(which_cmd) != 0) {
+            char msg[512];
+            snprintf(msg, sizeof(msg), "Validation warning: '%s' not found in PATH", cmd_name);
+            gtk_label_set_text(GTK_LABEL(status_label), msg);
+            return TRUE; /* Warning, not error */
+        }
+    }
+
+    gtk_label_set_text(GTK_LABEL(status_label), "Validation passed");
+    return TRUE;
+}
+
+/* ============================================================
+ * Bulk Enable/Disable
+ * ============================================================ */
+
+static void on_toggle_enabled(GtkCellRendererToggle *renderer, gchar *path_str, gpointer data) {
+    (void)renderer;
+    (void)data;
+
+    GtkTreeIter iter;
+    if (!gtk_tree_model_get_iter_from_string(GTK_TREE_MODEL(filter_model), &iter, path_str))
+        return;
+
+    gboolean enabled;
+    gchar *file_path;
+    gtk_tree_model_get(GTK_TREE_MODEL(filter_model), &iter,
+        COL_ENABLED, &enabled,
+        COL_PATH, &file_path,
+        -1);
+
+    if (!file_path) return;
+
+    /* Toggle: rename file */
+    char new_path[1024];
+    if (enabled) {
+        /* Disable: .desktop → .desktop.disabled */
+        snprintf(new_path, sizeof(new_path), "%s.disabled", file_path);
+    } else {
+        /* Enable: .desktop.disabled → .desktop */
+        size_t len = strlen(file_path);
+        if (len > 10 && strcmp(file_path + len - 10, ".disabled") == 0) {
+            snprintf(new_path, sizeof(new_path), "%.*s", (int)(len - 10), file_path);
+        } else {
+            g_free(file_path);
+            return;
+        }
+    }
+
+    if (rename(file_path, new_path) == 0) {
+        /* Update the model */
+        gtk_list_store_set(store, &iter, COL_ENABLED, !enabled, COL_PATH, new_path, -1);
+
+        /* If this was the currently loaded file, update current_file_path */
+        if (strcmp(file_path, current_file_path) == 0)
+            strncpy(current_file_path, new_path, sizeof(current_file_path) - 1);
+
+        char msg[256];
+        snprintf(msg, sizeof(msg), "%s: %s", !enabled ? "Enabled" : "Disabled",
+                 g_path_get_basename(new_path));
+        char *basename = g_path_get_basename(new_path);
+        snprintf(msg, sizeof(msg), "%s: %s", !enabled ? "Enabled" : "Disabled", basename);
         g_free(basename);
         gtk_label_set_text(GTK_LABEL(status_label), msg);
+    } else {
+        gtk_label_set_text(GTK_LABEL(status_label), "Failed to rename file");
     }
-    g_key_file_free(key_file);
+
+    g_free(file_path);
+}
+
+/* ============================================================
+ * Category Picker
+ * ============================================================ */
+
+static void on_category_combo_changed(GtkComboBox *combo, gpointer data) {
+    (void)data;
+    int idx = gtk_combo_box_get_active(combo);
+    if (idx < 0) return;
+
+    const char *cat = COMMON_CATEGORIES[idx];
+    if (!cat) return;
+
+    /* Append to categories field if not already present */
+    const char *current = gtk_entry_get_text(GTK_ENTRY(entry_categories));
+    if (current && strstr(current, cat)) return; /* Already present */
+
+    char new_cats[1024];
+    if (current && strlen(current) > 0)
+        snprintf(new_cats, sizeof(new_cats), "%s;%s", current, cat);
+    else
+        snprintf(new_cats, sizeof(new_cats), "%s", cat);
+
+    gtk_entry_set_text(GTK_ENTRY(entry_categories), new_cats);
+    gtk_combo_box_set_active(combo, -1); /* Reset selection */
 }
 
 /* ============================================================
@@ -154,20 +407,55 @@ static void on_selection_changed(GtkTreeSelection *selection, gpointer data) {
         gchar *path;
         gtk_tree_model_get(model, &iter, COL_PATH, &path, -1);
         if (path) {
-            load_file_to_editor(path);
-            g_free(path);
+            /* Load into editor */
+            GKeyFile *key_file = g_key_file_new();
+            if (g_key_file_load_from_file(key_file, path, G_KEY_FILE_NONE, NULL)) {
+                gchar *name = g_key_file_get_locale_string(key_file, "Desktop Entry", "Name", NULL, NULL);
+                gchar *exec = g_key_file_get_string(key_file, "Desktop Entry", "Exec", NULL);
+                gchar *icon = g_key_file_get_string(key_file, "Desktop Entry", "Icon", NULL);
+                gchar *comment = g_key_file_get_locale_string(key_file, "Desktop Entry", "Comment", NULL, NULL);
+                gchar *categories = g_key_file_get_string(key_file, "Desktop Entry", "Categories", NULL);
+                gboolean terminal = g_key_file_get_boolean(key_file, "Desktop Entry", "Terminal", NULL);
+
+                gtk_entry_set_text(GTK_ENTRY(entry_name), name ? name : "");
+                gtk_entry_set_text(GTK_ENTRY(entry_exec), exec ? exec : "");
+                gtk_entry_set_text(GTK_ENTRY(entry_icon), icon ? icon : "");
+                gtk_entry_set_text(GTK_ENTRY(entry_comment), comment ? comment : "");
+                gtk_entry_set_text(GTK_ENTRY(entry_categories), categories ? categories : "");
+                gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(check_terminal), terminal);
+
+                update_icon_preview(icon);
+                g_free(name);
+                g_free(exec);
+                g_free(icon);
+                g_free(comment);
+                g_free(categories);
+            }
+            g_key_file_free(key_file);
+
+            strncpy(current_file_path, path, sizeof(current_file_path) - 1);
+            update_file_info(path);
+
+            char *basename = g_path_get_basename(path);
+            char msg[1024];
+            snprintf(msg, sizeof(msg), "Loaded: %s", basename);
+            g_free(basename);
+            gtk_label_set_text(GTK_LABEL(status_label), msg);
         }
+        g_free(path);
     }
 }
 
 static void on_save_clicked(GtkWidget *widget, gpointer data) {
     (void)widget;
     (void)data;
-    
+
     if (strlen(current_file_path) == 0) {
         gtk_label_set_text(GTK_LABEL(status_label), "No file selected to save!");
         return;
     }
+
+    if (!validate_entry()) return;
 
     const char *name = gtk_entry_get_text(GTK_ENTRY(entry_name));
     const char *exec = gtk_entry_get_text(GTK_ENTRY(entry_exec));
@@ -176,10 +464,10 @@ static void on_save_clicked(GtkWidget *widget, gpointer data) {
     const char *categories = gtk_entry_get_text(GTK_ENTRY(entry_categories));
     gboolean terminal = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(check_terminal));
 
-    /* If saving a system file, we must save to ~/.local/share/applications instead to avoid sudo */
     char save_path[1024];
     strncpy(save_path, current_file_path, sizeof(save_path));
-    
+
+    /* If saving a system file, save to ~/.local/share/applications */
     if (g_str_has_prefix(current_file_path, "/usr/")) {
         const char *home = getenv("HOME");
         if (home) {
@@ -194,11 +482,9 @@ static void on_save_clicked(GtkWidget *widget, gpointer data) {
 
     GKeyFile *key_file = g_key_file_new();
     g_key_file_load_from_file(key_file, current_file_path, G_KEY_FILE_NONE, NULL);
-    
-    /* Ensure group exists */
-    if (!g_key_file_has_group(key_file, "Desktop Entry")) {
+
+    if (!g_key_file_has_group(key_file, "Desktop Entry"))
         g_key_file_set_string(key_file, "Desktop Entry", "Type", "Application");
-    }
 
     g_key_file_set_string(key_file, "Desktop Entry", "Name", name);
     g_key_file_set_string(key_file, "Desktop Entry", "Exec", exec);
@@ -212,11 +498,11 @@ static void on_save_clicked(GtkWidget *widget, gpointer data) {
     if (content) {
         if (g_file_set_contents(save_path, content, length, NULL)) {
             char msg[1024];
-            snprintf(msg, sizeof(msg), "Saved to: %s", save_path);
+            snprintf(msg, sizeof(msg), "Saved: %s", save_path);
             gtk_label_set_text(GTK_LABEL(status_label), msg);
-            /* Update current path */
             strncpy(current_file_path, save_path, sizeof(current_file_path) - 1);
             load_all_desktop_files();
+            update_file_info(save_path);
         } else {
             gtk_label_set_text(GTK_LABEL(status_label), "Failed to save file.");
         }
@@ -235,10 +521,10 @@ static void on_backup_clicked(GtkWidget *widget, gpointer data) {
     }
 
     ensure_backup_dir();
-    
+
     char *basename = g_path_get_basename(current_file_path);
     const char *home = getenv("HOME");
-    if (!home) return;
+    if (!home) { g_free(basename); return; }
 
     char backup_path[1024];
     snprintf(backup_path, sizeof(backup_path), "%s%s/%s", home, BACKUP_DIR, basename);
@@ -248,7 +534,7 @@ static void on_backup_clicked(GtkWidget *widget, gpointer data) {
     if (g_file_get_contents(current_file_path, &content, &length, NULL)) {
         if (g_file_set_contents(backup_path, content, length, NULL)) {
             char msg[1024];
-            snprintf(msg, sizeof(msg), "Backed up to: %s", backup_path);
+            snprintf(msg, sizeof(msg), "Backed up: %s", basename);
             gtk_label_set_text(GTK_LABEL(status_label), msg);
         }
         g_free(content);
@@ -267,7 +553,7 @@ static void on_restore_clicked(GtkWidget *widget, gpointer data) {
 
     char *basename = g_path_get_basename(current_file_path);
     const char *home = getenv("HOME");
-    if (!home) return;
+    if (!home) { g_free(basename); return; }
 
     char backup_path[1024];
     snprintf(backup_path, sizeof(backup_path), "%s%s/%s", home, BACKUP_DIR, basename);
@@ -281,15 +567,16 @@ static void on_restore_clicked(GtkWidget *widget, gpointer data) {
         if (g_file_get_contents(backup_path, &content, &length, NULL)) {
             if (g_file_set_contents(dest_path, content, length, NULL)) {
                 char msg[1024];
-                snprintf(msg, sizeof(msg), "Restored from backup: %s", dest_path);
+                snprintf(msg, sizeof(msg), "Restored: %s", basename);
                 gtk_label_set_text(GTK_LABEL(status_label), msg);
                 load_all_desktop_files();
-                load_file_to_editor(dest_path);
+                strncpy(current_file_path, dest_path, sizeof(current_file_path) - 1);
+                update_file_info(dest_path);
             }
             g_free(content);
         }
     } else {
-        gtk_label_set_text(GTK_LABEL(status_label), "No backup found for this app!");
+        gtk_label_set_text(GTK_LABEL(status_label), "No backup found!");
     }
     g_free(basename);
 }
@@ -298,12 +585,18 @@ static void on_new_clicked(GtkWidget *widget, gpointer data) {
     (void)widget;
     (void)data;
     clear_editor();
-    
+
     const char *home = getenv("HOME");
     if (home) {
         snprintf(current_file_path, sizeof(current_file_path), "%s/.local/share/applications/new_app.desktop", home);
     }
-    gtk_label_set_text(GTK_LABEL(status_label), "Created new template. Fill details and save.");
+    gtk_label_set_text(GTK_LABEL(status_label), "New template. Fill details and save.");
+}
+
+static void on_validate_clicked(GtkWidget *widget, gpointer data) {
+    (void)widget;
+    (void)data;
+    validate_entry();
 }
 
 static gboolean search_filter_func(GtkTreeModel *model, GtkTreeIter *iter, gpointer data) {
@@ -333,16 +626,13 @@ static gboolean search_filter_func(GtkTreeModel *model, GtkTreeIter *iter, gpoin
 
     g_free(name);
     g_free(file);
-
     return visible;
 }
 
 static void on_search_changed(GtkEditable *editable, gpointer data) {
     (void)editable;
     (void)data;
-    if (filter_model) {
-        gtk_tree_model_filter_refilter(filter_model);
-    }
+    if (filter_model) gtk_tree_model_filter_refilter(filter_model);
 }
 
 /* ============================================================
@@ -352,7 +642,7 @@ static void on_search_changed(GtkEditable *editable, gpointer data) {
 static GtkWidget* create_editor_row(const char *label_text, GtkWidget **entry_widget) {
     GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
     gtk_widget_set_margin_bottom(box, 8);
-    
+
     GtkWidget *label = gtk_label_new(label_text);
     gtk_widget_set_size_request(label, 100, -1);
     gtk_widget_set_halign(label, GTK_ALIGN_END);
@@ -365,15 +655,75 @@ static GtkWidget* create_editor_row(const char *label_text, GtkWidget **entry_wi
     return box;
 }
 
+static GtkWidget* create_icon_row(void) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_widget_set_margin_bottom(box, 8);
+
+    GtkWidget *label = gtk_label_new("Icon:");
+    gtk_widget_set_size_request(label, 100, -1);
+    gtk_widget_set_halign(label, GTK_ALIGN_END);
+    gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 0);
+
+    entry_icon = gtk_entry_new();
+    gtk_widget_set_hexpand(entry_icon, TRUE);
+    g_signal_connect(entry_icon, "changed", G_CALLBACK(on_icon_changed), NULL);
+    gtk_box_pack_start(GTK_BOX(box), entry_icon, TRUE, TRUE, 0);
+
+    GtkWidget *browse_btn = gtk_button_new_with_label("Browse...");
+    g_signal_connect(browse_btn, "clicked", G_CALLBACK(on_browse_icon_clicked), NULL);
+    gtk_box_pack_start(GTK_BOX(box), browse_btn, FALSE, FALSE, 0);
+
+    icon_preview = gtk_image_new_from_icon_name("application-x-executable", GTK_ICON_SIZE_DIALOG);
+    gtk_widget_set_size_request(icon_preview, 48, 48);
+    gtk_box_pack_start(GTK_BOX(box), icon_preview, FALSE, FALSE, 0);
+
+    return box;
+}
+
+static GtkWidget* create_category_row(void) {
+    GtkWidget *box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
+    gtk_widget_set_margin_bottom(box, 8);
+
+    GtkWidget *label = gtk_label_new("Categories:");
+    gtk_widget_set_size_request(label, 100, -1);
+    gtk_widget_set_halign(label, GTK_ALIGN_END);
+    gtk_box_pack_start(GTK_BOX(box), label, FALSE, FALSE, 0);
+
+    entry_categories = gtk_entry_new();
+    gtk_widget_set_hexpand(entry_categories, TRUE);
+    gtk_box_pack_start(GTK_BOX(box), entry_categories, TRUE, TRUE, 0);
+
+    /* Category quick-add dropdown */
+    GtkListStore *cat_store = gtk_list_store_new(1, G_TYPE_STRING);
+    for (int i = 0; COMMON_CATEGORIES[i]; i++) {
+        GtkTreeIter iter;
+        gtk_list_store_append(cat_store, &iter);
+        gtk_list_store_set(cat_store, &iter, 0, COMMON_CATEGORIES[i], -1);
+    }
+
+    category_combo = gtk_combo_box_new_with_model(GTK_TREE_MODEL(cat_store));
+    g_object_unref(cat_store);
+
+    GtkCellRenderer *renderer = gtk_cell_renderer_text_new();
+    gtk_cell_layout_pack_start(GTK_CELL_LAYOUT(category_combo), renderer, TRUE);
+    gtk_cell_layout_set_attributes(GTK_CELL_LAYOUT(category_combo), renderer, "text", 0, NULL);
+
+    gtk_combo_box_set_wrap_width(GTK_COMBO_BOX(category_combo), 4);
+    g_signal_connect(category_combo, "changed", G_CALLBACK(on_category_combo_changed), NULL);
+    gtk_box_pack_start(GTK_BOX(box), category_combo, FALSE, FALSE, 0);
+
+    return box;
+}
+
 static void activate(GtkApplication *app, gpointer user_data) {
     (void)user_data;
-    
+
     ocws_gtk_enforce_premium_theme();
     ocws_gtk_apply_dynamic_css(app, NULL);
 
     GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "OCWS DotDesktop Manager");
-    gtk_window_set_default_size(GTK_WINDOW(window), 900, 600);
+    gtk_window_set_default_size(GTK_WINDOW(window), 960, 650);
     gtk_window_set_position(GTK_WINDOW(window), GTK_WIN_POS_CENTER);
 
     /* Header bar */
@@ -405,21 +755,33 @@ static void activate(GtkApplication *app, gpointer user_data) {
     g_signal_connect(search_entry, "changed", G_CALLBACK(on_search_changed), NULL);
     gtk_box_pack_start(GTK_BOX(left_box), search_entry, FALSE, FALSE, 0);
 
-    /* TreeView */
-    store = gtk_list_store_new(NUM_COLS, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
+    /* TreeView with enabled toggle + icon + name */
+    store = gtk_list_store_new(NUM_COLS, G_TYPE_BOOLEAN, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING, G_TYPE_STRING);
     filter_model = GTK_TREE_MODEL_FILTER(gtk_tree_model_filter_new(GTK_TREE_MODEL(store), NULL));
     gtk_tree_model_filter_set_visible_func(filter_model, search_filter_func, NULL, NULL);
 
     tree_view = gtk_tree_view_new_with_model(GTK_TREE_MODEL(filter_model));
     gtk_tree_view_set_headers_visible(GTK_TREE_VIEW(tree_view), FALSE);
 
+    /* Enabled toggle column */
+    GtkCellRenderer *renderer_toggle = gtk_cell_renderer_toggle_new();
+    g_signal_connect(renderer_toggle, "toggled", G_CALLBACK(on_toggle_enabled), NULL);
+    GtkTreeViewColumn *col_toggle = gtk_tree_view_column_new_with_attributes("", renderer_toggle, "active", COL_ENABLED, NULL);
+    gtk_tree_view_column_set_expand(col_toggle, FALSE);
+    gtk_tree_view_column_set_min_width(col_toggle, 30);
+    gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), col_toggle);
+
+    /* Icon column */
     GtkCellRenderer *renderer_icon = gtk_cell_renderer_pixbuf_new();
     g_object_set(renderer_icon, "stock-size", GTK_ICON_SIZE_DND, NULL);
     GtkTreeViewColumn *col_icon = gtk_tree_view_column_new_with_attributes("Icon", renderer_icon, "icon-name", COL_ICON, NULL);
+    gtk_tree_view_column_set_expand(col_icon, FALSE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), col_icon);
 
+    /* Name column */
     GtkCellRenderer *renderer_text = gtk_cell_renderer_text_new();
     GtkTreeViewColumn *col_text = gtk_tree_view_column_new_with_attributes("Name", renderer_text, "text", COL_NAME, NULL);
+    gtk_tree_view_column_set_expand(col_text, TRUE);
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree_view), col_text);
 
     GtkTreeSelection *selection = gtk_tree_view_get_selection(GTK_TREE_VIEW(tree_view));
@@ -441,27 +803,28 @@ static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *title = gtk_label_new("<span size='large' weight='bold'>Desktop Entry Editor</span>");
     gtk_label_set_use_markup(GTK_LABEL(title), TRUE);
     gtk_widget_set_halign(title, GTK_ALIGN_START);
-    gtk_widget_set_margin_bottom(title, 24);
+    gtk_widget_set_margin_bottom(title, 16);
     gtk_box_pack_start(GTK_BOX(right_box), title, FALSE, FALSE, 0);
 
+    /* Editor fields */
     gtk_box_pack_start(GTK_BOX(right_box), create_editor_row("Name:", &entry_name), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(right_box), create_editor_row("Command:", &entry_exec), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(right_box), create_editor_row("Icon:", &entry_icon), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(right_box), create_icon_row(), FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(right_box), create_editor_row("Comment:", &entry_comment), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(right_box), create_editor_row("Categories:", &entry_categories), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(right_box), create_category_row(), FALSE, FALSE, 0);
 
+    /* Terminal checkbox */
     GtkWidget *term_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 12);
     GtkWidget *spacer = gtk_label_new("");
     gtk_widget_set_size_request(spacer, 100, -1);
     gtk_box_pack_start(GTK_BOX(term_box), spacer, FALSE, FALSE, 0);
-    
     check_terminal = gtk_check_button_new_with_label("Run in Terminal");
     gtk_box_pack_start(GTK_BOX(term_box), check_terminal, FALSE, FALSE, 0);
-    gtk_widget_set_margin_bottom(term_box, 24);
     gtk_box_pack_start(GTK_BOX(right_box), term_box, FALSE, FALSE, 0);
 
     /* Buttons */
     GtkWidget *btn_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_widget_set_margin_bottom(btn_box, 8);
     gtk_box_pack_start(GTK_BOX(right_box), btn_box, FALSE, FALSE, 0);
 
     GtkWidget *save_btn = gtk_button_new_with_label("Save");
@@ -469,6 +832,10 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_style_context_add_class(ctx, "suggested-action");
     g_signal_connect(save_btn, "clicked", G_CALLBACK(on_save_clicked), NULL);
     gtk_box_pack_start(GTK_BOX(btn_box), save_btn, FALSE, FALSE, 0);
+
+    GtkWidget *validate_btn = gtk_button_new_with_label("Validate");
+    g_signal_connect(validate_btn, "clicked", G_CALLBACK(on_validate_clicked), NULL);
+    gtk_box_pack_start(GTK_BOX(btn_box), validate_btn, FALSE, FALSE, 0);
 
     GtkWidget *backup_btn = gtk_button_new_with_label("Backup");
     g_signal_connect(backup_btn, "clicked", G_CALLBACK(on_backup_clicked), NULL);
@@ -478,12 +845,27 @@ static void activate(GtkApplication *app, gpointer user_data) {
     g_signal_connect(restore_btn, "clicked", G_CALLBACK(on_restore_clicked), NULL);
     gtk_box_pack_start(GTK_BOX(btn_box), restore_btn, FALSE, FALSE, 0);
 
-    /* Spacer to push status to bottom */
+    /* File info panel */
+    GtkWidget *info_box = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
+    gtk_widget_set_margin_bottom(info_box, 4);
+    gtk_box_pack_start(GTK_BOX(right_box), info_box, FALSE, FALSE, 0);
+
+    GtkWidget *info_icon = gtk_image_new_from_icon_name("dialog-information-symbolic", GTK_ICON_SIZE_MENU);
+    gtk_box_pack_start(GTK_BOX(info_box), info_icon, FALSE, FALSE, 0);
+
+    info_label = gtk_label_new("");
+    gtk_label_set_selectable(GTK_LABEL(info_label), TRUE);
+    gtk_widget_set_halign(info_label, GTK_ALIGN_START);
+    gtk_widget_set_margin_bottom(info_label, 4);
+    gtk_box_pack_start(GTK_BOX(info_box), info_label, TRUE, TRUE, 0);
+
+    /* Spacer */
     GtkWidget *expand = gtk_label_new("");
     gtk_widget_set_vexpand(expand, TRUE);
     gtk_box_pack_start(GTK_BOX(right_box), expand, TRUE, TRUE, 0);
 
-    status_label = gtk_label_new("Ready");
+    /* Status */
+    status_label = gtk_label_new("Ready — toggle checkbox to enable/disable entries");
     gtk_widget_set_halign(status_label, GTK_ALIGN_START);
     gtk_box_pack_start(GTK_BOX(right_box), status_label, FALSE, FALSE, 0);
 

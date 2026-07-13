@@ -68,17 +68,18 @@ apply_gsettings() {
 apply_udev_hwdb() {
   local enabled="$1"
   local hwdb_file="/etc/udev/hwdb.d/90-touchpad.hwdb"
+  local HWDB_TMP; HWDB_TMP=$(mktemp /tmp/90-touchpad-XXXXXX.hwdb)
 
   if [ "$enabled" = "true" ]; then
     # Enable natural scrolling
-    cat > /tmp/90-touchpad.hwdb << 'HWDB'
+    cat > "$HWDB_TMP" << 'HWDB'
 # Touchpad natural scroll
 evdev:input:*:*:0003:*
   TOUCHPAD_NATURAL_SCROLL=1
 HWDB
   else
     # Disable natural scrolling (default)
-    cat > /tmp/90-touchpad.hwdb << 'HWDB'
+    cat > "$HWDB_TMP" << 'HWDB'
 # Touchpad natural scroll
 evdev:input:*:*:0003:*
   TOUCHPAD_NATURAL_SCROLL=0
@@ -86,9 +87,9 @@ HWDB
   fi
 
   if [ -d /etc/udev/hwdb.d/ ]; then
-    sudo cp /tmp/90-touchpad.hwdb "$hwdb_file"
+    sudo cp "$HWDB_TMP" "$hwdb_file"
     sudo udevadm hwdb --update 2>/dev/null || true
-    rm -f /tmp/90-touchpad.hwdb
+    rm -f "$HWDB_TMP"
     return 0
   fi
   return 1

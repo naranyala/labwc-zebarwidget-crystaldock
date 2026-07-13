@@ -21,7 +21,7 @@
 #include <stdlib.h>
 #include "../core/utils.h"
 #include "../libocws/gtk.h"
-#include "../libocws/string.h"
+#include "../libocws/ocws_string.h"
 #include <unistd.h>
 #include <sys/stat.h>
 #include "utils.h"
@@ -55,9 +55,21 @@ static void log_msg(const char *fmt, ...) {
 
 static int run_cmd_logged(const char *cmd) {
     log_msg("EXEC: %s", cmd);
-    int rc = system(cmd);
+    GError *error = NULL;
+    gchar *argv[4] = {"/bin/sh", "-c", (gchar*)cmd, NULL};
+    gint exit_status;
+    if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &exit_status, &error)) {
+        log_msg("ERROR: spawn failed: %s", error->message);
+        g_error_free(error);
+        return -1;
+    }
+    if (!WIFEXITED(exit_status)) {
+        log_msg("ERROR: command terminated abnormally: %s", cmd);
+        return -1;
+    }
+    int rc = WEXITSTATUS(exit_status);
     if (rc != 0) {
-        log_msg("ERROR: command failed with code %d: %s", WEXITSTATUS(rc), cmd);
+        log_msg("ERROR: command failed with code %d: %s", rc, cmd);
     } else {
         log_msg("SUCCESS: %s", cmd);
     }
@@ -65,23 +77,16 @@ static int run_cmd_logged(const char *cmd) {
 }
 
 static void send_notification(const char *title, const char *body, const char *icon) {
-    char cmd[1024];
-    snprintf(cmd, sizeof(cmd), "notify-send -i '%s' '%s' '%s' &", icon ? icon : "info", title, body);
-    run_cmd_logged(cmd);
-}
-
-/* Shell-safe string: rejects shell metacharacters */
-static int is_shell_safe(const char *s) {
-    if (!s || !*s) return 0;
-    for (const char *p = s; *p; p++) {
-        char c = *p;
-        if (c == ';' || c == '|' || c == '&' || c == '$' ||
-            c == '(' || c == ')' || c == '{' || c == '}' ||
-            c == '`' || c == '"' || c == '\'' || c == '\\' ||
-            c == '\n' || c == '\r' || c == '<' || c == '>')
-            return 0;
+    /* Use fork+exec to avoid shell injection via title/body/icon */
+    pid_t pid = fork();
+    if (pid == 0) {
+        execlp("notify-send", "notify-send", "-i", icon ? icon : "info",
+               title ? title : "", body ? body : "", NULL);
+        _exit(1);
+    } else if (pid > 0) {
+        int status;
+        waitpid(pid, &status, 0);
     }
-    return 1;
 }
 
 /* ================================================================
@@ -294,7 +299,7 @@ static GtkWidget *build_intro_page(void) {
     GtkWidget *desc = gtk_label_new(
         "OCWS is a modular desktop environment built entirely in C for the "
         "labwc Wayland compositor. It provides:\n\n"
-        "  •  Multiple shell modes — double-panel, crystal-dock, DankMaterialShell, noctalia\n"
+        "  •  12 shell modes — from dual-panel and crystal-dock to LXQt variants\n"
         "  •  11 curated color themes — from Catppuccin Mocha to Tokyo Night\n"
         "  •  Wallpaper management — randomizer, time-of-day transitions\n"
         "  •  Lightweight C utilities — screenshot, clipboard, volume, brightness & more\n"
@@ -335,7 +340,9 @@ static GtkWidget *build_health_page(void) {
     gtk_box_pack_start(GTK_BOX(vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 8);
 
     const char *deps[] = {
-        "grim", "slurp", "wl-clipboard", "fuzzel", "swayosd-server", "playerctl"
+        "labwc", "sfwbar", "fuzzel", "foot", "playerctl",
+        "grim", "slurp", "wl-copy", "brightnessctl", "jq",
+        "inotifywait", "swaybg", "swayosd-server"
     };
     int missing = 0;
 
@@ -427,47 +434,60 @@ static GtkWidget *build_monitors_page(void) {
 /* ---- Page X: Mount Partitions ---- */
 static void on_mount_partition(GtkWidget *btn, gpointer data) {
     const char *part = (const char *)data;
-    
+
+    /* Validate device path — must start with /dev/ */
+    if (!part || strncmp(part, "/dev/", 5) != 0) {
+        send_notification("Mount Failed", "Invalid device path", "dialog-error");
+        return;
+    }
+
     char label[128] = {0};
     char uuid[128] = {0};
-    char cmd[512];
-    snprintf(cmd, sizeof(cmd), "lsblk -P -o LABEL,UUID %s", part);
-    FILE *f = popen(cmd, "r");
-    if (f) {
+    GError *error = NULL;
+    gchar *stdout_buf = NULL;
+    gchar *argv_lsblk[] = {"lsblk", "-P", "-o", "LABEL,UUID", (gchar*)part, NULL};
+    if (g_spawn_sync(NULL, argv_lsblk, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &stdout_buf, NULL, NULL, &error)) {
         char line[512];
-        if (fgets(line, sizeof(line), f)) {
-            char *l = strstr(line, "LABEL=\"");
-            if (l) {
-                l += 7;
-                char *end = strchr(l, '"');
-                if (end && end - l < sizeof(label) - 1) strncpy(label, l, end - l);
-            }
-            char *u = strstr(line, "UUID=\"");
-            if (u) {
-                u += 6;
-                char *end = strchr(u, '"');
-                if (end && end - u < sizeof(uuid) - 1) strncpy(uuid, u, end - u);
-            }
+        strncpy(line, stdout_buf, sizeof(line) - 1);
+        line[sizeof(line) - 1] = '\0';
+        char *l = strstr(line, "LABEL=\"");
+        if (l) {
+            l += 7;
+            char *end = strchr(l, '"');
+            if (end && end - l < sizeof(label) - 1) strncpy(label, l, end - l);
         }
-        pclose(f);
+        char *u = strstr(line, "UUID=\"");
+        if (u) {
+            u += 6;
+            char *end = strchr(u, '"');
+            if (end && end - u < sizeof(uuid) - 1) strncpy(uuid, u, end - u);
+        }
+        g_free(stdout_buf);
+    } else {
+        g_error_free(error);
     }
-    
+
     const char *disk_name = (label[0] != '\0') ? label : uuid;
     if (disk_name[0] == '\0') disk_name = "unknown";
-    
+
     char mount_base[256];
     const char *user = getenv("USER");
-    if (!user) user = "naranyala";
+    if (!user || !*user) user = "root";
     snprintf(mount_base, sizeof(mount_base), "/media/%s", user);
-    
-    char mount_point[512];
-    snprintf(mount_point, sizeof(mount_point), "%s/%s", mount_base, disk_name);
-    
-    snprintf(cmd, sizeof(cmd), "mkdir -p '%s' && mount '%s' '%s'", mount_point, part, mount_point);
+
+    /* Shell-escape dynamic values to prevent injection */
+    char cmd[768];
+    char esc_mount[512] = {0};
+    char esc_part[256] = {0};
+    snprintf(esc_mount, sizeof(esc_mount), "%s/%s", mount_base, disk_name);
+    ocws_shell_escape(esc_mount, sizeof(esc_mount), esc_mount);
+    ocws_shell_escape(esc_part, sizeof(esc_part), part);
+
+    snprintf(cmd, sizeof(cmd), "mkdir -p '%s' && mount '%s' '%s'", esc_mount, esc_part, esc_mount);
     int rc = run_cmd_logged(cmd);
     if (rc != 0) {
         /* Fallback with pkexec if unprivileged mount fails */
-        snprintf(cmd, sizeof(cmd), "mkdir -p '%s' && pkexec mount '%s' '%s'", mount_point, part, mount_point);
+        snprintf(cmd, sizeof(cmd), "mkdir -p '%s' && pkexec mount '%s' '%s'", esc_mount, esc_part, esc_mount);
         rc = run_cmd_logged(cmd);
     }
 
@@ -500,10 +520,19 @@ static GtkWidget *build_mount_page(void) {
     gtk_box_pack_start(GTK_BOX(vbox),
         gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 8);
 
-    FILE *f = popen("lsblk -P -p -o NAME,TYPE,FSTYPE,SIZE,LABEL,UUID | grep 'TYPE=\"part\"'", "r");
-    if (f) {
+    GError *error_ls = NULL;
+    gchar *stdout_ls = NULL;
+    gchar *argv_lsblk[] = {"/bin/sh", "-c", "lsblk -P -p -o NAME,TYPE,FSTYPE,SIZE,LABEL,UUID | grep 'TYPE=\"part\"'", NULL};
+    if (g_spawn_sync(NULL, argv_lsblk, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &stdout_ls, NULL, NULL, &error_ls)) {
         char line[1024];
-        while (fgets(line, sizeof(line), f)) {
+        char *p = stdout_ls;
+        char *next;
+        while (p && *p) {
+            next = strchr(p, '\n');
+            if (next) *next = '\0';
+            strncpy(line, p, sizeof(line) - 1);
+            line[sizeof(line) - 1] = '\0';
+
             char name[128] = {0}, fstype[64] = {0}, size[64] = {0}, label[128] = {0};
             
             char *n = strstr(line, "NAME=\"");
@@ -548,8 +577,17 @@ static GtkWidget *build_mount_page(void) {
             gtk_box_pack_start(GTK_BOX(row), info, TRUE, TRUE, 0);
             gtk_box_pack_start(GTK_BOX(row), _btn, FALSE, FALSE, 0);
             gtk_box_pack_start(GTK_BOX(vbox), row, FALSE, FALSE, 0);
+
+            if (next) {
+                *next = '\n';
+                p = next + 1;
+            } else {
+                break;
+            }
         }
-        pclose(f);
+        g_free(stdout_ls);
+    } else {
+        g_error_free(error_ls);
     }
 
     return page;

@@ -93,7 +93,7 @@ build_make_engine() {
     cd "$NAME"
 
     info "Compiling $NAME..."
-    make -j$(nproc) || true # Some projects don't support parallel builds perfectly
+    make -j$(nproc)
 
     info "Installing $NAME..."
     elevate sh -c "cd \"$PWD\" && make install"

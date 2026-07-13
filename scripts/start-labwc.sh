@@ -88,6 +88,7 @@ if [ ${#LEGACY_FOUND[@]} -gt 0 ]; then
   info "Next OCWS release will make these optional. Use sfwbar-plus mode for enhanced OCWS features."
 fi
 
+NEW_OPTIONAL_DEPS=()
 NEW_OPT_MISSING=()
 for dep in "${NEW_OPTIONAL_DEPS[@]}"; do
   if ! command -v "$dep" &>/dev/null; then

@@ -32,7 +32,7 @@ echo ""
 # Check if we're in the OCWS directory
 if [ ! -f "./install.sh" ]; then
     echo -e "${YELLOW}OCWS not found. Cloning...${NC}"
-    git clone --depth=1 https://github.com/your-repo/labwc-fuzzel-sfwbar.git ocws
+    git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-sfwbar.git ocws
     cd ocws
 fi
 

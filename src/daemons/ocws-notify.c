@@ -7,6 +7,7 @@
 #include <sys/stat.h>
 #include <glib.h>
 #include <gio/gio.h>
+#include <glib-unix.h>
 
 #define MAX_NOTIFICATIONS 256
 #define APPNAME "ocws-notify"
@@ -138,13 +139,33 @@ static gboolean notif_expire_cb(gpointer data) {
     return G_SOURCE_REMOVE;
 }
 
+static gboolean check_caller_uid(GDBusMethodInvocation *invocation) {
+    GCredentials *creds = g_dbus_method_invocation_get_credentials(invocation);
+    if (!creds) {
+        g_dbus_method_invocation_return_error(invocation,
+            G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED,
+            "No credentials provided");
+        return FALSE;
+    }
+    uid_t caller_uid = g_credentials_get_unix_user(creds, NULL);
+    if (caller_uid != getuid() && caller_uid != 0) {
+        g_dbus_method_invocation_return_error(invocation,
+            G_DBUS_ERROR, G_DBUS_ERROR_ACCESS_DENIED,
+            "Access denied");
+        return FALSE;
+    }
+    return TRUE;
+}
+
 static void handle_get_server_information(GDBusMethodInvocation *invocation) {
+    if (!check_caller_uid(invocation)) return;
     g_dbus_method_invocation_return_value(invocation,
         g_variant_new("(ssss)", APPNAME, "OCWS", "1.0", "1.2"));
 }
 
 static void handle_get_capabilities(GDBusConnection *connection, GDBusMethodInvocation *invocation, gpointer user_data) {
     (void)connection; (void)user_data;
+    if (!check_caller_uid(invocation)) return;
     const char *caps[] = { "body", "body-markup", "icon-static", "persistence", NULL };
     GVariantBuilder builder;
     g_variant_builder_init(&builder, G_VARIANT_TYPE("as"));
@@ -155,6 +176,7 @@ static void handle_get_capabilities(GDBusConnection *connection, GDBusMethodInvo
 }
 
 static void handle_notify(GDBusMethodInvocation *invocation, GVariant *params) {
+    if (!check_caller_uid(invocation)) return;
     const char *app_name = NULL;
     guint32 replaces_id = 0;
     const char *icon_str = NULL;
@@ -210,6 +232,7 @@ static void handle_notify(GDBusMethodInvocation *invocation, GVariant *params) {
 }
 
 static void handle_close_notification(GDBusMethodInvocation *invocation, GVariant *params) {
+    if (!check_caller_uid(invocation)) return;
     guint32 id;
     g_variant_get(params, "(u)", &id);
 
@@ -223,6 +246,7 @@ static void handle_close_notification(GDBusMethodInvocation *invocation, GVarian
 }
 
 static void handle_clear_notifications(GDBusMethodInvocation *invocation) {
+    if (!check_caller_uid(invocation)) return;
     for (int i = 0; i < notif_count; i++) {
         if (notifications[i] && !notifications[i]->closed) {
             notifications[i]->closed = 1;

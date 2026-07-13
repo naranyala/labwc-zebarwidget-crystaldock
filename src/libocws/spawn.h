@@ -4,25 +4,18 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <glib.h>
 
 static inline void run_cmd_async(const char *cmd) {
     if (cmd && cmd[0]) {
-        char full[1024];
-        size_t len = strlen(cmd);
-        int has_amp = 0;
-        
-        while (len > 0 && (cmd[len-1] == ' ' || cmd[len-1] == '\t')) len--;
-        if (len > 0 && cmd[len-1] == '&') has_amp = 1;
-
-        if (has_amp) {
-            snprintf(full, sizeof(full), "%s", cmd);
-        } else {
-            snprintf(full, sizeof(full), "%s &", cmd);
+        GError *error = NULL;
+        gchar *argv[4] = {"/bin/sh", "-c", (gchar*)cmd, NULL};
+        g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
+                      NULL, NULL, NULL, &error);
+        if (error) {
+            g_warning("run_cmd_async: spawn failed: %s", error->message);
+            g_error_free(error);
         }
-        
-        // POSIX standard system call, zero GUI dependencies
-        int ret = system(full);
-        (void)ret; // Suppress unused result warning
     }
 }
 

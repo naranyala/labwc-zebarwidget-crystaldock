@@ -12,7 +12,7 @@
 #include "../libocws/spawn.h"
 
 /* String utilities (now in libocws) */
-#include "../libocws/string.h"
+#include "../libocws/ocws_string.h"
 
 /* GTK specific execution */
 void run_cmd(GtkWidget *widget, gpointer data);

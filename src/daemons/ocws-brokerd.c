@@ -38,6 +38,32 @@
 
 static void log_msg(const char *fmt, ...);
 
+/* Basic plugin path validation */
+static int validate_plugin_path(const char *path) {
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        log_msg("Plugin path does not exist: %s", path);
+        return 0;
+    }
+    if (S_ISLNK(st.st_mode)) {
+        log_msg("Plugin is a symlink, rejecting: %s", path);
+        return 0;
+    }
+    if (!S_ISREG(st.st_mode)) {
+        log_msg("Plugin is not a regular file: %s", path);
+        return 0;
+    }
+    if (st.st_uid != getuid() && st.st_uid != 0) {
+        log_msg("Plugin owned by untrusted user (uid=%d): %s", st.st_uid, path);
+        return 0;
+    }
+    if (st.st_mode & (S_IWGRP | S_IWOTH)) {
+        log_msg("Plugin has world/group write permissions: %s", path);
+        return 0;
+    }
+    return 1;
+}
+
 #define MAX_PLUGINS 64
 
 /* Uses the established OcwsPlugin ABI (src/libocws/plugin_api.h). */
@@ -52,9 +78,19 @@ static int             g_nplugins = 0;
 static char            g_active_id[64] = {0};
 static char            g_cfg_buf[256]  = {0};
 
-/* Forward plugin events to sfwbar via ocws-emit (skip internal topics). */
+/* Forward plugin events to sfwbar via ocws-emit (skip internal topics).
+ * Uses execlp with separate args (no shell) — safe by construction.
+ * Added validation: reject topics/values with control characters. */
 static void brokerd_sfwbar_bridge(const char *topic, const char *value) {
-    if (topic && topic[0] == '_') return;
+    if (!topic || !value) return;
+    if (topic[0] == '_') return;
+    /* Reject control characters in topic and value */
+    for (const char *p = topic; *p; p++) {
+        if (*p < 0x20 || *p == 0x7f) return;
+    }
+    for (const char *p = value; *p; p++) {
+        if (*p < 0x20 || *p == 0x7f) return;
+    }
     pid_t pid = fork();
     if (pid == 0) {
         freopen("/dev/null", "w", stderr);
@@ -156,6 +192,10 @@ static void load_plugins(void) {
 
             char libpath[1024];
             snprintf(libpath, sizeof(libpath), "%s/%s", pdir, library);
+            if (!validate_plugin_path(libpath)) {
+                log_msg("Skipping unsafe plugin: %s", libpath);
+                continue;
+            }
             void *hnd = dlopen(libpath, RTLD_NOW | RTLD_LOCAL);
             if (!hnd) { log_msg("plugin load failed: %s (%s)", libpath, dlerror()); continue; }
 
@@ -423,6 +463,8 @@ static int init_volume_watcher(void) {
         log_msg("pipe failed: %s", strerror(errno));
         return -1;
     }
+    fcntl(volume_pipe[0], F_SETFD, FD_CLOEXEC);
+    fcntl(volume_pipe[1], F_SETFD, FD_CLOEXEC);
 
     pid_t pid = fork();
     if (pid == 0) {
@@ -498,8 +540,11 @@ static int init_media_watcher(void) {
         return -1;
     }
 
-    /* Set non-blocking */
+    /* Set CLOEXEC on the popen fd */
     int fd = fileno(playerctl_fp);
+    fcntl(fd, F_SETFD, FD_CLOEXEC);
+
+    /* Set non-blocking */
     int flags = fcntl(fd, F_GETFL, 0);
     fcntl(fd, F_SETFL, flags | O_NONBLOCK);
 

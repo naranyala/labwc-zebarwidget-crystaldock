@@ -222,6 +222,13 @@ elif [ -x "$HOME/.local/share/ocws/scripts/dock-sync.py" ]; then
   nohup "$HOME/.local/share/ocws/scripts/dock-sync.py" >/dev/null 2>&1 &
 fi
 
+# --- Touchpad Gesture Daemon ---
+# Handles 3/4-finger swipes for window tiling and workspace switching
+if [ -x "$HOME/.local/bin/ocws-gestured" ]; then
+  pkill -f ocws-gestured 2>/dev/null || true
+  nohup "$HOME/.local/bin/ocws-gestured" >> /tmp/ocws-gestured.log 2>&1 &
+fi
+
 # --- Notification daemon ---
 if command -v swaync >/dev/null 2>&1; then
   swaync &

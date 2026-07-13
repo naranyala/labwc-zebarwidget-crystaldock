@@ -10,7 +10,7 @@ CYAN='\033[0;36m'
 NC='\033[0m'
 
 ICONS_DIR="${HOME}/.local/share/icons"
-DOWNLOAD_DIR="/tmp/ocws-icons"
+DOWNLOAD_DIR="${XDG_RUNTIME_DIR:-$HOME/.cache}/ocws-icons"
 
 pass() { echo -e "  ${GREEN}PASS${NC} $1"; }
 fail() { echo -e "  ${RED}FAIL${NC} $1"; }

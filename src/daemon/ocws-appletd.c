@@ -8,6 +8,32 @@
 #include <sys/stat.h>
 #include "../libocws/plugin_api.h"
 
+/* Basic plugin path validation */
+static int validate_plugin_path(const char *path) {
+    struct stat st;
+    if (stat(path, &st) != 0) {
+        fprintf(stderr, "[Appletd] Plugin path does not exist: %s\n", path);
+        return 0;
+    }
+    if (S_ISLNK(st.st_mode)) {
+        fprintf(stderr, "[Appletd] Plugin is a symlink, rejecting: %s\n", path);
+        return 0;
+    }
+    if (!S_ISREG(st.st_mode)) {
+        fprintf(stderr, "[Appletd] Plugin is not a regular file: %s\n", path);
+        return 0;
+    }
+    if (st.st_uid != getuid() && st.st_uid != 0) {
+        fprintf(stderr, "[Appletd] Plugin owned by untrusted user (uid=%d): %s\n", st.st_uid, path);
+        return 0;
+    }
+    if (st.st_mode & (S_IWGRP | S_IWOTH)) {
+        fprintf(stderr, "[Appletd] Plugin has world/group write permissions: %s\n", path);
+        return 0;
+    }
+    return 1;
+}
+
 /* 
  * ocws-appletd: Unified Native Applet Daemon
  * Modular architecture loading .so plugins dynamically and running via GMainLoop.
@@ -32,6 +58,11 @@ static gboolean plugin_tick_cb(gpointer user_data) {
 static void load_plugin(const char* filepath) {
     if (plugin_count >= MAX_PLUGINS) {
         fprintf(stderr, "[Appletd] Max plugins reached.\n");
+        return;
+    }
+
+    if (!validate_plugin_path(filepath)) {
+        fprintf(stderr, "[Appletd] Skipping unsafe plugin: %s\n", filepath);
         return;
     }
 

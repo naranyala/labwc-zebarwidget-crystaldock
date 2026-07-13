@@ -6,7 +6,7 @@ set -euo pipefail
 # C-rewrite goal: Integrate into ocws-brokerd timer subsystem
 
 EMIT_CMD="ocws-emit"
-STATE_FILE="/tmp/ocws-pomodoro.state" # Temporary, eventually ocws-kv
+STATE_FILE="${XDG_RUNTIME_DIR:-$HOME/.cache}/ocws-pomodoro.state" # Temporary, eventually ocws-kv
 
 log() { echo "[$(date '+%H:%M:%S')] [Pomodoro] $*"; }
 

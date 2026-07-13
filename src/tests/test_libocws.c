@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "libocws/string.h"
+#include "libocws/ocws_string.h"
 #include "libocws/easing.h"
 #include "libocws/ini.h"
 #include "libocws/json.h"
