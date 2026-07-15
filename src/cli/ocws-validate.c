@@ -64,7 +64,7 @@ int main(int argc, char **argv) {
 
     // 1. Core Utilities
     printf("%s[1/6] Core System Utilities%s\n", CYAN, NC);
-    const char *core_bins[] = {"labwc", "sfwbar", "fuzzel", "foot", "jq", "awk", "sed"};
+    const char *core_bins[] = {"labwc", "zigshell-cairo-pango", "fuzzel", "foot", "jq", "awk", "sed"};
     for (int i = 0; i < 7; i++) {
         if (check_cmd(core_bins[i])) {
             char msg[256];
@@ -183,7 +183,7 @@ int main(int argc, char **argv) {
 
     // 6. Running Services
     printf("%s[6/6] Runtime Services%s\n", CYAN, NC);
-    const char *services[] = {"labwc", "sfwbar"};
+    const char *services[] = {"labwc", "zigshell-cairo-pango"};
     for (int i = 0; i < 2; i++) {
         char cmd[256];
         snprintf(cmd, sizeof(cmd), "pgrep -x %s >/dev/null", services[i]);

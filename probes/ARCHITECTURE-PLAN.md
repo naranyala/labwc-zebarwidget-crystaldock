@@ -13,7 +13,7 @@ src/
 │   ├── easing.h                # Animation functions
 │   ├── sysfs.h                 # Sysfs I/O helpers
 │   ├── audio.h                 # PulseAudio helpers
-│   ├── ipc.h                   # IPC helpers (emit to sfwbar)
+│   ├── ipc.h                   # IPC helpers (emit to zigshell-cairo-pango)
 │   ├── http.h                  # HTTP client (libcurl wrapper)
 │   ├── config.h                # INI/config parser
 │   └── cli.h                   # CLI argument parsing helpers

@@ -4,13 +4,13 @@
 # Usage: lxqt-panel-switcher <mode>
 #
 # Modes:
-#   tworow         Top panel + sfwbar 2-row taskbar (default)
-#   classic        Bottom panel + sfwbar top statusbar
-#   minimal        Top panel (tray+clock) + sfwbar minimal bar
-#   standalone     Top panel handles everything (no sfwbar)
-#   dual-lxqt      Two lxqt-panels: top status + bottom taskbar (no sfwbar)
-#   vertical       Right-side vertical panel + sfwbar top statusbar
-#   bottom         Bottom panel + sfwbar top statusbar
+#   tworow         Top panel + zigshell-cairo-pango 2-row taskbar (default)
+#   classic        Bottom panel + zigshell-cairo-pango top statusbar
+#   minimal        Top panel (tray+clock) + zigshell-cairo-pango minimal bar
+#   standalone     Top panel handles everything (no zigshell-cairo-pango)
+#   dual-lxqt      Two lxqt-panels: top status + bottom taskbar (no zigshell-cairo-pango)
+#   vertical       Right-side vertical panel + zigshell-cairo-pango top statusbar
+#   bottom         Bottom panel + zigshell-cairo-pango top statusbar
 
 set -euo pipefail
 
@@ -39,17 +39,17 @@ PROJECT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # Available lxqt-panel modes
 declare -A MODES=(
-    ["tworow"]="Top panel (menu, taskbar, tray, clock) + sfwbar 2-row taskbar"
-    ["classic"]="Bottom panel (dock-style) + sfwbar top statusbar"
-    ["minimal"]="Top panel (tray+clock only) + sfwbar minimal bar"
-    ["standalone"]="Top panel handles everything (no sfwbar)"
-    ["dual-lxqt"]="Two lxqt-panels: top status + bottom taskbar (no sfwbar)"
-    ["vertical"]="Right-side vertical panel + sfwbar top statusbar"
-    ["bottom"]="Bottom panel (full plugins) + sfwbar top statusbar"
+    ["tworow"]="Top panel (menu, taskbar, tray, clock) + zigshell-cairo-pango 2-row taskbar"
+    ["classic"]="Bottom panel (dock-style) + zigshell-cairo-pango top statusbar"
+    ["minimal"]="Top panel (tray+clock only) + zigshell-cairo-pango minimal bar"
+    ["standalone"]="Top panel handles everything (no zigshell-cairo-pango)"
+    ["dual-lxqt"]="Two lxqt-panels: top status + bottom taskbar (no zigshell-cairo-pango)"
+    ["vertical"]="Right-side vertical panel + zigshell-cairo-pango top statusbar"
+    ["bottom"]="Bottom panel (full plugins) + zigshell-cairo-pango top statusbar"
 )
 
-# Sfwbar companion modes (empty = no sfwbar needed)
-declare -A SFWBAR_MODE=(
+# Zigshell-cairo-pango companion modes (empty = no zigshell-cairo-pango needed)
+declare -A ZIGSHELL_MODE=(
     ["tworow"]="tworow"
     ["classic"]="lxqt-classic"
     ["minimal"]="lxqt-minimal"
@@ -126,16 +126,16 @@ else
     warn "lxqt-panel may not have started — check logs"
 fi
 
-# Report sfwbar companion
-SFWBAR="${SFWBAR_MODE[$MODE]}"
-if [ -n "$SFWBAR" ]; then
+# Report zigshell-cairo-pango companion
+ZIGSHELL="${ZIGSHELL_MODE[$MODE]}"
+if [ -n "$ZIGSHELL" ]; then
     echo ""
-    info "Sfwbar companion: $SFWBAR.mode"
+    info "Zigshell-cairo-pango companion: $ZIGSHELL.mode"
     echo "  Start with: toggle-shell $MODE"
-    echo "  Or manually: sfwbar -f $HOME/.config/ocws/modes/${SFWBAR}.mode"
+    echo "  Or manually: zigshell-cairo-pango -f $HOME/.config/ocws/modes/${ZIGSHELL}.mode"
 else
     echo ""
-    info "No sfwbar companion needed for this mode."
+    info "No zigshell-cairo-pango companion needed for this mode."
 fi
 
 echo ""

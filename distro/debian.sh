@@ -11,9 +11,9 @@ PKGS=(
     network-manager bluez libnotify-bin fonts-noto fonts-dejavu-core
     rsync fuzzel cliphist fonts-firacode libgtk-3-dev
 )
-# sfwbar — not in Ubuntu repos, will be handled separately
-if apt-cache show sfwbar >/dev/null 2>&1; then
-    PKGS+=(sfwbar)
+# zigshell-cairo-pango — not in Ubuntu repos, will be handled separately
+if apt-cache show zigshell-cairo-pango >/dev/null 2>&1; then
+    PKGS+=(zigshell-cairo-pango)
 fi
 apt install -y "${PKGS[@]}"
 echo ""

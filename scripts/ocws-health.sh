@@ -131,13 +131,13 @@ fi
 # ============================================================
 header "3/12" "Core Services"
 
-# sfwbar
-if pgrep -x sfwbar &>/dev/null; then
-    SFWPID=$(pgrep -x sfwbar | head -1)
+# zigshell-cairo-pango
+if pgrep -x zigshell-cairo-pango &>/dev/null; then
+    SFWPID=$(pgrep -x zigshell-cairo-pango | head -1)
     SFWMEM=$(ps -o rss= -p "$SFWPID" 2>/dev/null | awk '{printf "%.1f", $1/1024}' || echo "?")
-    pass "sfwbar running (PID: $SFWPID, RSS: ${SFWMEM}MB)"
+    pass "zigshell-cairo-pango running (PID: $SFWPID, RSS: ${SFWMEM}MB)"
 else
-    fail "sfwbar not running"
+    fail "zigshell-cairo-pango not running"
 fi
 
 # labwc
@@ -458,9 +458,9 @@ TOTAL_BIN_MB=$((TOTAL_BIN_SIZE / 1024 / 1024))
 info "Total OCWS binary size: ${TOTAL_BIN_MB}MB"
 
 # Duplicate processes
-SFWBAR_COUNT=$(pgrep -c sfwbar 2>/dev/null || echo 0)
-if [[ "$SFWBAR_COUNT" -gt 1 ]]; then
-    warn "$SFWBAR_COUNT sfwbar instances running (expected: 1)"
+ZIGSHELL_COUNT=$(pgrep -c zigshell-cairo-pango 2>/dev/null || echo 0)
+if [[ "$ZIGSHELL_COUNT" -gt 1 ]]; then
+    warn "$ZIGSHELL_COUNT zigshell-cairo-pango instances running (expected: 1)"
 fi
 
 # Theme consistency

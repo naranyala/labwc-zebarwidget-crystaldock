@@ -6,5 +6,5 @@ Icon=preferences-desktop-panel
 Terminal=false
 Type=Application
 Categories=Settings;DesktopSettings;
-Keywords=ocws;dock;manager;pinned;apps;noctalia;crystal-dock;
+Keywords=ocws;dock;manager;pinned;apps;noctalia;zigshell-cairo-pango;
 StartupNotify=true

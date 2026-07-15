@@ -27,7 +27,7 @@ if command -v dnf &>/dev/null; then
     PM="dnf install -y"
     PKGS=(
         # Core Wayland & DE
-        labwc sfwbar rofi fuzzel foot mako dunst swaybg swayidle swaylock qt6ct
+        labwc zigshell-cairo-pango rofi fuzzel foot mako dunst swaybg swayidle swaylock qt6ct
         wl-clipboard grim slurp cliphist brightnessctl playerctl
         # Core Utils
         git curl wget jq inotify-tools bc tesseract rsync unzip tar ripgrep fd-find
@@ -41,7 +41,7 @@ if command -v dnf &>/dev/null; then
 elif command -v apt-get &>/dev/null; then
     PM="apt-get install -y"
     PKGS=(
-        labwc sfwbar rofi fuzzel foot mako-notifier dunst swaybg swayidle swaylock qt6ct
+        labwc zigshell-cairo-pango rofi fuzzel foot mako-notifier dunst swaybg swayidle swaylock qt6ct
         wl-clipboard grim slurp cliphist brightnessctl playerctl
         git curl wget jq inotify-tools bc tesseract-ocr rsync unzip tar ripgrep fd-find
         gcc make cmake meson ninja-build pkg-config neovim nodejs npm python3-pip cargo
@@ -51,7 +51,7 @@ elif command -v apt-get &>/dev/null; then
 elif command -v pacman &>/dev/null; then
     PM="pacman -S --needed --noconfirm"
     PKGS=(
-        labwc sfwbar rofi fuzzel foot mako dunst swaybg swayidle swaylock qt6ct
+        labwc zigshell-cairo-pango rofi fuzzel foot mako dunst swaybg swayidle swaylock qt6ct
         wl-clipboard grim slurp cliphist brightnessctl playerctl
         git curl wget jq inotify-tools bc tesseract rsync unzip tar ripgrep fd
         gcc make cmake meson ninja pkgconf zig neovim nodejs npm python-pip cargo

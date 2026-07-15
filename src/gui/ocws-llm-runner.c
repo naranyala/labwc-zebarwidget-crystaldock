@@ -305,7 +305,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
         append_to_chat("System", "Starting LLM server...", "italic");
     } else {
         char python_path[512];
-        snprintf(python_path, sizeof(python_path), "/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/src/daemons/ocws-llm-server.py");
+        snprintf(python_path, sizeof(python_path), "/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/src/daemons/ocws-llm-server.py");
         char *argv2[] = { "python3", python_path, NULL };
         g_error_free(error);
         error = NULL;

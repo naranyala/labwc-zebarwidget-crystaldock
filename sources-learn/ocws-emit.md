@@ -6,24 +6,24 @@
 
 ## What is ocws-emit?
 
-`ocws-emit.sh` is the OCWS event bus — a thin wrapper around sfwbar's IPC mechanism that
+`ocws-emit.sh` is the OCWS event bus — a thin wrapper around zigshell-cairo-pango's IPC mechanism that
 pushes state changes to the UI instantly, without waiting for polling intervals.
 
-Instead of sfwbar polling `cat /sys/class/power_supply/BAT0/capacity` every 5 seconds,
-background daemons call `ocws-emit System.Battery 85` and sfwbar updates immediately.
+Instead of zigshell-cairo-pango polling `cat /sys/class/power_supply/BAT0/capacity` every 5 seconds,
+background daemons call `ocws-emit System.Battery 85` and zigshell-cairo-pango updates immediately.
 
 ---
 
 ## How It Works
 
 ```
-System Event → Daemon Script → ocws-emit → sfwbar IPC → Widget Update
+System Event → Daemon Script → ocws-emit → zigshell-cairo-pango IPC → Widget Update
 ```
 
 1. A system event occurs (volume key pressed, battery level changed, etc.)
 2. A daemon script detects the change and calls `ocws-emit`
-3. `ocws-emit` maps the OCWS namespace to an sfwbar variable name
-4. `ocws-emit` sends `SetVal VariableName = value` to sfwbar via `-R` flag
+3. `ocws-emit` maps the OCWS namespace to an zigshell-cairo-pango variable name
+4. `ocws-emit` sends `SetVal VariableName = value` to zigshell-cairo-pango via `-R` flag
 5. Any widget reading that variable updates instantly
 
 ---
@@ -57,7 +57,7 @@ ocws-emit MyCustomVar "any value"
 
 ## Namespace Mapping
 
-| OCWS Namespace | sfwbar Variable | Description |
+| OCWS Namespace | zigshell-cairo-pango Variable | Description |
 |----------------|-----------------|-------------|
 | `System.Volume` | `XVolLevel` | Volume percentage (0-100) |
 | `System.VolumeMuted` | `XVolMuted` | Mute state (true/false) |
@@ -76,19 +76,19 @@ ocws-emit MyCustomVar "any value"
 
 ---
 
-## How sfwbar Receives IPC
+## How zigshell-cairo-pango Receives IPC
 
-sfwbar listens on a UNIX socket. When it receives `SetVal VarName = value`, it updates
+zigshell-cairo-pango listens on a UNIX socket. When it receives `SetVal VarName = value`, it updates
 the named variable and any widget reading that variable re-renders.
 
 The `-R` flag sends a one-shot IPC command:
 ```bash
-sfwbar -R "SetVal XVolLevel = 75"
+zigshell-cairo-pango -R "SetVal XVolLevel = 75"
 ```
 
 For string values, quotes are required:
 ```bash
-sfwbar -R "SetVal XMediaStatus = \"Playing\""
+zigshell-cairo-pango -R "SetVal XMediaStatus = \"Playing\""
 ```
 
 `ocws-emit.sh` handles the quoting automatically based on whether the value is numeric.
@@ -101,7 +101,7 @@ sfwbar -R "SetVal XMediaStatus = \"Playing\""
 |-----------|------|
 | `scripts/ocws-emit.sh` | The broadcaster (this script) |
 | `scripts/ocws-daemon.sh` | Background daemon that detects events and calls ocws-emit |
-| `dotfiles/ocws/ocws-sysmon.source` | Polls `ocws-sysmon` binary, parses into sfwbar variables |
+| `dotfiles/ocws/ocws-sysmon.source` | Polls `ocws-sysmon` binary, parses into zigshell-cairo-pango variables |
 | `dotfiles/ocws/*.widget` | Widgets that read the emitted variables |
 
 ---
@@ -111,7 +111,7 @@ sfwbar -R "SetVal XMediaStatus = \"Playing\""
 ocws-emit and scanner sources serve different purposes:
 
 - **Scanner sources** (`.source` files) are for data that MUST be polled — CPU usage, memory,
-  network traffic. sfwbar's built-in scanner runs `ocws-sysmon` every N milliseconds.
+  network traffic. zigshell-cairo-pango's built-in scanner runs `ocws-sysmon` every N milliseconds.
 
 - **ocws-emit** is for EVENT-DRIVEN updates — volume key pressed, battery changed, media
   track changed. The daemon detects the change and pushes it instantly.

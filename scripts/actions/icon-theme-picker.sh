@@ -31,8 +31,8 @@ ESCAPED_CHOSEN=$(printf '%s\n' "$CHOSEN" | sed 's/[.[\/*^$]/\\&/g')
 
 notify_msg "Applying $CHOSEN..."
 
-# Apply to crystal-dock
-DOCK_CONF="$HOME/.config/crystal-dock/labwc/appearance.conf"
+# Apply to zigshell-cairo-pango
+DOCK_CONF="$HOME/.config/zigshell-cairo-pango/labwc/appearance.conf"
 if [ -f "$DOCK_CONF" ]; then
     if grep -q "^iconTheme=" "$DOCK_CONF"; then
         sed -i "s/^iconTheme=.*/iconTheme=$ESCAPED_CHOSEN/" "$DOCK_CONF"
@@ -40,8 +40,8 @@ if [ -f "$DOCK_CONF" ]; then
         sed -i "/^\[General\]/a iconTheme=$CHOSEN" "$DOCK_CONF"
     fi
     # Restart dock
-    pkill -x crystal-dock
-    nohup crystal-dock >/dev/null 2>&1 &
+    pkill -x zigshell-cairo-pango
+    nohup zigshell-cairo-pango >/dev/null 2>&1 &
 fi
 
 # Apply to GTK3

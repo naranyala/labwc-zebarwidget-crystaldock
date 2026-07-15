@@ -23,7 +23,7 @@ The file `dotfiles/ocws/ocws.css` contains CSS that looks correct in a browser b
 
 Separate concerns:
 
-1. **`theme.css`** (generated from `sfwbar.css.tmpl`) — valid GTK CSS with `@define-color`, `alpha()`, standard properties. This is what sfwbar should load.
+1. **`theme.css`** (generated from `zigshell-cairo-pango.css.tmpl`) — valid GTK CSS with `@define-color`, `alpha()`, standard properties. This is what zigshell-cairo-pango should load.
 
 2. **`ocws.css`** (generated from `ocws.css.tmpl`) — web CSS for external tools (browser previews, zebar, documentation). This is **not** meant for GTK.
 
@@ -40,7 +40,7 @@ include("theme.css")
 ## Where This Applies
 
 - `dotfiles/ocws/ocws.css` — completely replaced by theme engine from `ocws.css.tmpl`
-- `dotfiles/ocws/theme.css` — correct GTK CSS generated from `sfwbar.css.tmpl`
+- `dotfiles/ocws/theme.css` — correct GTK CSS generated from `zigshell-cairo-pango.css.tmpl`
 - Any custom CSS file added to the project
 
 ## Verification
@@ -51,8 +51,8 @@ Test whether a CSS file is valid GTK CSS:
 # Use gtkcss to validate
 echo '@import url("path/to/file.css");' | gtkcss-parser 2>&1
 
-# Or run sfwbar with --css and watch for warnings
-sfwbar --css path/to/file.css 2>&1 | grep -i "css\|warning\|error"
+# Or run zigshell-cairo-pango with --css and watch for warnings
+zigshell-cairo-pango --css path/to/file.css 2>&1 | grep -i "css\|warning\|error"
 ```
 
 ## Pattern To Remember

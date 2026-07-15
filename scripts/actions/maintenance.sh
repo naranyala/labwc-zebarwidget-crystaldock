@@ -29,17 +29,17 @@ reload_ui() {
   # Reload labwc config
   labwc -r 2>/dev/null || true
 
-  # Restart crystal-dock (default shell) if running
-  if pgrep -x crystal-dock >/dev/null; then
-    killall crystal-dock 2>/dev/null
-    rm -f /tmp/qipc_sharedmemory_crystaldock* /tmp/qipc_systemsem_crystaldock* 2>/dev/null || true
-    nohup crystal-dock >/dev/null 2>&1 &
+  # Restart zigshell-cairo-pango (default shell) if running
+  if pgrep -x zigshell-cairo-pango >/dev/null; then
+    killall zigshell-cairo-pango 2>/dev/null
+    rm -f /tmp/qipc_sharedmemory_zigshell-cairo-pango* /tmp/qipc_systemsem_zigshell-cairo-pango* 2>/dev/null || true
+    nohup zigshell-cairo-pango >/dev/null 2>&1 &
   fi
 
-  # Restart sfwbar (alternative shell) if running
-  if pgrep -x sfwbar >/dev/null; then
-    killall sfwbar 2>/dev/null
-    nohup sfwbar >/dev/null 2>&1 &
+  # Restart zigshell-cairo-pango (alternative shell) if running
+  if pgrep -x zigshell-cairo-pango >/dev/null; then
+    killall zigshell-cairo-pango 2>/dev/null
+    nohup zigshell-cairo-pango >/dev/null 2>&1 &
   fi
   
   # Restart noctalia if running

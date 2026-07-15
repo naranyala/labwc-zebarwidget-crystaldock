@@ -13,7 +13,7 @@ Rendering is **silent** — no error message, no warning. The text is there, jus
 
 ## Root Cause
 
-sfwbar widgets use Nerd Font Unicode codepoints in their label `value` expressions:
+zigshell-cairo-pango widgets use Nerd Font Unicode codepoints in their label `value` expressions:
 
 ```ini
 # battery-text.widget

@@ -1,5 +1,5 @@
 #!/bin/bash
-# shell-mode.sh — Switch between shell modes: noctalia, sfwbar-plus, sfwbar, crystal
+# shell-mode.sh — Switch between shell modes: noctalia, zigshell-cairo-pango-plus, zigshell-cairo-pango
 
 MODE="${1:-}"
 
@@ -8,17 +8,16 @@ if [ -z "$MODE" ]; then
   echo ""
   echo "Modes:"
   echo "  noctalia     labwc + noctalia shell (default)"
-  echo "  sfwbar-plus  labwc + enhanced OCWS dual panel"
-  echo "  sfwbar       labwc + sfwbar only (minimal OCWS)"
-  echo "  crystal      labwc + crystal-dock only"
+  echo "  zigshell-cairo-pango-plus  labwc + enhanced OCWS dual panel"
+  echo "  zigshell-cairo-pango       labwc + zigshell-cairo-pango only (minimal OCWS)"
   echo ""
   echo "Current mode: $(cat ~/.config/ocws/mode 2>/dev/null || cat ~/.config/labwc-widgets/shell-mode 2>/dev/null || echo noctalia)"
   exit 0
 fi
 
-if [ "$MODE" != "dms" ] && [ "$MODE" != "noctalia" ] && [ "$MODE" != "sfwbar-plus" ] && [ "$MODE" != "sfwbar" ] && [ "$MODE" != "crystal" ]; then
+if [ "$MODE" != "dms" ] && [ "$MODE" != "noctalia" ] && [ "$MODE" != "zigshell-cairo-pango-plus" ] && [ "$MODE" != "zigshell-cairo-pango" ]; then
     echo "Error: Invalid mode '$MODE'"
-    echo "Valid modes: dms, noctalia, sfwbar-plus, sfwbar, crystal"
+    echo "Valid modes: dms, noctalia, zigshell-cairo-pango-plus, zigshell-cairo-pango"
     exit 1
 fi
 

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 THEME_ENGINE="${HOME}/.config/ocws/scripts/theme-engine.sh"
-PROJECT_THEME_ENGINE="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/scripts/theme-engine.sh"
+PROJECT_THEME_ENGINE="/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/scripts/theme-engine.sh"
 ENGINE="${PROJECT_THEME_ENGINE:-$THEME_ENGINE}"
 
 echo "=== Theme Engine C Rewrite Probe ==="

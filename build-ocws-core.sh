@@ -110,8 +110,8 @@ case "${1:-all}" in
     "labwc")
         build_engine "labwc" "https://github.com/labwc/labwc.git"
         ;;
-    "sfwbar")
-        build_engine "sfwbar" "https://github.com/LBCrion/sfwbar.git"
+    "zigshell-cairo-pango")
+        build_engine "zigshell-cairo-pango" "https://github.com/LBCrion/zigshell-cairo-pango.git"
         ;;
     "fuzzel")
         build_engine "fuzzel" "https://codeberg.org/dnkl/fuzzel.git"
@@ -119,22 +119,22 @@ case "${1:-all}" in
     "dms")
         build_make_engine "dms" "https://github.com/DankShrine/dms.git"
         ;;
-    "crystaldock")
-        build_make_engine "crystal-dock" "https://github.com/igrekster/crystal-dock.git"
+    "zigshell-cairo-pango")
+        build_make_engine "zigshell-cairo-pango" "https://github.com/igrekster/zigshell-cairo-pango.git"
         ;;
     "community")
         build_make_engine "dms" "https://github.com/DankShrine/dms.git"
-        build_make_engine "crystal-dock" "https://github.com/igrekster/crystal-dock.git"
+        build_make_engine "zigshell-cairo-pango" "https://github.com/igrekster/zigshell-cairo-pango.git"
         ;;
     "all")
         build_engine "labwc" "https://github.com/labwc/labwc.git"
-        build_engine "sfwbar" "https://github.com/LBCrion/sfwbar.git"
+        build_engine "zigshell-cairo-pango" "https://github.com/LBCrion/zigshell-cairo-pango.git"
         build_engine "fuzzel" "https://codeberg.org/dnkl/fuzzel.git"
         ;;
     *)
-        fail "Unknown target: $1. Available: labwc, sfwbar, fuzzel, dms, crystaldock, community, all"
+        fail "Unknown target: $1. Available: labwc, zigshell-cairo-pango, fuzzel, dms, zigshell-cairo-pango, community, all"
         ;;
 esac
 
 info "OCWS Core Build Complete!"
-echo -e "\n${YELLOW}Note:${NC} If you are using community shells like 'dms', 'noctalia', or 'crystal-dock', you will need to clone and build them manually from their respective repositories."
+echo -e "\n${YELLOW}Note:${NC} If you are using community shells like 'dms', 'noctalia', or 'zigshell-cairo-pango', you will need to clone and build them manually from their respective repositories."

@@ -6,7 +6,7 @@ Complete reference for configuring and extending the OCWS Wayland shell platform
 
 ## The OCWS Event Bus
 
-Background scripts communicate with the sfwbar UI via `ocws-emit.sh`. This is the sanctioned way to push state updates into the shell.
+Background scripts communicate with the zigshell-cairo-pango UI via `ocws-emit.sh`. This is the sanctioned way to push state updates into the shell.
 
 ```bash
 ocws-emit.sh <Namespace.Key> <Value>
@@ -69,7 +69,7 @@ ocws-emit.sh System.DND 1              # Do Not Disturb: 1 = on, 0 = off
 
 ### How It Works Internally
 
-`ocws-emit.sh` writes the key-value pair to sfwbar's scanner socket. sfwbar updates any widget whose expression reads that variable (via `Val()`, `RegEx()`, `Extract()`, etc.).
+`ocws-emit.sh` writes the key-value pair to zigshell-cairo-pango's scanner socket. zigshell-cairo-pango updates any widget whose expression reads that variable (via `Val()`, `RegEx()`, `Extract()`, etc.).
 
 `dotfiles/ocws/ocws-daemon.sh` is the background daemon that listens to system events (ALSA, udev, playerctl) and calls `ocws-emit.sh` continuously.
 
@@ -87,11 +87,11 @@ OCWS supports drag-and-drop widget extensibility without editing the core config
 
 1. Create a widget file, e.g. `my-weather.widget`
 2. Place it in `~/.config/ocws/plugins/`
-3. Reload the shell (restart sfwbar or log out/in)
+3. Reload the shell (restart zigshell-cairo-pango or log out/in)
 
 ```bash
 cp my-weather.widget ~/.config/ocws/plugins/
-pkill sfwbar && sfwbar -f ~/.config/ocws/ocws.config &
+pkill zigshell-cairo-pango && zigshell-cairo-pango -f ~/.config/ocws/ocws.config &
 ```
 
 `ocws-plugin-loader.sh` scans `plugins/` at startup and generates `plugins.config`, which is included by `ocws.config` automatically.
@@ -156,10 +156,10 @@ OCWS renders its aesthetics via standard GTK3 CSS.
 
 ### Adjusting Transparency
 
-In `~/.config/ocws/ocws.css`, locate `window#sfwbar`:
+In `~/.config/ocws/ocws.css`, locate `window#zigshell-cairo-pango`:
 
 ```css
-window#sfwbar {
+window#zigshell-cairo-pango {
   background-color: rgba(30, 30, 46, 0.92);  /* last value = opacity 0.0-1.0 */
   border-radius: 12px;
 }
@@ -232,7 +232,7 @@ OCWS shell windows are excluded from the taskbar and pager:
 
 ```xml
 <applications>
-  <application class="sfwbar">
+  <application class="zigshell-cairo-pango">
     <skip_taskbar>yes</skip_taskbar>
     <skip_pager>yes</skip_pager>
     <layer>top</layer>
@@ -266,7 +266,7 @@ OCWS ships a suite of compiled C utilities in `zig-out/bin/`, installed to `~/.l
 | `ocws-shot` | Screenshot tool (grim + slurp + annotation) |
 | `ocws-lock` | Screen lock wrapper (swaylock) |
 | `ocws-kv` | Key-value persistent store (flat file) |
-| `ocws-emit` | Event Bus IPC emitter (maps namespaces to sfwbar vars) |
+| `ocws-emit` | Event Bus IPC emitter (maps namespaces to zigshell-cairo-pango vars) |
 | `ocws-ocr` | Screen OCR via Tesseract/Leptonica |
 | `ocws-sysmon` | System metrics (CPU/mem/net/bat/bt/brightness/temp) |
 | `ocws-color` | Wallpaper palette extraction (median-cut) |
@@ -311,7 +311,7 @@ zig build
 
 ## Action Scripts
 
-All scripts in `scripts/actions/` are installed to `~/.local/bin/actions/` and can be called directly from labwc keybindings or sfwbar widget actions.
+All scripts in `scripts/actions/` are installed to `~/.local/bin/actions/` and can be called directly from labwc keybindings or zigshell-cairo-pango widget actions.
 
 | Script | Usage |
 |--------|-------|
@@ -365,7 +365,7 @@ ocws-kv del old-key
 
 State is stored at `~/.config/ocws/state.kv` (plain text, human-readable/editable).
 
-`scripts/ocws-state.sh` is the higher-level state coordinator used by `ocws-daemon.sh`. `dotfiles/ocws/ocws-daemon.sh` is the background daemon that bridges system events to sfwbar.
+`scripts/ocws-state.sh` is the higher-level state coordinator used by `ocws-daemon.sh`. `dotfiles/ocws/ocws-daemon.sh` is the background daemon that bridges system events to zigshell-cairo-pango.
 
 ---
 
@@ -385,7 +385,7 @@ Each theme `.ini` file contains sections for every config surface:
 | `[gtk3]` | GTK3 settings (theme, icons, cursor, fonts) |
 | `[gtk4]` | GTK4 settings |
 | `[fonts]` | Font family and size |
-| `[sfwbar]` | Panel CSS colors |
+| `[zigshell-cairo-pango]` | Panel CSS colors |
 | `[rofi]` | Rofi launcher colors |
 | `[mako]` | Notification colors |
 | `[foot]` | Terminal colors |
@@ -404,8 +404,8 @@ fg = #cdd6f4
 ```
 
 ```css
-/* templates/sfwbar.css.tmpl */
-window#sfwbar {
+/* templates/zigshell-cairo-pango.css.tmpl */
+window#zigshell-cairo-pango {
   background-color: {{COLOR_BG}};
   color: {{COLOR_FG}};
 }
@@ -418,7 +418,7 @@ The engine reads the INI, looks up `colors.bg`, and replaces `{{COLOR_BG}}` with
 11 config surfaces are generated from templates:
 
 1. `~/.config/ocws/ocws.css` (from `templates/ocws.css.tmpl`)
-2. `~/.config/ocws/theme.css` (from `templates/sfwbar.css.tmpl`)
+2. `~/.config/ocws/theme.css` (from `templates/zigshell-cairo-pango.css.tmpl`)
 3. `~/.config/fuzzel/fuzzel.ini` (from `templates/fuzzel.ini.tmpl`)
 4. `~/.config/foot/foot.ini` (from `templates/foot.ini.tmpl`)
 5. `~/.config/labwc/environment` (from `templates/environment.tmpl`)
@@ -440,7 +440,7 @@ OCWS uses a modular configuration architecture in `dotfiles/ocws/modes/`. Each m
 | Mode | Description |
 |------|-------------|
 | `doublepanel.mode` | Dual-panel: top status bar + bottom dock/taskbar |
-| `crystaldock.mode` | Single status bar + external crystal-dock |
+| `zigshell-cairo-pango.mode` | Single status bar + external zigshell-cairo-pango |
 | `minimal.mode` | Minimal bar: clock, volume, battery, tray only |
 
 ### Config Modules
@@ -450,7 +450,7 @@ OCWS uses a modular configuration architecture in `dotfiles/ocws/modes/`. Each m
 | `modes/base.config` | Common settings (ImagePath, ThicknessHint, plugin autoloader) |
 | `modes/topbar.config` | Top status bar definition |
 | `modes/bottombar.config` | Bottom bar with dock + taskbar |
-| `modes/statusbar.config` | Single status bar (crystal-dock mode) |
+| `modes/statusbar.config` | Single status bar (zigshell-cairo-pango mode) |
 | `modes/desktop.config` | Desktop layer for floating widgets |
 
 ### CSS Modules
@@ -468,12 +468,12 @@ OCWS uses a modular configuration architecture in `dotfiles/ocws/modes/`. Each m
 
 ```bash
 # Start with a specific mode
-sfwbar -c ~/.config/ocws/modes/doublepanel.mode
+zigshell-cairo-pango -c ~/.config/ocws/modes/doublepanel.mode
 
 # Or use the mode selector
-sfwbar-mode start doublepanel
-sfwbar-mode start crystaldock
-sfwbar-mode start minimal
+zigshell-cairo-pango-mode start doublepanel
+zigshell-cairo-pango-mode start zigshell-cairo-pango
+zigshell-cairo-pango-mode start minimal
 ```
 
 ---
@@ -519,8 +519,8 @@ Set OCWS_FEATURE_DESKTOP_WIDGETS = "true"
 OCWS includes validators to catch config errors before deployment:
 
 ```bash
-# Validate SFWBar configs
-scripts/validate-sfwbar.sh
+# Validate ZIGSHELL-CAIRO-PANGO configs
+scripts/validate-zigshell-cairo-pango.sh
 
 # Validate widget files
 scripts/validate-widgets.sh
@@ -529,7 +529,7 @@ scripts/validate-widgets.sh
 scripts/validate-contract.sh
 ```
 
-### SFWBar Config Validator
+### ZIGSHELL-CAIRO-PANGO Config Validator
 
 Checks for:
 - `#Api2` header presence

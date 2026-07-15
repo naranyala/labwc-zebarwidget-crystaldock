@@ -1,4 +1,4 @@
-# Lesson: sfwbar Icon Resolution Depends On GTK Icon Theme
+# Lesson: zigshell-cairo-pango Icon Resolution Depends On GTK Icon Theme
 
 ## The Problem
 
@@ -9,11 +9,11 @@ Expected: [search] [disk] [volume]   (edit-paste-symbolic, drive-harddisk-symbol
 Actual:   [X]  [X]  [X]   (missing.svg fallback icon)
 ```
 
-sfwbar reports nothing. The icon just never loads.
+zigshell-cairo-pango reports nothing. The icon just never loads.
 
 ## Root Cause
 
-sfwbar's icon resolution chain in `src/gui/scaleimage.c` and `src/appinfo.c` works like this:
+zigshell-cairo-pango's icon resolution chain in `src/gui/scaleimage.c` and `src/appinfo.c` works like this:
 
 ```
 scale_image_set_image("edit-paste-symbolic", NULL)
@@ -89,7 +89,7 @@ Widgets that reference symbolic icon names in their `image { value = ... }` bloc
 
 ## Pattern To Remember
 
-A named icon in sfwbar (`"edit-paste-symbolic"`) goes through these steps before falling back to `missing.svg`:
+A named icon in zigshell-cairo-pango (`"edit-paste-symbolic"`) goes through these steps before falling back to `missing.svg`:
 
 1. GTK icon theme lookup → must have an `[icons] theme` set
 2. `.desktop` file `Icon=` field → app must be installed

@@ -9,8 +9,8 @@ echo ""
 
 DISPLAY_SCRIPT="${HOME}/.config/ocws/scripts/actions/display.sh"
 OCWS_DISPLAY="${HOME}/.config/ocws/scripts/ocws-display.sh"
-PROJECT_DISPLAY="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/scripts/actions/display.sh"
-PROJECT_OCWS_DISPLAY="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/scripts/ocws-display.sh"
+PROJECT_DISPLAY="/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/scripts/actions/display.sh"
+PROJECT_OCWS_DISPLAY="/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/scripts/ocws-display.sh"
 
 echo "--- Duplicate Analysis ---"
 echo "actions/display.sh: $(wc -l < "${PROJECT_DISPLAY:-/dev/null}" 2>/dev/null || echo 'N/A') lines"

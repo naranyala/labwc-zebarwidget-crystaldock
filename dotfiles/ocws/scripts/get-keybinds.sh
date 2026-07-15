@@ -1,6 +1,6 @@
 #!/bin/bash
 set -euo pipefail
-# Fetch and format labwc keybinds for sfwbar popup
+# Fetch and format labwc keybinds for zigshell-cairo-pango popup
 
 CONFIG_FILE="$HOME/.config/labwc/rc.xml"
 

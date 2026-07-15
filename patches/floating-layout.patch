@@ -1,5 +1,5 @@
---- a/sources/sfwbar/src/gui/bar.c
-+++ b/sources/sfwbar/src/gui/bar.c
+--- a/sources/zigshell-cairo-pango/src/gui/bar.c
++++ b/sources/zigshell-cairo-pango/src/gui/bar.c
 @@ -376,18 +376,21 @@
      size = MIN(size, horizontal? rect.width : rect.height) - priv->margin * 2;
      gtk_widget_set_size_request(GTK_WIDGET(priv->revealer),

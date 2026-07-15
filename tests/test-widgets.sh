@@ -1,6 +1,6 @@
 #!/bin/bash
 # OCWS Widget Test Suite
-# Tests icon/text rendering and configuration integrity for sfwbar
+# Tests icon/text rendering and configuration integrity for zigshell-cairo-pango
 
 set -e
 

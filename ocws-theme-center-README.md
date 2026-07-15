@@ -1,6 +1,6 @@
 # OCWS Theme Center - Complete Guide
 
-`ocws-theme-center` is a comprehensive GTK-based theme management application for the OCWS desktop environment, providing extensive theming capabilities across all desktop surfaces including Labwc compositor, GTK applications, SFWBar panels, launcher systems, and more.
+`ocws-theme-center` is a comprehensive GTK-based theme management application for the OCWS desktop environment, providing extensive theming capabilities across all desktop surfaces including Labwc compositor, GTK applications, ZIGSHELL-CAIRO-PANGO panels, launcher systems, and more.
 
 ## 🎨 Core Features
 
@@ -14,7 +14,7 @@
 - **Multi-Surface Visualization** — Preview how themes apply to:
   - **Labwc Compositor** — Window borders, titlebars, OSD panels, workspace switchers
   - **GTK3/GTK4 Applications** — Theme files, icon themes, cursor themes, font rendering
-  - **SFWBar Panels** — Top status bars, bottom dock/taskbars, panel widgets
+  - **ZIGSHELL-CAIRO-PANGO Panels** — Top status bars, bottom dock/taskbars, panel widgets
   - **Launcher Systems** — Rofi, Fuzzel, Qt applications, notification systems
   - **Typography** — Interface, document, and monospace fonts
   - **Cursors** — Theme-adaptive cursor sets and sizes
@@ -173,9 +173,9 @@ document=Noto Sans 10      # Content text (articles, documents)
 monospace=Noto Sans Mono 10 # Code/fonts (terminal, editors)
 ```
 
-#### **SFWBar Panel Configuration**
+#### **ZIGSHELL-CAIRO-PANGO Panel Configuration**
 ```ini
-[sfwbar]
+[zigshell-cairo-pango]
 # Panel Styling
 bar_bg=${base}              # Bar background
 bar_bg_alpha=0.92           # Bar transparency
@@ -231,7 +231,7 @@ OCWS Theme Center supports **14 different output configuration files** covering 
 |---------------|-------------|---------|
 | `tokens.css.tmpl` | `ocws/tokens.css` | CSS color token system |
 | `ocws.css.tmpl` | `ocws/ocws.css` | OCWS glassmorphism styling |
-| `sfwbar.css.tmpl` | `ocws/theme.css` | SFWBar panel styling |
+| `zigshell-cairo-pango.css.tmpl` | `ocws/theme.css` | ZIGSHELL-CAIRO-PANGO panel styling |
 | `themerc-override.tmpl` | `labwc/themerc-override` | Labwc theme overrides |
 | `environment.tmpl` | `labwc/environment` | Labwc environment configuration |
 | `gtk.css.tmpl` | `gtk-3.0/gtk.css` | GTK3 theme |
@@ -248,15 +248,15 @@ OCWS Theme Center supports **14 different output configuration files** covering 
 ### **Enhanced Dual Panel Strategy**
 ```bash
 # Apply comprehensive enhanced dual panel mode
-sfwbar -c ~/.config/ocws/modes/enhanced-doublepanel.mode
+zigshell-cairo-pango -c ~/.config/ocws/modes/enhanced-doublepanel.mode
 
 # This includes both top and bottom panels with full feature set
 ```
 
 ### **Single Top Panel Strategy**
 ```bash
-# Apply modern single top panel mode (crystal-dock compatible)
-sfwbar -f ~/.config/ocws/single-top-sfwbar.config
+# Apply modern single top panel mode (zigshell-cairo-pango compatible)
+zigshell-cairo-pango -f ~/.config/ocws/single-top-zigshell-cairo-pango.config
 
 # This provides a single optimized top bar
 ```
@@ -405,7 +405,7 @@ version=2.0
 [rofi]
 # Launcher theme configuration
 
-[sfwbar]
+[zigshell-cairo-pango]
 # Panel system configuration
 ```
 
@@ -415,7 +415,7 @@ version=2.0
 static const char *output_files[][2] = {
     {"tokens.css.tmpl",    "ocws/tokens.css"},
     {"ocws.css.tmpl",      "ocws/ocws.css"},
-    {"sfwbar.css.tmpl",    "ocws/theme.css"},
+    {"zigshell-cairo-pango.css.tmpl",    "ocws/theme.css"},
     {"themerc-override.tmpl", "labwc/themerc-override"},
     {"environment.tmpl",   "labwc/environment"},
     {"gtk.css.tmpl",       "gtk-3.0/gtk.css"},

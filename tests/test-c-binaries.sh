@@ -160,18 +160,18 @@ if require_bin "ocws-emit"; then
         pass "ocws-emit exits cleanly with no args"
     fi
 
-    # We can't call sfwbar -R in tests, but we can verify the binary
+    # We can't call zigshell-cairo-pango -R in tests, but we can verify the binary
     # maps namespaces correctly by checking its output with a dry-run mode.
-    # ocws-emit prints the IPC command to stdout (sfwbar -R "SetVal...").
+    # ocws-emit prints the IPC command to stdout (zigshell-cairo-pango -R "SetVal...").
     # We mock by seeing if it tries to exec or just errors without a Wayland socket.
 
     # Test: numeric value produces SetVal without quotes
     EMIT_OUT=$("$EMIT" "System.Volume" "75" 2>&1 || true)
     if echo "$EMIT_OUT" | grep -q "XVolLevel"; then
         pass "ocws-emit maps System.Volume → XVolLevel"
-    elif echo "$EMIT_OUT" | grep -qiE "sfwbar|SetVal|socket|connect"; then
-        # Tried to run sfwbar, mapping was correct, sfwbar not available
-        pass "ocws-emit attempts sfwbar call for System.Volume (sfwbar not available)"
+    elif echo "$EMIT_OUT" | grep -qiE "zigshell-cairo-pango|SetVal|socket|connect"; then
+        # Tried to run zigshell-cairo-pango, mapping was correct, zigshell-cairo-pango not available
+        pass "ocws-emit attempts zigshell-cairo-pango call for System.Volume (zigshell-cairo-pango not available)"
     else
         skip "ocws-emit output not parseable (may need Wayland)"
     fi
@@ -179,8 +179,8 @@ if require_bin "ocws-emit"; then
     EMIT_OUT=$("$EMIT" "System.Brightness" "80" 2>&1 || true)
     if echo "$EMIT_OUT" | grep -q "XBrightness"; then
         pass "ocws-emit maps System.Brightness → XBrightness"
-    elif echo "$EMIT_OUT" | grep -qiE "sfwbar|SetVal|socket|connect"; then
-        pass "ocws-emit attempts sfwbar call for System.Brightness"
+    elif echo "$EMIT_OUT" | grep -qiE "zigshell-cairo-pango|SetVal|socket|connect"; then
+        pass "ocws-emit attempts zigshell-cairo-pango call for System.Brightness"
     else
         skip "ocws-emit Brightness mapping not verifiable without Wayland"
     fi
@@ -188,8 +188,8 @@ if require_bin "ocws-emit"; then
     EMIT_OUT=$("$EMIT" "Media.Title" "Some Song" 2>&1 || true)
     if echo "$EMIT_OUT" | grep -q "XMediaTitle"; then
         pass "ocws-emit maps Media.Title → XMediaTitle"
-    elif echo "$EMIT_OUT" | grep -qiE "sfwbar|SetVal|socket|connect"; then
-        pass "ocws-emit attempts sfwbar call for Media.Title"
+    elif echo "$EMIT_OUT" | grep -qiE "zigshell-cairo-pango|SetVal|socket|connect"; then
+        pass "ocws-emit attempts zigshell-cairo-pango call for Media.Title"
     else
         skip "ocws-emit Media.Title mapping not verifiable without Wayland"
     fi

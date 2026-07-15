@@ -1,7 +1,9 @@
 #Api2
+
+# Renderer: use the glib-free zigshell instead of zigshell-cairo-pango
+Shell = "zigshell-cairo-pango"
 # lxqt-bottom.mode — Top statusbar for bottom mode
 # Paired with lxqt-panel bottom (bottom.conf)
-# Launch: sfwbar -f modes/lxqt-bottom.mode
 
 # --- Common Infrastructure ---
 include("../ocws.config")

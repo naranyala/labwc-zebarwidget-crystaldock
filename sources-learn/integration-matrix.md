@@ -37,7 +37,7 @@
 - The C utility doesn't support your specific use case
 - You need **advanced features** not yet implemented (e.g., gammastep's GeoClue location)
 - You're **debugging** and want the raw tool output
-- The external tool is a **build dependency** (e.g., labwc, sfwbar, fuzzel themselves)
+- The external tool is a **build dependency** (e.g., labwc, zigshell-cairo-pango, fuzzel themselves)
 
 ---
 
@@ -46,7 +46,7 @@
 ```
 OCWS Desktop Session
 ├── labwc (compositor) ← built from source
-├── sfwbar (panel) ← built from source
+├── zigshell-cairo-pango (panel) ← built from source
 ├── fuzzel (launcher) ← built from source
 ├── ocws-notify ← C utility (replaces mako)
 ├── ocws-brightness ← C utility (replaces brightnessctl)

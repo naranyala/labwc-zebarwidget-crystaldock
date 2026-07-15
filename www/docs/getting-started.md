@@ -1,6 +1,6 @@
 # Getting Started with OCWS
 
-This guide covers installation, first-run usage, and troubleshooting for OCWS -- a Wayland desktop shell built on labwc, sfwbar, and fuzzel using only C and GTK3.
+This guide covers installation, first-run usage, and troubleshooting for OCWS -- a Wayland desktop shell built on labwc, zigshell-cairo-pango, and fuzzel using only C and GTK3.
 
 ---
 
@@ -11,7 +11,7 @@ OCWS is built on four layers:
 | Layer | Component | Role |
 |-------|-----------|------|
 | Compositor | labwc | Wayland session, window management, input, keybindings |
-| Shell UI | sfwbar | GTK3 panel engine: widgets, tray, taskbar, popups |
+| Shell UI | zigshell-cairo-pango | GTK3 panel engine: widgets, tray, taskbar, popups |
 | Launcher | fuzzel | App launcher and dmenu-mode script runner |
 | Layer Shell | gtk-layer-shell | Anchors shell surfaces to Wayland outputs |
 
@@ -26,7 +26,7 @@ Supporting services: ocws-notify (notifications), swayidle + swaylock (idle/lock
 On Arch Linux:
 
 ```bash
-sudo pacman -S labwc sfwbar fuzzel gtk-layer-shell pipewire wireplumber libpulse \
+sudo pacman -S labwc zigshell-cairo-pango fuzzel gtk-layer-shell pipewire wireplumber libpulse \
   inotify-tools playerctl bc wl-clipboard cliphist \
   polkit-gnome swayidle swaylock grim slurp foot tesseract leptonica
 ```
@@ -42,8 +42,8 @@ To compile the latest upstream versions from source:
 ### Step 2: Run the Installer
 
 ```bash
-git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-sfwbar.git
-cd labwc-fuzzel-sfwbar
+git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango.git
+cd labwc-fuzzel-zigshell-cairo-pango
 ./install.sh
 ```
 
@@ -91,7 +91,7 @@ labwc
 | Service | Command | Role |
 |---------|---------|------|
 | Wallpaper | ocws-wallpaper ~/Pictures/wallpapers/ | Time-of-day wallpaper transitions |
-| Shell UI | sfwbar | Native GTK3 OCWS Interface |
+| Shell UI | zigshell-cairo-pango | Native GTK3 OCWS Interface |
 | OCWS Daemon | ~/.config/ocws/ocws-daemon.sh | Event Bus IPC listener |
 | Notifications | ocws-notify | D-Bus notification daemon (replaces mako) |
 | Clipboard | wl-paste --watch cliphist store | Clipboard history daemon |
@@ -149,8 +149,8 @@ shell-mode-picker.sh
 
 # CLI
 toggle-shell doublepanel   # OCWS dual-panel (default)
-toggle-shell crystaldock   # sfwbar statusbar + crystal-dock
-toggle-shell minimal       # minimal sfwbar (clock, volume, battery)
+toggle-shell zigshell-cairo-pango   # zigshell-cairo-pango statusbar + zigshell-cairo-pango
+toggle-shell minimal       # minimal zigshell-cairo-pango (clock, volume, battery)
 toggle-shell dms           # DankMaterialShell
 toggle-shell noctalia      # Noctalia shell
 ```
@@ -202,7 +202,7 @@ ocws-volume up            # +5% with animation
 
 ```bash
 # Check core binaries are in PATH
-which labwc sfwbar fuzzel foot ocws
+which labwc zigshell-cairo-pango fuzzel foot ocws
 
 # Check OCWS config directories exist
 ls ~/.config/ocws/
@@ -219,11 +219,11 @@ ocws-emit.sh System.Volume 75
 
 ## Troubleshooting
 
-### sfwbar panel does not start
+### zigshell-cairo-pango panel does not start
 
 ```bash
-# Run sfwbar manually to see errors
-sfwbar -f ~/.config/ocws/ocws.config
+# Run zigshell-cairo-pango manually to see errors
+zigshell-cairo-pango -f ~/.config/ocws/ocws.config
 
 # Check for missing widget includes
 grep -r 'Include\|Scanner' ~/.config/ocws/ocws.config
@@ -274,6 +274,6 @@ grep -A3 'XF86Audio\|XF86MonBrightness' ~/.config/labwc/rc.xml
 
 - docs/configuration.md -- Event Bus API, plugin system, CSS customization, window rules
 - docs/events.md -- Full IPC event contract with variable mappings
-- docs/lessons/ -- 55+ lesson files covering sfwbar internals, bugs, and patterns
+- docs/lessons/ -- 55+ lesson files covering zigshell-cairo-pango internals, bugs, and patterns
 - www/security_lessons.md -- Security vulnerabilities discovered and fixed
 - TODOS.md -- Strategic roadmap with phase tracking

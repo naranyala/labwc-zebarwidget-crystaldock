@@ -20,7 +20,7 @@ info "Creating backup of current configuration..."
 BACKUP_DIR="/tmp/ocws-backup-$(date +%Y%m%d-%H%M%S)"
 mkdir -p "$BACKUP_DIR"
 mkdir -p "$BACKUP_DIR/.config/gtk-3.0" "$BACKUP_DIR/.config/gtk-4.0"
-mkdir -p "$BACKUP_DIR/.config/crystal-dock/labwc"
+mkdir -p "$BACKUP_DIR/.config/zigshell-cairo-pango/labwc"
 
 # Save current config if it exists
 if [ -f "$HOME/.config/gtk-3.0/settings.ini" ]; then
@@ -29,8 +29,8 @@ fi
 if [ -f "$HOME/.config/gtk-4.0/settings.ini" ]; then
     cp ~/.config/gtk-4.0/settings.ini "$BACKUP_DIR/gtk-4.0.ini"
 fi
-if [ -f "$HOME/.config/crystal-dock/labwc/appearance.conf" ]; then
-    cp ~/.config/crystal-dock/labwc/appearance.conf "$BACKUP_DIR/crystal-dock-appearance.conf"
+if [ -f "$HOME/.config/zigshell-cairo-pango/labwc/appearance.conf" ]; then
+    cp ~/.config/zigshell-cairo-pango/labwc/appearance.conf "$BACKUP_DIR/zigshell-cairo-pango-appearance.conf"
 fi
 
 # Fix GTK3 settings.ini - restore complete settings
@@ -80,9 +80,9 @@ gtk-menu-images=true
 gtk-button-images=true
 GTK4_EOF
 
-# Fix crystal-dock appearance.conf - set Papirus-Dark icons
-info "Fixing crystal-dock appearance.conf (Papirus-Dark icons)..."
-cat > ~/.config/crystal-dock/labwc/appearance.conf << 'CRYSTALDOC_EOF'
+# Fix zigshell-cairo-pango appearance.conf - set Papirus-Dark icons
+info "Fixing zigshell-cairo-pango appearance.conf (Papirus-Dark icons)..."
+cat > ~/.config/zigshell-cairo-pango/labwc/appearance.conf << 'ZIGSHELLDOC_EOF'
 [General]
 activeIndicatorColor=#ff8c00
 activeIndicatorColorMetal2D=#ffbf00
@@ -111,7 +111,7 @@ label=Applications
 [Clock]
 fontScaleFactor=1
 use24HourClock=true
-CRYSTALDOC_EOF
+ZIGSHELLDOC_EOF
 
 # Fix .gtkrc-2.0 (GTK2)
 info "Fixing ~/.gtkrc-2.0 (GTK2 icon theme)..."
@@ -139,29 +139,29 @@ font=Noto Sans,10,-1,5,50,0,0,0,0,0
 monoFont=Noto Sans Mono,10,-1,5,50,0,0,0,0,0
 QT6CT_EOF
 
-# Fix or create system-wide autostart for crystal-dock
-info "Configuring crystal-dock autostart..."
+# Fix or create system-wide autostart for zigshell-cairo-pango
+info "Configuring zigshell-cairo-pango autostart..."
 mkdir -p ~/.config/autostart
-cat > ~/.config/autostart/crystal-dock.desktop << 'AUTOSTART_EOF'
+cat > ~/.config/autostart/zigshell-cairo-pango.desktop << 'AUTOSTART_EOF'
 [Desktop Entry]
-Exec=env -u QT_STYLE_OVERRIDE /usr/bin/crystal-dock
-Name=crystal-dock
+Exec=env -u QT_STYLE_OVERRIDE /usr/bin/zigshell-cairo-pango
+Name=zigshell-cairo-pango
 Type=Application
 Version=1.0
 AUTOSTART_EOF
 
-# Clean and restart crystal-dock
-info "Restarting crystal-dock with fixed configuration..."
-pkill -x crystal-dock 2>/dev/null || true
-rm -f /tmp/qipc_sharedmemory_crystaldock* /tmp/qipc_systemsem_crystaldock* 2>/dev/null
+# Clean and restart zigshell-cairo-pango
+info "Restarting zigshell-cairo-pango with fixed configuration..."
+pkill -x zigshell-cairo-pango 2>/dev/null || true
+rm -f /tmp/qipc_sharedmemory_zigshell-cairo-pango* /tmp/qipc_systemsem_zigshell-cairo-pango* 2>/dev/null
 sleep 0.3
 
-if command -v crystal-dock >/dev/null 2>&1; then
-    nohup crystal-dock >/dev/null 2>&1 &
+if command -v zigshell-cairo-pango >/dev/null 2>&1; then
+    nohup zigshell-cairo-pango >/dev/null 2>&1 &
     sleep 2
-    pgrep -x crystal-dock >/dev/null && echo "✅ crystal-dock running successfully" || echo "⚠️ crystal-dock failed to start (may be expected)"
+    pgrep -x zigshell-cairo-pango >/dev/null && echo "✅ zigshell-cairo-pango running successfully" || echo "⚠️ zigshell-cairo-pango failed to start (may be expected)"
 else
-    warn "crystal-dock not found, please install it"
+    warn "zigshell-cairo-pango not found, please install it"
 fi
 
 # Fix tooltips in ocws-settings
@@ -204,9 +204,9 @@ info "OCWS configuration fixes completed!"
 info "Summary of fixes:"
 info "  ✓ Fixed GTK3 settings.ini (complete theme settings)"
 info "  ✓ Fixed GTK4 settings.ini (complete theme settings)"
-info "  ✓ Fixed crystal-dock appearance.conf (Papirus-Dark icons)"
+info "  ✓ Fixed zigshell-cairo-pango appearance.conf (Papirus-Dark icons)"
 info "  ✓ Fixed qt6ct.conf (Papirus-Dark icon theme)"
-info "  ✓ Fixed autostart configuration for crystal-dock"
+info "  ✓ Fixed autostart configuration for zigshell-cairo-pango"
 info "  ✓ Restored correct icon themes system-wide"
 info ""
 info "System is now ready with consistent Papirus-Dark icon theme!"

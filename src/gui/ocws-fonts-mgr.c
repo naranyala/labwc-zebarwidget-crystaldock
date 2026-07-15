@@ -1358,7 +1358,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(scale_frame), scale_box);
 
     GtkWidget *scale_desc = gtk_label_new(
-        "Adjust font size globally across all surfaces (GTK3/4, labwc, sfwbar, Qt). "
+        "Adjust font size globally across all surfaces (GTK3/4, labwc, zigshell-cairo-pango, Qt). "
         "Changes are applied immediately to running applications.");
     gtk_label_set_line_wrap(GTK_LABEL(scale_desc), TRUE);
     gtk_label_set_xalign(GTK_LABEL(scale_desc), 0.0);

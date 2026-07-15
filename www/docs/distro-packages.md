@@ -17,7 +17,7 @@ Every binary referenced at runtime by the OCWS dotfiles — shell mode scripts, 
 | Binary | Arch | Debian / Ubuntu | Fedora | openSUSE |
 |---|---|---|---|---|
 | labwc |  community |  backports+ |  |  |
-| sfwbar |  community |  stable /  testing |  COPR |  |
+| zigshell-cairo-pango |  community |  stable /  testing |  COPR |  |
 | rofi-wayland |  community |  |  |  |
 | fuzzel |  community |  stable /  testing |  |  |
 | foot |  community |  backports+ |  |  |
@@ -88,7 +88,7 @@ Every binary referenced at runtime by the OCWS dotfiles — shell mode scripts, 
 
 | Tool | Distros needing build |
 |---|---|
-| **sfwbar** | Debian/Ubuntu stable (not in repos) |
+| **zigshell-cairo-pango** | Debian/Ubuntu stable (not in repos) |
 | **fuzzel** | Debian/Ubuntu stable (not in repos) |
 | **FiraCode Nerd Font** | Fedora, openSUSE; all non-Arch distros for the Nerd variant |
 
@@ -99,7 +99,7 @@ Every binary referenced at runtime by the OCWS dotfiles — shell mode scripts, 
 sudo pacman -S base-devel gtk3 json-c
 
 # Debian/Ubuntu — build deps
-sudo apt install build-essential cmake libgtk-3-dev               # sfwbar from source
+sudo apt install build-essential cmake libgtk-3-dev               # zigshell-cairo-pango from source
 
 # Fedora — build deps
 sudo dnf install gcc make pkg-config gtk3-devel json-c-devel

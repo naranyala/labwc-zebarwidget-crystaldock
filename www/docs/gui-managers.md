@@ -4,9 +4,9 @@ OCWS provides a suite of native C/GTK3 desktop applications (compiled via Zig) t
 
 ## Dock Manager (`ocws-dock-mgr`)
 
-The Dock Manager lets you pin and unpin applications to your Sfwbar dock via a simple UI.
+The Dock Manager lets you pin and unpin applications to your Zigshell-cairo-pango dock via a simple UI.
 
-- **Hot-reloading:** Whenever you click "Save" in the Dock Manager, it updates `dotfiles/ocws/sfwbar-dock.json` and immediately hot-reloads `sfwbar`, applying your changes instantly without restarting the shell.
+- **Hot-reloading:** Whenever you click "Save" in the Dock Manager, it updates `dotfiles/ocws/zigshell-cairo-pango-dock.json` and immediately hot-reloads `zigshell-cairo-pango`, applying your changes instantly without restarting the shell.
 - **App Discovery:** Automatically pulls icon definitions and categories from `.desktop` files.
 
 ## Desktop Manager (`ocws-dotdesktop-mgr`)

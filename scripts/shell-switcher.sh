@@ -18,7 +18,7 @@ if [ -z "${1:-}" ]; then
     elif [ -f "$LEGACY_CFG" ]; then
         MODE=$(cat "$LEGACY_CFG")
     else
-        MODE="crystaldock"
+        MODE="zigshell-cairo-pango"
     fi
 else
     MODE="$1"

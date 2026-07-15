@@ -299,7 +299,7 @@ static GtkWidget *build_intro_page(void) {
     GtkWidget *desc = gtk_label_new(
         "OCWS is a modular desktop environment built entirely in C for the "
         "labwc Wayland compositor. It provides:\n\n"
-        "  •  12 shell modes — from dual-panel and crystal-dock to LXQt variants\n"
+        "  •  12 shell modes — from dual-panel and zigshell-cairo-pango to LXQt variants\n"
         "  •  11 curated color themes — from Catppuccin Mocha to Tokyo Night\n"
         "  •  Wallpaper management — randomizer, time-of-day transitions\n"
         "  •  Lightweight C utilities — screenshot, clipboard, volume, brightness & more\n"
@@ -340,7 +340,7 @@ static GtkWidget *build_health_page(void) {
     gtk_box_pack_start(GTK_BOX(vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 8);
 
     const char *deps[] = {
-        "labwc", "sfwbar", "fuzzel", "foot", "playerctl",
+        "labwc", "zigshell-cairo-pango", "fuzzel", "foot", "playerctl",
         "grim", "slurp", "wl-copy", "brightnessctl", "jq",
         "inotifywait", "swaybg", "swayosd-server"
     };
@@ -1110,7 +1110,7 @@ static GtkWidget *build_thanks_page(void) {
 
     struct { const char *name; const char *desc; const char *url; } deps[] = {
         {"labwc",           "Wayland compositor",             "https://github.com/labwc/labwc"},
-        {"sfwbar",          "Status bar for Wayland",         "https://github.com/LBCrion/sfwbar"},
+        {"zigshell-cairo-pango",          "Status bar for Wayland",         "https://github.com/LBCrion/zigshell-cairo-pango"},
         {"fuzzel",          "Application launcher",           "https://codeberg.org/dnkl/fuzzel"},
         {"foot",            "Terminal emulator",              "https://codeberg.org/dnkl/foot"},
         {"mako",            "Notification daemon",            "https://github.com/emersion/mako"},

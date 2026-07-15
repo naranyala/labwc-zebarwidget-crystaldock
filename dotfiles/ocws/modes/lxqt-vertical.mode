@@ -1,7 +1,9 @@
 #Api2
+
+# Renderer: use the glib-free zigshell instead of zigshell-cairo-pango
+Shell = "zigshell-cairo-pango"
 # lxqt-vertical.mode — Top statusbar for vertical mode
 # Paired with lxqt-panel right side (vertical.conf)
-# Launch: sfwbar -f modes/lxqt-vertical.mode
 
 # --- Common Infrastructure ---
 include("../ocws.config")

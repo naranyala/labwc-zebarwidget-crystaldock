@@ -228,13 +228,13 @@ reload_theme() {
       pass "labwc reloaded"
     fi
     
-    # Restart sfwbar if available
-    if pidof sfwbar >/dev/null; then
-      pkill sfwbar
+    # Restart zigshell-cairo-pango if available
+    if pidof zigshell-cairo-pango >/dev/null; then
+      pkill zigshell-cairo-pango
       sleep 0.3
-      sfwbar &
+      zigshell-cairo-pango &
       disown
-      pass "sfwbar restarted"
+      pass "zigshell-cairo-pango restarted"
     fi
     
     # Update current theme

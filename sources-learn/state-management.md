@@ -8,15 +8,15 @@
 
 In typical Wayland setups, panels (like `waybar`) have their own internal C++ modules for polling the battery, reading ALSA volume, or querying `playerctl`. 
 
-In OCWS, the `sfwbar` panel uses a **Scanner IPC** architecture. Instead of the UI continuously polling the system (which drains battery and delays updates), the UI listens passively on a UNIX socket, and background daemons broadcast state changes instantly when they happen.
+In OCWS, the `zigshell-cairo-pango` panel uses a **Scanner IPC** architecture. Instead of the UI continuously polling the system (which drains battery and delays updates), the UI listens passively on a UNIX socket, and background daemons broadcast state changes instantly when they happen.
 
 ---
 
 ## 1. `ocws-emit.sh` (The Broadcaster)
 
-`ocws-emit.sh` is a thin wrapper around `sfwbar`'s IPC mechanism. 
+`ocws-emit.sh` is a thin wrapper around `zigshell-cairo-pango`'s IPC mechanism. 
 
-When a system event occurs (e.g., you press the Volume Up key), the script changes the volume, and then instantly tells `sfwbar` to update:
+When a system event occurs (e.g., you press the Volume Up key), the script changes the volume, and then instantly tells `zigshell-cairo-pango` to update:
 
 ```bash
 # Example from volume control script:
@@ -26,7 +26,7 @@ NEW_VOL=$(wpctl get-volume @DEFAULT_AUDIO_SINK@)
 # Instantly push the new value to the UI!
 ocws-emit XVolRaw "$NEW_VOL"
 ```
-Because of this, `sfwbar` updates exactly at the moment the volume changes, without waiting for its next poll interval.
+Because of this, `zigshell-cairo-pango` updates exactly at the moment the volume changes, without waiting for its next poll interval.
 
 ---
 
@@ -34,7 +34,7 @@ Because of this, `sfwbar` updates exactly at the moment the volume changes, with
 
 While `ocws-emit` handles instant IPC messages, `ocws-state.sh` handles **persistence**.
 
-If the `sfwbar` panel restarts, it loses all its IPC variables. `ocws-state.sh` solves this by safely caching the most recent state to disk (in `/tmp/` or `~/.config/ocws/state/`). When `sfwbar` boots up, it reads from the state file to instantly populate the widgets, ensuring a seamless experience.
+If the `zigshell-cairo-pango` panel restarts, it loses all its IPC variables. `ocws-state.sh` solves this by safely caching the most recent state to disk (in `/tmp/` or `~/.config/ocws/state/`). When `zigshell-cairo-pango` boots up, it reads from the state file to instantly populate the widgets, ensuring a seamless experience.
 
 ---
 
@@ -42,4 +42,4 @@ If the `sfwbar` panel restarts, it loses all its IPC variables. `ocws-state.sh` 
 
 For data that *must* be polled (like CPU usage, Memory, Network traffic), OCWS uses dedicated background binaries or scripts (like `ocws-sysmon`).
 
-Instead of `sfwbar` launching `cat` 50 times a second for every individual widget, the UI launches `ocws-sysmon` once in the `ocws-sysmon.source` file. The backend efficiently queries the kernel, formats the output line-by-line, and the `sfwbar` scanner captures it all simultaneously.
+Instead of `zigshell-cairo-pango` launching `cat` 50 times a second for every individual widget, the UI launches `ocws-sysmon` once in the `ocws-sysmon.source` file. The backend efficiently queries the kernel, formats the output line-by-line, and the `zigshell-cairo-pango` scanner captures it all simultaneously.

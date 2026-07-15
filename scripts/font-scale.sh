@@ -8,7 +8,7 @@
 #   • GTK4 settings.ini
 #   • labwc rc.xml       (window title fonts)
 #   • labwc themerc-override
-#   • sfwbar config      (panel fonts)
+#   • zigshell-cairo-pango config      (panel fonts)
 #   • qt6ct config       (Qt apps)
 #
 # Usage:
@@ -19,7 +19,7 @@
 #   font-scale set  <size>    Set exact font size (6–24)
 #   font-scale status         Show current font sizes everywhere
 #   font-scale reset          Reset to default (10)
-#   font-scale reload         Reload labwc/sfwbar without changing size
+#   font-scale reload         Reload labwc/zigshell-cairo-pango without changing size
 #
 # Supports 0.5 increments. Min: 6, Max: 24.
 #
@@ -31,7 +31,7 @@ GTK3_INI="$HOME/.config/gtk-3.0/settings.ini"
 GTK4_INI="$HOME/.config/gtk-4.0/settings.ini"
 LABWC_RC="$HOME/.config/labwc/rc.xml"
 LABWC_THEMERC="$HOME/.config/labwc/themerc-override"
-SFWBAR_CFG="$HOME/.config/sfwbar/sfwbar.config"
+ZIGSHELL_CFG="$HOME/.config/zigshell-cairo-pango/zigshell-cairo-pango.config"
 QTCT_CONF="$HOME/.config/qt6ct/qt6ct.conf"
 
 # Dotfiles source (for syncing back)
@@ -41,7 +41,7 @@ DOT_GTK3="$PROJECT_DIR/dotfiles/gtk/gtk3-settings.ini"
 DOT_GTK4="$PROJECT_DIR/dotfiles/gtk/gtk4-settings.ini"
 DOT_RC="$PROJECT_DIR/dotfiles/labwc/rc.xml"
 DOT_THEMERC="$PROJECT_DIR/dotfiles/labwc/themerc-override"
-DOT_SFWBAR="$PROJECT_DIR/dotfiles/sfwbar/sfwbar.config"
+DOT_ZIGSHELL="$PROJECT_DIR/dotfiles/zigshell-cairo-pango/zigshell-cairo-pango.config"
 
 # --- Colors ---
 RED='\033[0;31m'
@@ -211,12 +211,12 @@ update_labwc_themerc() {
   pass "labwc themerc: $fsize"
 }
 
-update_sfwbar() {
+update_zigshell() {
   local cfg="$1" size="$2"
   local px_size pager_px
 
   if [[ ! -f "$cfg" ]]; then
-    warn "sfwbar config: not found"
+    warn "zigshell-cairo-pango config: not found"
     return
   fi
 
@@ -225,7 +225,7 @@ update_sfwbar() {
 
   sed -i -E "/^label \{/,/^\}/{s/font-size: [0-9]+\.?[0-9]*px;/font-size: ${px_size}px;/}" "$cfg"
   sed -i -E "/button#pager_item label/,/^\}/{s/font-size: [0-9]+\.?[0-9]*px;/font-size: ${pager_px}px;/}" "$cfg"
-  pass "sfwbar: ${px_size}px (pager: ${pager_px}px)"
+  pass "zigshell-cairo-pango: ${px_size}px (pager: ${pager_px}px)"
 }
 
 update_qt6ct() {
@@ -260,7 +260,7 @@ sync_dotfiles() {
   [[ -f "$DOT_GTK4" ]] && update_gtk_ini "$DOT_GTK4" "$size" "dotfiles/gtk4"
   [[ -f "$DOT_RC" ]] && update_labwc_rc "$DOT_RC" "$size"
   [[ -f "$DOT_THEMERC" ]] && update_labwc_themerc "$DOT_THEMERC" "$size"
-  [[ -f "$DOT_SFWBAR" ]] && update_sfwbar "$DOT_SFWBAR" "$size"
+  [[ -f "$DOT_ZIGSHELL" ]] && update_zigshell "$DOT_ZIGSHELL" "$size"
 }
 
 # ============================================================
@@ -277,13 +277,13 @@ live_reload() {
       pass "labwc: reconfigured" || warn "labwc: reconfigure failed"
   fi
 
-  # sfwbar restart (no hot-reload)
-  if pidof sfwbar &>/dev/null; then
-    killall sfwbar 2>/dev/null
+  # zigshell-cairo-pango restart (no hot-reload)
+  if pidof zigshell-cairo-pango &>/dev/null; then
+    killall zigshell-cairo-pango 2>/dev/null
     sleep 0.3
-    sfwbar &>/dev/null &
+    zigshell-cairo-pango &>/dev/null &
     disown
-    pass "sfwbar: restarted"
+    pass "zigshell-cairo-pango: restarted"
   fi
 
   # GTK apps pick up gsettings changes instantly
@@ -346,11 +346,11 @@ cmd_status() {
   fi
 
   echo ""
-  echo -e "  ${CYAN}sfwbar:${NC}"
-  if [[ -f "$SFWBAR_CFG" ]]; then
-    local sfwbar_size
-    sfwbar_size=$(sed -n '/^label {/,/^}/p' "$SFWBAR_CFG" | grep -oP 'font-size:\s*\K[0-9.]+' | head -1)
-    echo "    label font-size: ${sfwbar_size:-not set}px"
+  echo -e "  ${CYAN}zigshell-cairo-pango:${NC}"
+  if [[ -f "$ZIGSHELL_CFG" ]]; then
+    local zigshell_size
+    zigshell_size=$(sed -n '/^label {/,/^}/p' "$ZIGSHELL_CFG" | grep -oP 'font-size:\s*\K[0-9.]+' | head -1)
+    echo "    label font-size: ${zigshell_size:-not set}px"
   else
     echo "    (not found)"
   fi
@@ -384,7 +384,7 @@ cmd_apply() {
   update_gtk_ini "$GTK4_INI" "$new_size" "GTK4 settings.ini"
   update_labwc_rc "$LABWC_RC" "$new_size"
   update_labwc_themerc "$LABWC_THEMERC" "$new_size"
-  update_sfwbar "$SFWBAR_CFG" "$new_size"
+  update_zigshell "$ZIGSHELL_CFG" "$new_size"
   update_qt6ct "$new_size"
 
   sync_dotfiles "$new_size"
@@ -466,7 +466,7 @@ usage() {
   echo "  font-scale set  <size>    Set exact font size (range: $MIN_SIZE–$MAX_SIZE)"
   echo "  font-scale status         Show current font sizes"
   echo "  font-scale reset          Reset to default ($DEFAULT_SIZE)"
-  echo "  font-scale reload         Reload labwc/sfwbar without changing size"
+  echo "  font-scale reload         Reload labwc/zigshell-cairo-pango without changing size"
   echo ""
   echo "Examples:"
   echo "  font-scale down           # 10 → 9.5"

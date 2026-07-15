@@ -78,7 +78,7 @@ preview-width 100
 |------|------|
 | `dotfiles/labwc/autostart` | `wl-paste --watch cliphist store` daemons |
 | `scripts/actions/clipboard.sh` | fuzzel picker → cliphist decode → wl-copy |
-| `dotfiles/ocws/clipboard.widget` | sfwbar button launching the picker |
+| `dotfiles/ocws/clipboard.widget` | zigshell-cairo-pango button launching the picker |
 
 ---
 

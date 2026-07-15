@@ -1,4 +1,4 @@
-# Lesson: Private Blocks and Global Scope in sfwbar
+# Lesson: Private Blocks and Global Scope in zigshell-cairo-pango
 
 ## The Problem
 

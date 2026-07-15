@@ -1,8 +1,8 @@
-# Lesson: `ExecTerm()` Is Not A Valid sfwbar Function
+# Lesson: `ExecTerm()` Is Not A Valid zigshell-cairo-pango Function
 
 ## The Problem
 
-15 widget files use `ExecTerm()` in their click actions, but sfwbar does not provide this function:
+15 widget files use `ExecTerm()` in their click actions, but zigshell-cairo-pango does not provide this function:
 
 ```ini
 # volume-text.widget:71
@@ -14,9 +14,9 @@ When the user clicks, **nothing happens**. No error, no terminal, no command.
 
 ## Root Cause
 
-Standard sfwbar provides `Exec()` for running commands. `ExecTerm()` is not defined in the sfwbar expression library. All 15 usages are silent no-ops.
+Standard zigshell-cairo-pango provides `Exec()` for running commands. `ExecTerm()` is not defined in the zigshell-cairo-pango expression library. All 15 usages are silent no-ops.
 
-The variables in question may appear to be proper function calls but are not recognized by sfwbar's parser. They silently fail because the expression evaluator returns `nil` for unknown function names.
+The variables in question may appear to be proper function calls but are not recognized by zigshell-cairo-pango's parser. They silently fail because the expression evaluator returns `nil` for unknown function names.
 
 ## Affected Files
 
@@ -66,4 +66,4 @@ action[LeftClick] = Exec(Term + " -e htop")
 
 ## Pattern To Remember
 
-sfwbar has a limited set of built-in functions (`Exec`, `If`, `Match`, `Extract`, `Grab`, `Val`, `Str`, `Time`, `Format`, `Pad`, etc.). If a function name is not in that list, it returns `nil` and is silently ignored. Always verify function names against the sfwbar expression library.
+zigshell-cairo-pango has a limited set of built-in functions (`Exec`, `If`, `Match`, `Extract`, `Grab`, `Val`, `Str`, `Time`, `Format`, `Pad`, etc.). If a function name is not in that list, it returns `nil` and is silently ignored. Always verify function names against the zigshell-cairo-pango expression library.

@@ -1,15 +1,18 @@
 #Api2
-# lxqt-dual-lxqt.mode — No sfwbar (two lxqt-panels handle everything)
+
+# Renderer: use the glib-free zigshell instead of zigshell-cairo-pango
+Shell = "zigshell-cairo-pango"
+# lxqt-dual-lxqt.mode — No zigshell-cairo-pango (two lxqt-panels handle everything)
 # Paired with lxqt-panel dual-lxqt.conf (top + bottom panels)
 # This file exists so toggle-shell has a valid .mode to reference.
-# sfwbar will not be launched for this mode.
+# zigshell-cairo-pango will not be launched for this mode.
 
 switcher { disable = true }
 
 # --- Common Infrastructure ---
 include("../ocws.config")
 
-# --- Empty bar (sfwbar stays alive but invisible) ---
+# --- Empty bar (zigshell-cairo-pango stays alive but invisible) ---
 bar "hidden:top" {
   edge = "top"
   layer = "background"

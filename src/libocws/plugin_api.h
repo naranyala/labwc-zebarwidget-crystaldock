@@ -32,7 +32,7 @@ extern OcwsPlugin OCWS_PLUGIN_ENTRY;
  * Plugins call these to talk to the shell without shelling out.
  * ============================================================ */
 
-/* Publish an event on the bus (and, if bridged, to sfwbar via ocws-emit). */
+/* Publish an event on the bus (and, if bridged, to zigshell-cairo-pango via ocws-emit). */
 void ocws_plugin_emit(const char *event, const char *payload);
 /* Desktop notification. */
 void ocws_plugin_notify(const char *title, const char *body, const char *icon);

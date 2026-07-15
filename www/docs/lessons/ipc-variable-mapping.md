@@ -2,15 +2,15 @@
 
 ## The Problem
 
-The `ocws-emit.sh` script sends IPC commands to sfwbar using `SetVal VarName = value`. The variable name in the IPC command **must exactly match** what the widget reads. If they don't match, the IPC update silently does nothing.
+The `ocws-emit.sh` script sends IPC commands to zigshell-cairo-pango using `SetVal VarName = value`. The variable name in the IPC command **must exactly match** what the widget reads. If they don't match, the IPC update silently does nothing.
 
 ## Architecture
 
 ```
-ocws-daemon.sh → ocws-emit.sh → sfwbar IPC → widget variable → widget display
+ocws-daemon.sh → ocws-emit.sh → zigshell-cairo-pango IPC → widget variable → widget display
 ```
 
-The daemon detects system changes (volume, battery, etc.) and pushes them via `ocws-emit`. The emit script translates high-level names to sfwbar variable names.
+The daemon detects system changes (volume, battery, etc.) and pushes them via `ocws-emit`. The emit script translates high-level names to zigshell-cairo-pango variable names.
 
 ## Mapping Table
 
@@ -53,7 +53,7 @@ grep -n "XBatLvl\|XMemPct" dotfiles/ocws/*.source
 ### 4. Test IPC directly
 
 ```bash
-sfwbar -R "SetVal XBatLvl = 50"
+zigshell-cairo-pango -R "SetVal XBatLvl = 50"
 ```
 
 If the widget updates, the variable name is correct. If nothing happens, the name is wrong.

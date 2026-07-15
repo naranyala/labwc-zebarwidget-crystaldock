@@ -12,8 +12,8 @@ void ocws_bus_init(void);
 void ocws_bus_subscribe(const char *topic, ocws_event_cb cb, void *user);
 void ocws_bus_emit(const char *topic, const char *json);
 
-/* Optional bridge: forwarded to an external sink (e.g. sfwbar via ocws-emit). */
-void ocws_bus_set_sfwbar_bridge(void (*fn)(const char *topic, const char *value));
-void ocws_bus_emit_sfwbar(const char *topic, const char *value);
+/* Optional bridge: forwarded to an external sink (e.g. zigshell-cairo-pango via ocws-emit). */
+void ocws_bus_set_zigshell_bridge(void (*fn)(const char *topic, const char *value));
+void ocws_bus_emit_zigshell(const char *topic, const char *value);
 
 #endif

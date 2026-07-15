@@ -98,7 +98,7 @@ static ThemeCenter app = {0};
 static const char *output_files[][2] = {
     {"tokens.css.tmpl",    "ocws/tokens.css"},
     {"ocws.css.tmpl",      "ocws/ocws.css"},
-    {"sfwbar.css.tmpl",    "ocws/theme.css"},
+    {"zigshell-cairo-pango.css.tmpl",    "ocws/theme.css"},
     {"themerc-override.tmpl", "labwc/themerc-override"},
     {"environment.tmpl",   "labwc/environment"},
     {"gtk.css.tmpl",       "gtk-3.0/gtk.css"},
@@ -638,7 +638,7 @@ static GtkWidget* build_surfaces_page(void) {
         {"labwc",       "Window manager theme (themerc-override, environment)"},
         {"tokens.css",  "CSS @define-color tokens (single source of truth)"},
         {"ocws.css",    "OCWS glassmorphic panel CSS"},
-        {"sfwbar.css",  "SFWBar structural CSS (layout, geometry)"},
+        {"zigshell-cairo-pango.css",  "ZIGSHELL-CAIRO-PANGO structural CSS (layout, geometry)"},
         {"gtk3",        "GTK3 settings + CSS overrides"},
         {"gtk4",        "GTK4 settings + CSS overrides"},
         {"fuzzel",      "Fuzzel app launcher config"},

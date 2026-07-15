@@ -5,11 +5,11 @@ To achieve the ultimate vision of **OCWS (Our C-Written Shell)**, the platform m
 Here are the key architectural abstractions we should evaluate and implement next:
 
 ## 1. The Centralized State Broker (C-Native Daemon)
-**Current Paradigm:** `ocws-daemon.sh` spawns background subshells running `inotifywait`, `pactl subscribe`, and `playerctl -F`. It then pipes text output to `ocws-emit.sh`, which forks a new `sfwbar -R` process for every single UI update. This is incredibly inefficient and prone to injection vulnerabilities.
+**Current Paradigm:** `ocws-daemon.sh` spawns background subshells running `inotifywait`, `pactl subscribe`, and `playerctl -F`. It then pipes text output to `ocws-emit.sh`, which forks a new `zigshell-cairo-pango -R` process for every single UI update. This is incredibly inefficient and prone to injection vulnerabilities.
 **The OCWS Abstraction:** 
 - Build a native C daemon (`ocws-brokerd`) using `libdbus` or `sd-bus`.
 - This daemon natively subscribes to Pipewire events, UPower properties, and MPRIS metadata without spawning sub-processes.
-- It maintains a single, persistent Unix Domain Socket connection to the `sfwbar` IPC socket, writing structured JSON or binary state changes instantaneously.
+- It maintains a single, persistent Unix Domain Socket connection to the `zigshell-cairo-pango` IPC socket, writing structured JSON or binary state changes instantaneously.
 
 ## 2. Configuration Abstraction Layer (Single Source of Truth)
 **Current Paradigm:** A user's desktop state is scattered across `catppuccin-mocha.ini` (colors), `rc.xml` (window rules), `fuzzel.ini` (launcher), and `ocws.config` (panel). `theme-engine.sh` uses `sed` and `.tmpl` files to bridge the gap.

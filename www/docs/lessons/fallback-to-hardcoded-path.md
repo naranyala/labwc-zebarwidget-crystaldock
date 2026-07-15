@@ -24,7 +24,7 @@ Then immediately undermines it with a hardcoded fallback:
 
 ```bash
 # Fallback: known project path
-[[ -z "$PROJECT_DIR" ]] && PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar"
+[[ -z "$PROJECT_DIR" ]] && PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango"
 ```
 
 If the walk-up fails (e.g. installed to `~/.local/bin/` without the repo structure
@@ -36,8 +36,8 @@ The same pattern appears in `workspace.sh`:
 ```bash
 if [[ -d "$SCRIPT_DIR/.." ]]; then
     PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
-elif [[ -d "/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/scripts" ]]; then
-    PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar"
+elif [[ -d "/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/scripts" ]]; then
+    PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango"
 fi
 ```
 
@@ -46,8 +46,8 @@ The `elif` branch only ever fires on the developer's machine.
 And `workspace-presets.sh`:
 
 ```bash
-if [[ -d "/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/scripts" ]]; then
-    PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar"
+if [[ -d "/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/scripts" ]]; then
+    PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango"
 elif [[ -d "$(dirname "$SCRIPT_DIR")/scripts" ]]; then
     PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 else

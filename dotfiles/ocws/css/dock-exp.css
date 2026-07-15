@@ -18,7 +18,7 @@ button.dock_trigger {
 }
 
 /* Make the bar background transparent so only the dock pill is visible */
-window#sfwbar {
+window#zigshell-cairo-pango {
   background: transparent;
   border: none;
   box-shadow: none;

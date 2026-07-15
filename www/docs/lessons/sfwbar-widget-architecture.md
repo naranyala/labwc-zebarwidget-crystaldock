@@ -1,4 +1,4 @@
-# Lesson: sfwbar Widget File Structure
+# Lesson: zigshell-cairo-pango Widget File Structure
 
 ## Anatomy of a Widget File
 

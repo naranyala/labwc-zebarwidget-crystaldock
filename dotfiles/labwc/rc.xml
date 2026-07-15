@@ -152,8 +152,8 @@
 
     <!-- Window Management Extras -->
     <keybind key="W-Return"><action name="Execute"><command>foot</command></action></keybind>
-    <!-- ponytail: sfwbar window switcher disabled — sfwbar not default anymore -->
-    <!-- <keybind key="A-BackSpace"><action name="Execute"><command>sfwbar -c "SwitcherEvent('forward')"</command></action></keybind> -->
+    <!-- ponytail: zigshell-cairo-pango window switcher disabled — zigshell-cairo-pango not default anymore -->
+    <!-- <keybind key="A-BackSpace"><action name="Execute"><command>zigshell-cairo-pango -c "SwitcherEvent('forward')"</command></action></keybind> -->
     <keybind key="W-w"><action name="Execute"><command>wallpaper auto</command></action></keybind>
     <keybind key="W-e"><action name="Execute"><command>nautilus</command></action></keybind>
     <keybind key="W-i"><action name="Execute"><command>icon-theme-picker.sh</command></action></keybind>
@@ -182,8 +182,8 @@
   </keyboard>
 
   <applications>
-    <!-- sfwbar: layer shell statusbar (disabled by default — unstable) -->
-    <application class="sfwbar">
+    <!-- zigshell-cairo-pango: layer shell statusbar (disabled by default — unstable) -->
+    <application class="zigshell-cairo-pango">
       <skip_taskbar>yes</skip_taskbar>
       <skip_pager>yes</skip_pager>
     </application>
@@ -192,8 +192,8 @@
       <skip_taskbar>yes</skip_taskbar>
       <skip_pager>yes</skip_pager>
     </application>
-    <!-- crystal-dock: layer shell, bottom, full width -->
-    <application class="crystal-dock">
+    <!-- zigshell-cairo-pango: layer shell, bottom, full width -->
+    <application class="zigshell-cairo-pango">
       <skip_taskbar>yes</skip_taskbar>
       <skip_pager>yes</skip_pager>
       <fixed_position>yes</fixed_position>
@@ -216,11 +216,11 @@
       <action name="Execute"><command>wallpaper sync</command></action>
     </item>
     <separator/>
-    <item label="crystal-dock">
-      <action name="Execute"><command>crystal-dock --start --overlay</command></action>
+    <item label="zigshell-cairo-pango">
+      <action name="Execute"><command>zigshell-cairo-pango --start --overlay</command></action>
     </item>
-    <item label="SFWBar Widgets">
-      <action name="Execute"><command>sfwbar</command></action>
+    <item label="ZIGSHELL-CAIRO-PANGO Widgets">
+      <action name="Execute"><command>zigshell-cairo-pango</command></action>
     </item>
     <separator/>
     <item label="Night Mode">

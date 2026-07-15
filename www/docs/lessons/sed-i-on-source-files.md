@@ -40,8 +40,8 @@ state changes. This creates several problems:
 4. **No rollback path.** There's no record of what the file looked like before the
    `sed` ran. `sed -i` with no backup flag is irreversible.
 
-5. **Race condition.** If sfwbar reads the widget file while `sed -i` is writing
-   it (mid-rewrite), sfwbar sees a partial file.
+5. **Race condition.** If zigshell-cairo-pango reads the widget file while `sed -i` is writing
+   it (mid-rewrite), zigshell-cairo-pango sees a partial file.
 
 ## The Fix
 

@@ -107,12 +107,12 @@ int main(int argc, char **argv) {
         snprintf(ipc_cmd, sizeof(ipc_cmd), "SetVal %s = \"%s\"", engine_var, escaped_val);
     }
 
-    // Fork and run sfwbar -R
+    // Fork and run zigshell-cairo-pango -R
     int pid = fork();
     if (pid == 0) {
         // Redirect stderr to /dev/null
         freopen("/dev/null", "w", stderr);
-        execlp("sfwbar", "sfwbar", "-R", ipc_cmd, NULL);
+        execlp("zigshell-cairo-pango", "zigshell-cairo-pango", "-R", ipc_cmd, NULL);
         exit(1);
     } else if (pid > 0) {
         int status;
@@ -121,7 +121,7 @@ int main(int argc, char **argv) {
             printf("OCWS Event Emitted: %s -> %s\n", ns, val);
             return 0;
         } else {
-            fprintf(stderr, "Failed to connect to OCWS engine (sfwbar might not be running).\n");
+            fprintf(stderr, "Failed to connect to OCWS engine (zigshell-cairo-pango might not be running).\n");
             return 1;
         }
     } else {

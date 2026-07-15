@@ -13,10 +13,10 @@ GREEN='\033[0;32m'
 NC='\033[0m'
 
 # Ordered list of all modes — cycles through in this exact sequence.
-# Grouped: sfwbar-only modes first, then lxqt-panel modes.
+# Grouped: zigshell-cairo-pango-only modes first, then lxqt-panel modes.
 MODES=(
     doublepanel
-    crystaldock
+    zigshell-cairo-pango
     minimal
     dms
     noctalia
@@ -32,7 +32,7 @@ MODES=(
 # Human-readable names for the notification
 declare -A NAMES=(
     [doublepanel]="OCWS Double Panel"
-    [crystaldock]="Crystal Dock"
+    [zigshell-cairo-pango]="Zigshell-cairo-pango"
     [minimal]="OCWS Minimal"
     [dms]="DankMaterialShell"
     [noctalia]="Noctalia"
@@ -46,7 +46,7 @@ declare -A NAMES=(
 )
 
 CFG="$HOME/.config/ocws/mode"
-CURRENT="$(cat "$CFG" 2>/dev/null || echo crystaldock)"
+CURRENT="$(cat "$CFG" 2>/dev/null || echo zigshell-cairo-pango)"
 
 # Find current index
 IDX=-1

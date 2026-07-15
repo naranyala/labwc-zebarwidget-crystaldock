@@ -1,12 +1,12 @@
 # OCWS Event Bus Contract
 
-Every IPC event that flows between components: daemon -> `ocws-emit.sh` -> sfwbar variables -> widgets.
+Every IPC event that flows between components: daemon -> `ocws-emit.sh` -> zigshell-cairo-pango variables -> widgets.
 
 ---
 
 ## Event Map
 
-| Event Name | sfwbar Variable | Source | Consumers | Status |
+| Event Name | zigshell-cairo-pango Variable | Source | Consumers | Status |
 |------------|-----------------|--------|-----------|--------|
 | `System.Volume` | `XVolLevel` | `ocws-daemon` (pactl subscribe) | `volume-text.widget`, `ocws-control-center.widget`, `media-player.widget` | Active |
 | `System.VolumeMuted` | `XVolMuted` | `ocws-daemon` (pactl subscribe) | `volume-text.widget`, `ocws-control-center.widget` | Active |
@@ -39,10 +39,10 @@ Every IPC event that flows between components: daemon -> `ocws-emit.sh` -> sfwba
                           |
                           v
                     ocws-emit.sh
-                    (namespace -> sfwbar variable mapping)
+                    (namespace -> zigshell-cairo-pango variable mapping)
                           |
                           v
-                    sfwbar -R "SetVal XVar = value"
+                    zigshell-cairo-pango -R "SetVal XVar = value"
                           |
                           v
                     Widget reads XVar in value expression
@@ -108,7 +108,7 @@ These variables are set by `ocws-sysmon` or dedicated `.source` files, not via I
 ### Test a variable directly
 
 ```bash
-sfwbar -R "SetVal XBatLvl = 50"
+zigshell-cairo-pango -R "SetVal XBatLvl = 50"
 ```
 
 If the widget updates, the variable name is correct. If nothing happens, the name is wrong.

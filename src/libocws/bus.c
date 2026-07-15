@@ -53,10 +53,10 @@ void ocws_bus_emit(const char *topic, const char *json) {
     if (g_bridge) g_bridge(topic, json ? json : "");
 }
 
-void ocws_bus_set_sfwbar_bridge(void (*fn)(const char *topic, const char *value)) {
+void ocws_bus_set_zigshell_bridge(void (*fn)(const char *topic, const char *value)) {
     g_bridge = fn;
 }
 
-void ocws_bus_emit_sfwbar(const char *topic, const char *value) {
+void ocws_bus_emit_zigshell(const char *topic, const char *value) {
     if (g_bridge) g_bridge(topic, value);
 }

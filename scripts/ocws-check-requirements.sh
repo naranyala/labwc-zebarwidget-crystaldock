@@ -82,11 +82,11 @@ echo ""
 
 echo -e "${BOLD}[1/4] Core Desktop (required)${NC}"
 HAS_LABWC=false
-HAS_SFWBAR=false
+HAS_ZIGSHELL=false
 HAS_FUZZEL=false
 
 check "labwc (Wayland compositor)" "labwc" && HAS_LABWC=true
-check "sfwbar (status bar)" "sfwbar" && HAS_SFWBAR=true
+check "zigshell-cairo-pango (status bar)" "zigshell-cairo-pango" && HAS_ZIGSHELL=true
 check "fuzzel (app launcher)" "fuzzel" && HAS_FUZZEL=true
 check "foot (terminal)" "foot"
 echo ""
@@ -144,32 +144,32 @@ if [[ $FAIL -gt 0 ]]; then
 
     case "$DISTRO" in
         arch|manjaro|endeavouros|garuda)
-            echo -e "  ${GREEN}sudo pacman -S labwc sfwbar fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct${NC}"
+            echo -e "  ${GREEN}sudo pacman -S labwc zigshell-cairo-pango fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct${NC}"
             ;;
         debian|ubuntu|linuxmint|pop)
-            echo -e "  ${GREEN}sudo apt install labwc sfwbar fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako-notifier cliphist qt6ct libgtk-3-dev${NC}"
+            echo -e "  ${GREEN}sudo apt install labwc zigshell-cairo-pango fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako-notifier cliphist qt6ct libgtk-3-dev${NC}"
             ;;
         fedora)
-            echo -e "  ${GREEN}sudo dnf install labwc sfwbar fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct gtk3-devel${NC}"
+            echo -e "  ${GREEN}sudo dnf install labwc zigshell-cairo-pango fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct gtk3-devel${NC}"
             ;;
         almalinux|rocky|rhel|centos)
             echo -e "  ${GREEN}Run: ./install-distribution.sh to auto-install and compile dependencies${NC}"
             ;;
         opensuse*|suse)
-            echo -e "  ${GREEN}sudo zypper install labwc sfwbar fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct gtk3-devel${NC}"
+            echo -e "  ${GREEN}sudo zypper install labwc zigshell-cairo-pango fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct gtk3-devel${NC}"
             ;;
         alpine)
-            echo -e "  ${GREEN}sudo apk add labwc sfwbar rofi-wayland foot mako qt6ct fuzzel playerctl wl-clipboard cliphist grim slurp jq brightnessctl inotify-tools swaybg swayidle${NC}"
+            echo -e "  ${GREEN}sudo apk add labwc zigshell-cairo-pango rofi-wayland foot mako qt6ct fuzzel playerctl wl-clipboard cliphist grim slurp jq brightnessctl inotify-tools swaybg swayidle${NC}"
             ;;
         void)
-            echo -e "  ${GREEN}sudo xbps-install -S labwc sfwbar rofi-wayland foot mako qt6ct fuzzel playerctl wl-clipboard cliphist grim slurp jq brightnessctl inotify-tools swaybg swayidle${NC}"
+            echo -e "  ${GREEN}sudo xbps-install -S labwc zigshell-cairo-pango rofi-wayland foot mako qt6ct fuzzel playerctl wl-clipboard cliphist grim slurp jq brightnessctl inotify-tools swaybg swayidle${NC}"
             ;;
         openmandriva)
-            echo -e "  ${GREEN}pkexec dnf install labwc sfwbar fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct xdotool imagemagick wireplumber bluez libnotify rsync flameshot fonts-ttf-dejavu adobe-source-code-pro-fonts git meson ninja pkgconf gcc gcc-c++ make cmake lib64glib2.0-devel lib64gtk+3.0-devel${NC}"
+            echo -e "  ${GREEN}pkexec dnf install labwc zigshell-cairo-pango fuzzel foot playerctl grim slurp wl-clipboard brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct xdotool imagemagick wireplumber bluez libnotify rsync flameshot fonts-ttf-dejavu adobe-source-code-pro-fonts git meson ninja pkgconf gcc gcc-c++ make cmake lib64glib2.0-devel lib64gtk+3.0-devel${NC}"
             ;;
         *)
             echo -e "  ${YELLOW}Unknown distro. Install these packages:${NC}"
-            echo "    labwc sfwbar fuzzel foot playerctl grim slurp wl-clipboard"
+            echo "    labwc zigshell-cairo-pango fuzzel foot playerctl grim slurp wl-clipboard"
             echo "    brightnessctl jq inotify-tools swaybg swayidle mako cliphist qt6ct"
             ;;
     esac

@@ -61,7 +61,7 @@ pass "Config dir found: $CONFIG_DIR"
 # --- 3. Dependency check ---
 info "Checking dependencies..."
 DEPS=(swaybg)
-LEGACY_OPTIONAL_DEPS=(crystal-dock noctalia)
+LEGACY_OPTIONAL_DEPS=(zigshell-cairo-pango noctalia)
 MISSING=()
 for dep in "${DEPS[@]}"; do
   if ! command -v "$dep" &>/dev/null; then
@@ -85,7 +85,7 @@ done
 
 if [ ${#LEGACY_FOUND[@]} -gt 0 ]; then
   warn "Legacy dependencies found (should be phased out for OCWS-only setup): ${LEGACY_FOUND[*]}"
-  info "Next OCWS release will make these optional. Use sfwbar-plus mode for enhanced OCWS features."
+  info "Next OCWS release will make these optional. Use zigshell-cairo-pango-plus mode for enhanced OCWS features."
 fi
 
 NEW_OPTIONAL_DEPS=()

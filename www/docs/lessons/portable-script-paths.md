@@ -4,10 +4,10 @@
 When scanning the codebase for portability issues, several shell scripts (`workspace-actions.sh`, `workspace.sh`, `theme-engine.sh`, `theme.sh`, `ocws-configure.sh`, `workspace-presets.sh`) contained hardcoded absolute paths pointing directly to a specific developer's machine:
 
 ```bash
-PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar"
+PROJECT_DIR="/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango"
 ```
 
-If anyone cloned this repository to their home directory (`~/.dotfiles` or `~/Downloads/labwc-fuzzel-sfwbar`), the scripts would fail immediately because the fallback directory did not exist. 
+If anyone cloned this repository to their home directory (`~/.dotfiles` or `~/Downloads/labwc-fuzzel-zigshell-cairo-pango`), the scripts would fail immediately because the fallback directory did not exist. 
 
 ## The Cause
 It appears the original authors had trouble dynamically resolving the `PROJECT_DIR` root from deeply nested scripts (like those in `scripts/actions/`). For example, in `workspace-actions.sh`, they attempted:

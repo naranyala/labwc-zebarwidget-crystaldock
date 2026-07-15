@@ -11,9 +11,9 @@ DBus environment setup
     ↓
 Wallpaper
     ↓
-sfwbar (reads config, starts scanners)
+zigshell-cairo-pango (reads config, starts scanners)
     ↓
-ocws-daemon.sh (pushes IPC to sfwbar)
+ocws-daemon.sh (pushes IPC to zigshell-cairo-pango)
     ↓
 Notification daemon
 Clipboard manager
@@ -35,27 +35,27 @@ systemctl --user import-environment WAYLAND_DISPLAY XDG_CURRENT_DESKTOP
 
 Without this, `xdg-desktop-portal` and screen sharing fail silently.
 
-### 2. sfwbar Before ocws-daemon
+### 2. zigshell-cairo-pango Before ocws-daemon
 
 ```sh
-nohup sfwbar -f "$HOME/.config/ocws/ocws.config" > /dev/null 2>&1 &
+nohup zigshell-cairo-pango -f "$HOME/.config/ocws/ocws.config" > /dev/null 2>&1 &
 # ...
-"$OCWS_DAEMON" &  # Must come after sfwbar — it sends IPC to sfwbar
+"$OCWS_DAEMON" &  # Must come after zigshell-cairo-pango — it sends IPC to zigshell-cairo-pango
 ```
 
-If `ocws-daemon.sh` starts before sfwbar, `sfwbar -R "SetVal ..."` fails because there's no sfwbar instance to connect to.
+If `ocws-daemon.sh` starts before zigshell-cairo-pango, `zigshell-cairo-pango -R "SetVal ..."` fails because there's no zigshell-cairo-pango instance to connect to.
 
 ### 3. Kill Before Restart
 
 ```sh
-pkill -x sfwbar 2>/dev/null
+pkill -x zigshell-cairo-pango 2>/dev/null
 sleep 0.2
-nohup sfwbar -f "$HOME/.config/ocws/ocws.config" > /dev/null 2>&1 &
+nohup zigshell-cairo-pango -f "$HOME/.config/ocws/ocws.config" > /dev/null 2>&1 &
 ```
 
-The `sleep 0.2` ensures the old sfwbar process has fully exited before starting a new one. Without it, the new instance might fail to bind to the layer shell.
+The `sleep 0.2` ensures the old zigshell-cairo-pango process has fully exited before starting a new one. Without it, the new instance might fail to bind to the layer shell.
 
-### 4. Clipboard After sfwbar
+### 4. Clipboard After zigshell-cairo-pango
 
 ```sh
 pkill -f "wl-paste.*cliphist" 2>/dev/null || true
@@ -70,8 +70,8 @@ Stale `wl-paste` processes from a previous compositor session must be killed fir
 
 | Symptom | Likely Cause |
 |---|---|
-| sfwbar has no icons | DBus not set up, or icon theme not loaded |
-| Volume widget shows 0% | `ocws-daemon.sh` started before sfwbar |
+| zigshell-cairo-pango has no icons | DBus not set up, or icon theme not loaded |
+| Volume widget shows 0% | `ocws-daemon.sh` started before zigshell-cairo-pango |
 | Clipboard doesn't persist | `wl-paste` started before `cliphist` |
 | Screen doesn't lock | `swayidle` started before `swaylock` is available |
 | Notification popup missing | `mako`/`dunst` started before DBus |

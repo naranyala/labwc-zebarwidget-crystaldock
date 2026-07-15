@@ -72,22 +72,22 @@ Post-mortems and lessons learned from real bugs found in the OCWS codebase. Each
 | event-driven-ipc.md | Event-driven vs polling IPC patterns |
 | ipc-command-injection.md | IPC command injection vectors |
 
-## sfwbar Widget DSL
+## zigshell-cairo-pango Widget DSL
 
 | File | Topic |
 |------|-------|
-| sfwbar-config-syntax.md | sfwbar config file syntax pitfalls |
-| sfwbar-css-include-inside-css.md | CSS include inside CSS block |
-| sfwbar-css-section-vs-include.md | CSS section vs include differences |
-| sfwbar-css-selectors.md | CSS selector compatibility |
-| sfwbar-icon-theme-chain.md | Icon resolution depends on GTK icon theme |
-| sfwbar-nerd-font-tabs.md | Nerd Font tab rendering issues |
-| sfwbar-ocws-css-not-gtk.md | `ocws.css` uses web CSS, not valid GTK CSS |
-| sfwbar-private-scope.md | Private variable scope in widgets |
-| sfwbar-rendering-and-icons.md | Rendering and icon display quirks |
-| sfwbar-triggers.md | Trigger conditions and evaluation order |
-| sfwbar-variable-naming.md | Variable naming conventions and collisions |
-| sfwbar-widget-architecture.md | Widget architecture and lifecycle |
+| zigshell-cairo-pango-config-syntax.md | zigshell-cairo-pango config file syntax pitfalls |
+| zigshell-cairo-pango-css-include-inside-css.md | CSS include inside CSS block |
+| zigshell-cairo-pango-css-section-vs-include.md | CSS section vs include differences |
+| zigshell-cairo-pango-css-selectors.md | CSS selector compatibility |
+| zigshell-cairo-pango-icon-theme-chain.md | Icon resolution depends on GTK icon theme |
+| zigshell-cairo-pango-nerd-font-tabs.md | Nerd Font tab rendering issues |
+| zigshell-cairo-pango-ocws-css-not-gtk.md | `ocws.css` uses web CSS, not valid GTK CSS |
+| zigshell-cairo-pango-private-scope.md | Private variable scope in widgets |
+| zigshell-cairo-pango-rendering-and-icons.md | Rendering and icon display quirks |
+| zigshell-cairo-pango-triggers.md | Trigger conditions and evaluation order |
+| zigshell-cairo-pango-variable-naming.md | Variable naming conventions and collisions |
+| zigshell-cairo-pango-widget-architecture.md | Widget architecture and lifecycle |
 | widget-css-selector-mismatch.md | CSS selector mismatch between widget and theme |
 | widget-division-by-zero.md | Division by zero in widget expressions |
 | widget-execterm-not-valid.md | `ExecTerm()` not valid in all contexts |

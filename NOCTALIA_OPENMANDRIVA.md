@@ -120,7 +120,7 @@ Restart after editing config: quit and re-run, or `noctalia msg` if your instanc
 ## 4. Autostart under labwc
 
 Add Noctalia to `~/.config/labwc/autostart` so it starts at login (put it alongside any
-`lxqt-panel`/`sfwbar` lines you already have):
+`lxqt-panel`/`zigshell-cairo-pango` lines you already have):
 
 ```sh
 # ~/.config/labwc/autostart

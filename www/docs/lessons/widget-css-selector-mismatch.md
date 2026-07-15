@@ -14,7 +14,7 @@ None of these styles ever apply. The clock has no bold text, the wifi popup has 
 
 ## Root Cause
 
-sfwbar widget exports map to specific GTK element types. When the CSS says `label#clock` but the widget is a `<button>`, the selector fails:
+zigshell-cairo-pango widget exports map to specific GTK element types. When the CSS says `label#clock` but the widget is a `<button>`, the selector fails:
 
 ```ini
 # clock.widget
@@ -31,7 +31,7 @@ label#clock { ... }
 button#clock { ... }
 ```
 
-Similarly, `PopUp()` in sfwbar creates a `<window>`, not a `<grid>`:
+Similarly, `PopUp()` in zigshell-cairo-pango creates a `<window>`, not a `<grid>`:
 
 ```ini
 # wifi.widget
@@ -111,4 +111,4 @@ done
 
 ## Pattern To Remember
 
-CSS selectors must match the **GTK element type** that sfwbar creates, not the logical widget type. A `button` export is a `<button>`, a `PopUp` creates a `<window>`, a `label` is a `<label>`. Mixing these up silently discards the styling.
+CSS selectors must match the **GTK element type** that zigshell-cairo-pango creates, not the logical widget type. A `button` export is a `<button>`, a `PopUp` creates a `<window>`, a `label` is a `<label>`. Mixing these up silently discards the styling.

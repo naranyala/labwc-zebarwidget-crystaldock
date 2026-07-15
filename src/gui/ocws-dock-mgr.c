@@ -4,7 +4,7 @@
  * GTK3 application for managing dock pinned apps across shells:
  *   - DankMaterialShell (session.json)
  *   - Noctalia (config.toml)
- *   - Crystal Dock (panel_1.conf)
+ *   - Zigshell-cairo-pango (panel_1.conf)
  */
 
 #include <gtk/gtk.h>
@@ -72,17 +72,17 @@ static void detect_shell(void) {
         snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
-    /* Crystal Dock */
-    snprintf(path, sizeof(path), "%s/.config/crystal-dock/panel_1.conf", home);
+    /* Zigshell-cairo-pango */
+    snprintf(path, sizeof(path), "%s/.config/zigshell-cairo-pango/panel_1.conf", home);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
-        snprintf(current_config.shell, sizeof(current_config.shell), "%s", "crystaldock");
+        snprintf(current_config.shell, sizeof(current_config.shell), "%s", "zigshell-cairo-pango");
         snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
-    /* sfwbar */
-    snprintf(path, sizeof(path), "%s/.config/ocws/sfwbar-dock.config", home);
+    /* OCWS dock config (zigshell-cairo-pango OCWS format) */
+    snprintf(path, sizeof(path), "%s/.config/ocws/zigshell-cairo-pango-dock.config", home);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
-        snprintf(current_config.shell, sizeof(current_config.shell), "%s", "sfwbar");
+        snprintf(current_config.shell, sizeof(current_config.shell), "%s", "ocws-dock");
         snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
@@ -147,7 +147,7 @@ static void parse_noctalia_pinned(void) {
     fclose(f);
 }
 
-static void parse_crystaldock_pinned(void) {
+static void parse_zigshell-cairo-pango_pinned(void) {
     FILE *f = fopen(current_config.config_path, "r");
     if (!f) return;
     current_config.app_count = 0;
@@ -174,11 +174,11 @@ static void parse_crystaldock_pinned(void) {
     fclose(f);
 }
 
-static void parse_sfwbar_pinned(void) {
+static void parse_ocws_dock_pinned(void) {
     current_config.app_count = 0;
     const char *home = getenv("HOME");
     char path[512];
-    snprintf(path, sizeof(path), "%s/.config/ocws/sfwbar-dock.json", home ? home : "/tmp");
+    snprintf(path, sizeof(path), "%s/.config/ocws/zigshell-cairo-pango-dock.json", home ? home : "/tmp");
     FILE *f = fopen(path, "r");
     if (!f) {
         /* Defaults */
@@ -218,8 +218,8 @@ static void parse_sfwbar_pinned(void) {
 static void load_pinned_apps(void) {
     if (strcmp(current_config.shell, "dms") == 0) parse_dms_pinned();
     else if (strcmp(current_config.shell, "noctalia") == 0) parse_noctalia_pinned();
-    else if (strcmp(current_config.shell, "crystaldock") == 0) parse_crystaldock_pinned();
-    else if (strcmp(current_config.shell, "sfwbar") == 0) parse_sfwbar_pinned();
+    else if (strcmp(current_config.shell, "zigshell-cairo-pango") == 0) parse_zigshell-cairo-pango_pinned();
+    else if (strcmp(current_config.shell, "ocws-dock") == 0) parse_ocws_dock_pinned();
 }
 
 /* ============================================================
@@ -288,7 +288,7 @@ static void save_noctalia_pinned(void) {
     if (f) { fwrite(content, 1, strlen(content), f); fclose(f); }
 }
 
-static void save_crystaldock_pinned(void) {
+static void save_zigshell-cairo-pango_pinned(void) {
     FILE *f = fopen(current_config.config_path, "r");
     if (!f) return;
     char content[4096] = {0};
@@ -318,12 +318,12 @@ static void save_crystaldock_pinned(void) {
     if (f) { fwrite(content, 1, strlen(content), f); fclose(f); }
 }
 
-static void save_sfwbar_pinned(void) {
+static void save_ocws_dock_pinned(void) {
     const char *home = getenv("HOME");
     if (!home) return;
     
     char json_path[512];
-    snprintf(json_path, sizeof(json_path), "%s/.config/ocws/sfwbar-dock.json", home);
+    snprintf(json_path, sizeof(json_path), "%s/.config/ocws/zigshell-cairo-pango-dock.json", home);
     
     json_object *json = json_object_new_object();
     json_object *apps_arr = json_object_new_array();
@@ -367,16 +367,16 @@ static void save_sfwbar_pinned(void) {
         }
         fclose(f_widget);
         
-        /* Tell sfwbar to reload */
-        system("killall -SIGUSR1 sfwbar 2>/dev/null");
+        /* Tell zigshell-cairo-pango to reload */
+        system("killall -SIGUSR1 zigshell-cairo-pango 2>/dev/null");
     }
 }
 
 static void save_pinned_apps(void) {
     if (strcmp(current_config.shell, "dms") == 0) save_dms_pinned();
     else if (strcmp(current_config.shell, "noctalia") == 0) save_noctalia_pinned();
-    else if (strcmp(current_config.shell, "crystaldock") == 0) save_crystaldock_pinned();
-    else if (strcmp(current_config.shell, "sfwbar") == 0) save_sfwbar_pinned();
+    else if (strcmp(current_config.shell, "zigshell-cairo-pango") == 0) save_zigshell-cairo-pango_pinned();
+    else if (strcmp(current_config.shell, "ocws-dock") == 0) save_ocws_dock_pinned();
 }
 
 /* ============================================================

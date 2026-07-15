@@ -10,7 +10,7 @@
 The theme picker listed themes with a path hardcoded to the developer's own machine:
 
 ```bash
-theme_choice=$(ls /media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/themes/*.ini \
+theme_choice=$(ls /media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/themes/*.ini \
     | xargs -n 1 basename -s .ini \
         | fuzzel -d -p "Theme > " -w 30 -l 12)
 ```

@@ -1,8 +1,8 @@
 site_name: OCWS Documentation
 site_description: Documentation for the OCWS Wayland desktop shell
-site_url: https://naranyala.github.io/labwc-fuzzel-sfwbar/
-repo_url: https://github.com/naranyala/labwc-fuzzel-sfwbar
-repo_name: naranyala/labwc-fuzzel-sfwbar
+site_url: https://naranyala.github.io/labwc-fuzzel-zigshell-cairo-pango/
+repo_url: https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango
+repo_name: naranyala/labwc-fuzzel-zigshell-cairo-pango
 
 theme:
   name: material
@@ -83,19 +83,19 @@ nav:
     - IPC and Events:
       - Variable Mapping: lessons/ipc-variable-mapping.md
       - Event-Driven IPC: lessons/event-driven-ipc.md
-    - sfwbar Widget DSL:
-      - Config Syntax: lessons/sfwbar-config-syntax.md
-      - CSS Include in CSS: lessons/sfwbar-css-include-inside-css.md
-      - CSS Section vs Include: lessons/sfwbar-css-section-vs-include.md
-      - CSS Selectors: lessons/sfwbar-css-selectors.md
-      - Icon Theme Chain: lessons/sfwbar-icon-theme-chain.md
-      - Nerd Font Tabs: lessons/sfwbar-nerd-font-tabs.md
-      - OCWS CSS not GTK: lessons/sfwbar-ocws-css-not-gtk.md
-      - Private Scope: lessons/sfwbar-private-scope.md
-      - Rendering and Icons: lessons/sfwbar-rendering-and-icons.md
-      - Triggers: lessons/sfwbar-triggers.md
-      - Variable Naming: lessons/sfwbar-variable-naming.md
-      - Widget Architecture: lessons/sfwbar-widget-architecture.md
+    - zigshell-cairo-pango Widget DSL:
+      - Config Syntax: lessons/zigshell-cairo-pango-config-syntax.md
+      - CSS Include in CSS: lessons/zigshell-cairo-pango-css-include-inside-css.md
+      - CSS Section vs Include: lessons/zigshell-cairo-pango-css-section-vs-include.md
+      - CSS Selectors: lessons/zigshell-cairo-pango-css-selectors.md
+      - Icon Theme Chain: lessons/zigshell-cairo-pango-icon-theme-chain.md
+      - Nerd Font Tabs: lessons/zigshell-cairo-pango-nerd-font-tabs.md
+      - OCWS CSS not GTK: lessons/zigshell-cairo-pango-ocws-css-not-gtk.md
+      - Private Scope: lessons/zigshell-cairo-pango-private-scope.md
+      - Rendering and Icons: lessons/zigshell-cairo-pango-rendering-and-icons.md
+      - Triggers: lessons/zigshell-cairo-pango-triggers.md
+      - Variable Naming: lessons/zigshell-cairo-pango-variable-naming.md
+      - Widget Architecture: lessons/zigshell-cairo-pango-widget-architecture.md
       - CSS Selector Mismatch: lessons/widget-css-selector-mismatch.md
       - Division by Zero: lessons/widget-division-by-zero.md
       - ExecTerm Invalid: lessons/widget-execterm-not-valid.md
@@ -116,7 +116,7 @@ nav:
       - JSON Concatenation: lessons/json-string-concatenation.md
       - Sysmon Output: lessons/sysmon-output-ordering.md
   - Development:
-    - Sfwbar Unification: PLAN-sfwbar-unification.md
+    - Zigshell-cairo-pango Unification: PLAN-zigshell-cairo-pango-unification.md
     - Settings Panel Design: ocws-settings-panel-design.md
     - Consolidation Analysis: consolidation-analysis.md
     - Dependency Removal Impact: dependency-removal-impact.md

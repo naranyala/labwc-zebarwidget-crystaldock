@@ -41,8 +41,8 @@ GtkWidget* build_shell_tab(void) {
     gtk_flow_box_set_max_children_per_line(GTK_FLOW_BOX(flowbox), 4);
     gtk_flow_box_set_selection_mode(GTK_FLOW_BOX(flowbox), GTK_SELECTION_NONE);
 
-    gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("OCWS Double Panel", "Dual-panel sfwbar — the default OCWS experience", "doublepanel", "preferences-desktop-symbolic"), -1);
-    gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("Crystal Dock", "SFWBar + bottom macOS-style dock", "crystaldock", "computer-apple-symbolic"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("OCWS Double Panel", "Dual-panel zigshell-cairo-pango — the default OCWS experience", "doublepanel", "preferences-desktop-symbolic"), -1);
+    gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("Zigshell-cairo-pango", "ZIGSHELL-CAIRO-PANGO + bottom macOS-style dock", "zigshell-cairo-pango", "computer-apple-symbolic"), -1);
     gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("DankMaterialShell", "Material Design 3 integrated shell", "dms", "view-app-grid-symbolic"), -1);
     gtk_flow_box_insert(GTK_FLOW_BOX(flowbox), create_shell_card("Noctalia", "Minimalist plugin-driven shell", "noctalia", "weather-clear-night-symbolic"), -1);
 
@@ -683,7 +683,7 @@ GtkWidget* build_about_tab(void) {
     gtk_box_pack_start(GTK_BOX(vbox), gtk_separator_new(GTK_ORIENTATION_HORIZONTAL), FALSE, FALSE, 0);
 
     GtkWidget *desc = gtk_label_new(
-        "A batteries-included desktop shell built on sfwbar,\n"
+        "A batteries-included desktop shell built on zigshell-cairo-pango,\n"
         "inspired by DankMaterialShell and Noctalia.\n"
         "Written in C for maximum performance and minimal memory usage.");
     gtk_label_set_line_wrap(GTK_LABEL(desc), TRUE);
@@ -697,11 +697,11 @@ GtkWidget* build_about_tab(void) {
     GtkWidget *docs_btn = gtk_button_new_with_label("Documentation");
     GtkWidget *report_btn = gtk_button_new_with_label("Report Issue");
     g_signal_connect(github_btn, "clicked", G_CALLBACK(execute_command),
-                     (gpointer)"xdg-open https://github.com/naranyala/labwc-fuzzel-sfwbar &");
+                     (gpointer)"xdg-open https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango &");
     g_signal_connect(docs_btn, "clicked", G_CALLBACK(execute_command),
-                     (gpointer)"xdg-open https://github.com/naranyala/labwc-fuzzel-sfwbar/tree/main/docs &");
+                     (gpointer)"xdg-open https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango/tree/main/docs &");
     g_signal_connect(report_btn, "clicked", G_CALLBACK(execute_command),
-                     (gpointer)"xdg-open https://github.com/naranyala/labwc-fuzzel-sfwbar/issues &");
+                     (gpointer)"xdg-open https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango/issues &");
     gtk_box_pack_start(GTK_BOX(link_box), github_btn, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(link_box), docs_btn, FALSE, FALSE, 0);
     gtk_box_pack_start(GTK_BOX(link_box), report_btn, FALSE, FALSE, 0);
@@ -752,7 +752,7 @@ GtkWidget* build_credits_tab(void) {
 
     struct { const char *name; const char *desc; const char *url; } deps[] = {
         {"labwc",             "Wayland compositor",           "https://github.com/labwc/labwc"},
-        {"sfwbar",            "Status bar for Wayland",       "https://github.com/LBCrion/sfwbar"},
+        {"zigshell-cairo-pango",            "Status bar for Wayland",       "https://github.com/LBCrion/zigshell-cairo-pango"},
         {"fuzzel",            "Application launcher",         "https://codeberg.org/dnkl/fuzzel"},
         {"foot",              "Terminal emulator",            "https://codeberg.org/dnkl/foot"},
         {"mako",              "Notification daemon",          "https://github.com/emersion/mako"},

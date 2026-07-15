@@ -1,6 +1,6 @@
 # Modular Configuration System
 
-OCWS uses a composable configuration architecture for SFWBar modes.
+OCWS uses a composable configuration architecture for ZIGSHELL-CAIRO-PANGO modes.
 
 ---
 
@@ -16,7 +16,7 @@ dotfiles/ocws/modes/
 ├── statusbar.config         # Single status bar
 ├── desktop.config           # Floating desktop widgets
 ├── doublepanel.mode         # Composed: top + bottom + desktop
-├── crystaldock.mode         # Composed: statusbar only
+├── zigshell-cairo-pango.mode         # Composed: statusbar only
 ├── minimal.mode             # Composed: minimal bar
 ├── css-glassmorphism.config # Glassmorphism tokens
 ├── css-bars.config          # Bar panel styles
@@ -65,9 +65,9 @@ include("modes/css-popups.config")
 └─────────────────────────────────────────┘
 ```
 
-### crystaldock.mode
+### zigshell-cairo-pango.mode
 
-Single status bar optimized for use with external crystal-dock.
+Single status bar optimized for use with external zigshell-cairo-pango.
 
 ```ini
 #Api2
@@ -88,7 +88,7 @@ include("modes/css-popups.config")
 ┌─────────────────────────────────────────┐
 │ Status Bar: Launcher | Clock | Status   │
 └─────────────────────────────────────────┘
-        (crystal-dock runs separately)
+        (zigshell-cairo-pango runs separately)
 ```
 
 ### minimal.mode
@@ -145,7 +145,7 @@ Common settings included by all modes:
 Set ImagePath = "icons/misc:icons/weather"
 Set ThicknessHint = "36px"
 
-Function SfwbarInit() {}
+Function ZigshellInit() {}
 
 include("plugins.config")
 include("ocws-sysmon.source")
@@ -245,24 +245,24 @@ button.module:hover {
 
 ```bash
 toggle-shell doublepanel
-toggle-shell crystaldock
+toggle-shell zigshell-cairo-pango
 toggle-shell minimal
 ```
 
-### Using sfwbar-mode
+### Using zigshell-cairo-pango-mode
 
 ```bash
-sfwbar-mode start doublepanel
-sfwbar-mode start crystaldock
-sfwbar-mode start minimal
-sfwbar-mode status
-sfwbar-mode validate
+zigshell-cairo-pango-mode start doublepanel
+zigshell-cairo-pango-mode start zigshell-cairo-pango
+zigshell-cairo-pango-mode start minimal
+zigshell-cairo-pango-mode status
+zigshell-cairo-pango-mode validate
 ```
 
 ### Manual
 
 ```bash
-sfwbar -c ~/.config/ocws/modes/doublepanel.mode
+zigshell-cairo-pango -c ~/.config/ocws/modes/doublepanel.mode
 ```
 
 ---
@@ -291,10 +291,10 @@ Set OCWS_FEATURE_TASKBAR = "true"
 
 ```bash
 # Validate all configs
-scripts/validate-sfwbar.sh
+scripts/validate-zigshell-cairo-pango.sh
 
 # Validate modes
-sfwbar-mode validate
+zigshell-cairo-pango-mode validate
 ```
 
 Checks:

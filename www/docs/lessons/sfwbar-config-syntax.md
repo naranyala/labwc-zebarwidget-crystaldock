@@ -1,15 +1,15 @@
-# Lesson: sfwbar Config Syntax Is Not Bash
+# Lesson: zigshell-cairo-pango Config Syntax Is Not Bash
 
 ## The Problem
 
-sfwbar config files (`.widget`, `.config`, `.source`) look similar to shell scripts but use a **completely different syntax**. Mixing bash constructs into sfwbar config causes silent failures or parse errors.
+zigshell-cairo-pango config files (`.widget`, `.config`, `.source`) look similar to shell scripts but use a **completely different syntax**. Mixing bash constructs into zigshell-cairo-pango config causes silent failures or parse errors.
 
-## What sfwbar Supports
+## What zigshell-cairo-pango Supports
 
 ### Control Flow
 
 ```ini
-# sfwbar uses If() with capitalized I and parenthesized args
+# zigshell-cairo-pango uses If() with capitalized I and parenthesized args
 If(XBatLvl > 80, "high", "low")
 
 # Not bash-style:
@@ -19,7 +19,7 @@ If(XBatLvl > 80, "high", "low")
 ### Functions
 
 ```ini
-# sfwbar Function declaration
+# zigshell-cairo-pango Function declaration
 Function MyFunc() {
   Return "hello"
 }
@@ -31,7 +31,7 @@ Function MyFunc() {
 ### Variable Scoping
 
 ```ini
-# sfwbar uses "local" keyword (not "local" with type)
+# zigshell-cairo-pango uses "local" keyword (not "local" with type)
 Private {
   Var my_var = "value"
 }
@@ -50,9 +50,9 @@ action = Exec("pactl set-volume @DEFAULT_SINK@ 0.05+")
 # pactl set-volume @DEFAULT_SINK@ 0.05+
 ```
 
-## What sfwbar Does NOT Support
+## What zigshell-cairo-pango Does NOT Support
 
-| Bash Construct | sfwbar Equivalent |
+| Bash Construct | zigshell-cairo-pango Equivalent |
 |---|---|
 | `if [ condition ]; then ... fi` | `If(condition, true_val, false_val)` |
 | `elif` | Nested `If()` |
@@ -65,7 +65,7 @@ action = Exec("pactl set-volume @DEFAULT_SINK@ 0.05+")
 
 ## Example: Incorrect vs Correct
 
-### WRONG (bash in sfwbar config)
+### WRONG (bash in zigshell-cairo-pango config)
 
 ```ini
 ExecuteApp() {
@@ -78,7 +78,7 @@ ExecuteApp() {
 }
 ```
 
-### CORRECT (sfwbar syntax)
+### CORRECT (zigshell-cairo-pango syntax)
 
 ```ini
 Function ExecuteApp() {
@@ -88,6 +88,6 @@ Function ExecuteApp() {
 
 ## Rule of Thumb
 
-If a line uses bash features (`$()`, `[]`, `if/elif/else`, `echo`, pipes `|`), it belongs in a **shell script** called via `Exec()`, not inline in sfwbar config.
+If a line uses bash features (`$()`, `[]`, `if/elif/else`, `echo`, pipes `|`), it belongs in a **shell script** called via `Exec()`, not inline in zigshell-cairo-pango config.
 
-Inline sfwbar config should only use: `If()`, `Exec()`, `Val()`, `Str()`, `Match()`, `RegEx()`, and sfwbar's built-in functions.
+Inline zigshell-cairo-pango config should only use: `If()`, `Exec()`, `Val()`, `Str()`, `Match()`, `RegEx()`, and zigshell-cairo-pango's built-in functions.

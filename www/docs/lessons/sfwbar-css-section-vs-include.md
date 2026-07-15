@@ -43,7 +43,7 @@ The included file's `#CSS` section is also merged into the global CSS context. T
 include("volume-text.css")  # ← THIS IS WRONG
 ```
 
-When `include()` appears inside a `#CSS` section, sfwbar treats it as **literal CSS text**, not a config directive. It tries to parse `include("volume-text.css")` as a CSS rule and fails silently.
+When `include()` appears inside a `#CSS` section, zigshell-cairo-pango treats it as **literal CSS text**, not a config directive. It tries to parse `include("volume-text.css")` as a CSS rule and fails silently.
 
 **Fix**: Put `include()` at the top of the file, outside any `#CSS` section:
 

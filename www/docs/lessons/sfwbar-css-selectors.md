@@ -1,8 +1,8 @@
-# Lesson: sfwbar CSS Selectors Depend on Bar Naming
+# Lesson: zigshell-cairo-pango CSS Selectors Depend on Bar Naming
 
 ## The Problem
 
-When bars are **named** in the config, sfwbar uses that name as the CSS window ID — **not** the default `sfwbar`. All CSS targeting `window#sfwbar` silently fails to style named bars.
+When bars are **named** in the config, zigshell-cairo-pango uses that name as the CSS window ID — **not** the default `zigshell-cairo-pango`. All CSS targeting `window#zigshell-cairo-pango` silently fails to style named bars.
 
 ## Root Cause
 
@@ -15,7 +15,7 @@ bar "bottombar:bottom" { ... } # → window CSS id = "bottombar"
 The CSS had:
 ```css
 /* WRONG — matches only unnamed bars */
-window#sfwbar { ... }
+window#zigshell-cairo-pango { ... }
 ```
 
 ## The Fix
@@ -29,7 +29,7 @@ window#topbar, window#bottombar { ... }
 
 ## Rules
 
-1. **Unnamed bar** `bar { ... }` → CSS id = `sfwbar` (default)
+1. **Unnamed bar** `bar { ... }` → CSS id = `zigshell-cairo-pango` (default)
 2. **Named bar** `bar "foo:top" { ... }` → CSS id = `foo`
 3. The grid inside a bar also gets the bar name as its CSS id (`grid#foo`)
 4. CSS selectors must match the actual bar name, not the default
@@ -44,7 +44,7 @@ bar "mynav:top" {
 ```
 
 ```css
-/* Must use #mynav, not #sfwbar */
+/* Must use #mynav, not #zigshell-cairo-pango */
 window#mynav {
   background-color: rgba(0, 0, 0, 0.8);
 }

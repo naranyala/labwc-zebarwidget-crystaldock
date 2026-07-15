@@ -32,14 +32,14 @@ echo ""
 # Check if we're in the OCWS directory
 if [ ! -f "./install.sh" ]; then
     echo -e "${YELLOW}OCWS not found. Cloning...${NC}"
-    git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-sfwbar.git ocws
+    git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango.git ocws
     cd ocws
 fi
 
 # Check core dependencies
 echo -e "${BOLD}Checking dependencies...${NC}"
 MISSING=()
-for cmd in labwc sfwbar fuzzel foot; do
+for cmd in labwc zigshell-cairo-pango fuzzel foot; do
     if ! command -v "$cmd" &>/dev/null; then
         MISSING+=("$cmd")
     fi
@@ -53,25 +53,25 @@ if [ ${#MISSING[@]} -gt 0 ]; then
 
     case "$DISTRO" in
         arch|manjaro|endeavouros|garuda)
-            echo -e "  ${GREEN}sudo pacman -S labwc sfwbar fuzzel foot${NC}"
+            echo -e "  ${GREEN}sudo pacman -S labwc zigshell-cairo-pango fuzzel foot${NC}"
             ;;
         debian|ubuntu|linuxmint|pop)
-            echo -e "  ${GREEN}sudo apt install labwc sfwbar fuzzel foot${NC}"
+            echo -e "  ${GREEN}sudo apt install labwc zigshell-cairo-pango fuzzel foot${NC}"
             ;;
         fedora)
-            echo -e "  ${GREEN}sudo dnf install labwc sfwbar fuzzel foot${NC}"
+            echo -e "  ${GREEN}sudo dnf install labwc zigshell-cairo-pango fuzzel foot${NC}"
             ;;
         opensuse*|suse)
-            echo -e "  ${GREEN}sudo zypper install labwc sfwbar fuzzel foot${NC}"
+            echo -e "  ${GREEN}sudo zypper install labwc zigshell-cairo-pango fuzzel foot${NC}"
             ;;
         alpine)
-            echo -e "  ${GREEN}sudo apk add labwc sfwbar fuzzel foot${NC}"
+            echo -e "  ${GREEN}sudo apk add labwc zigshell-cairo-pango fuzzel foot${NC}"
             ;;
         void)
-            echo -e "  ${GREEN}sudo xbps-install -S labwc sfwbar fuzzel foot${NC}"
+            echo -e "  ${GREEN}sudo xbps-install -S labwc zigshell-cairo-pango fuzzel foot${NC}"
             ;;
         *)
-            echo -e "  ${YELLOW}sudo <your-pkg-manager> install labwc sfwbar fuzzel foot${NC}"
+            echo -e "  ${YELLOW}sudo <your-pkg-manager> install labwc zigshell-cairo-pango fuzzel foot${NC}"
             ;;
     esac
 

@@ -26,8 +26,8 @@
 
   <!-- DESKTOP ENGINES -->
   <menu id="desktop-engines" label="Desktop Engines (UI)">
-    <item label="Restart SFWBar"><action name="Execute"><command>pkill sfwbar; sfwbar &amp;</command></action></item>
-    <item label="Launch Crystal Dock"><action name="Execute"><command>crystal-dock --start --overlay</command></action></item>
+    <item label="Restart ZIGSHELL-CAIRO-PANGO"><action name="Execute"><command>pkill zigshell-cairo-pango; zigshell-cairo-pango &amp;</command></action></item>
+    <item label="Launch Zigshell-cairo-pango"><action name="Execute"><command>zigshell-cairo-pango --start --overlay</command></action></item>
     <item label="Theme &amp; Aesthetics Menu"><action name="Execute"><command>actions.sh menu-aesthetics</command></action></item>
     <item label="Wallpaper (Randomize)"><action name="Execute"><command>wallpaper random</command></action></item>
   </menu>

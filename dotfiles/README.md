@@ -56,7 +56,7 @@ labwc
 The labwc config is in `dotfiles/labwc/`. It uses XML format (Openbox-compatible):
 
 - **rc.xml** -- Keybindings, window rules, themes, menus
-- **autostart** -- Shell script run at startup (starts sfwbar, daemon, wallpaper)
+- **autostart** -- Shell script run at startup (starts zigshell-cairo-pango, daemon, wallpaper)
 - **environment** -- Environment variables
 - **menu.xml** -- Right-click desktop menu
 - **themerc-override** -- Theme customization

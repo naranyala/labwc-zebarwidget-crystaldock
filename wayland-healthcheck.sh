@@ -65,9 +65,9 @@ else
 fi
 echo ""
 
-# 5. Core Utilities (labwc, fuzzel, sfwbar)
+# 5. Core Utilities (labwc, fuzzel, zigshell-cairo-pango)
 echo -e "${CYAN}[5/6] Checking Core Dotfiles Utilities...${NC}"
-utils=("labwc" "fuzzel" "sfwbar" "wl-clipboard" "grim" "slurp")
+utils=("labwc" "fuzzel" "zigshell-cairo-pango" "wl-clipboard" "grim" "slurp")
 for u in "${utils[@]}"; do
     if command -v "$u" > /dev/null; then
         echo -e "  ${GREEN}[OK]${NC}   $u is installed"

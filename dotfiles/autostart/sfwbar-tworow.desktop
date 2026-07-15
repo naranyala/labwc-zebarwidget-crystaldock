@@ -1,6 +1,6 @@
 [Desktop Entry]
-Name=sfwbar (Two-Row Mode)
-Comment=Bottom sfwbar 2-row dock
+Name=zigshell-cairo-pango (Two-Row Mode)
+Comment=Bottom zigshell-cairo-pango 2-row dock
 Exec=/home/naranyala/.local/bin/toggle-shell tworow
 Type=Application
 Terminal=false

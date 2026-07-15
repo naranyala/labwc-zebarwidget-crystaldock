@@ -1,6 +1,8 @@
 #Api2
+
+# Renderer: use the glib-free zigshell instead of zigshell-cairo-pango
+Shell = "zigshell-cairo-pango"
 # minimal.mode — Minimal status bar (clock, volume, battery, tray)
-# Launch: sfwbar -f modes/minimal.mode
 
 switcher { disable = true }
 

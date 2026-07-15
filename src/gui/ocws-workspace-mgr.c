@@ -265,7 +265,7 @@ static void refresh_windows(void) {
         if (!w->handle) continue;
 
         /* Skip panels/docks */
-        if (w->app_id && (strstr(w->app_id, "sfwbar") || strstr(w->app_id, "labwc")))
+        if (w->app_id && (strstr(w->app_id, "zigshell-cairo-pango") || strstr(w->app_id, "labwc")))
             continue;
 
         WorkspaceData *ws = (WorkspaceData *)g_workspaces->data; /* workspace 0 */

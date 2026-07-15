@@ -38,13 +38,13 @@ typedef struct {
 static const PkgDep DEPS[] = {
     /* Core compositor & bar */
     {"labwc",           "Wayland compositor",            "Core",   "labwc",    "labwc",    "labwc",    "labwc --version"},
-    {"sfwbar",          "Status bar for Wayland",        "Core",   "sfwbar",   "sfwbar",   "sfwbar",   "sfwbar --version"},
+    {"zigshell-cairo-pango",          "Status bar for Wayland",        "Core",   "zigshell-cairo-pango",   "zigshell-cairo-pango",   "zigshell-cairo-pango",   "zigshell-cairo-pango --version"},
     {"fuzzel",          "Application launcher",           "Core",   "fuzzel",   "fuzzel",   "fuzzel",   "fuzzel --version"},
     {"gtk-layer-shell", "GTK Layer Shell for Wayland",   "Core",   "gtk-layer-shell", "libgtk-layer-shell-dev", "gtk-layer-shell-devel", NULL},
 
     /* Shell modes */
     {"dms",             "DankMaterialShell",              "Shells", NULL,       NULL,       NULL,       "dms --version"},
-    {"crystal-dock",    "macOS-style dock",              "Shells", "crystal-dock", NULL,    NULL,       "crystal-dock --version"},
+    {"zigshell-cairo-pango", "OCWS panel + dock (Zig/Cairo)", "Shells", "zigshell-cairo-pango", NULL, NULL, "zig build -C src/shells/zigshell-cairo-pango --help"},
 
     /* Terminal */
     {"foot",            "Wayland terminal emulator",      "Apps",   "foot",     "foot",     "foot",     "foot --version"},
@@ -96,10 +96,10 @@ typedef struct {
 
 static const BuildTarget BUILDS[] = {
     {"labwc",      "Latest labwc from git",     "https://github.com/labwc/labwc.git",             "meson"},
-    {"sfwbar",     "Latest sfwbar from git",    "https://github.com/LBCrion/sfwbar.git",          "meson"},
+    {"zigshell-cairo-pango",     "Latest zigshell-cairo-pango from git",    "https://github.com/LBCrion/zigshell-cairo-pango.git",          "meson"},
     {"fuzzel",     "Latest fuzzel from git",    "https://codeberg.org/dnkl/fuzzel.git",            "meson"},
     {"dms",        "Latest DMS from git",       "https://github.com/DankShrine/dms.git",          "make"},
-    {"crystal-dock","Latest crystal-dock from git","https://github.com/igrekster/crystal-dock.git","make"},
+    {"zigshell-cairo-pango","Build from local tree","src/shells/zigshell-cairo-pango","zig build -C src/shells/zigshell-cairo-pango"},
 };
 
 static const int BUILD_COUNT = sizeof(BUILDS) / sizeof(BUILDS[0]);
@@ -458,7 +458,7 @@ static gpointer quick_health_worker(gpointer user_data) {
             log_msg("[%s] Disk: %d%% used", pct < 70 ? "PASS" : (pct < 85 ? "WARN" : "FAIL"), pct);
         } else { g_error_free(e2); }
     } else if (strcmp(section, "services") == 0) {
-        const char *svcs[] = {"labwc", "sfwbar", "mako", "swayidle", NULL};
+        const char *svcs[] = {"labwc", "zigshell-cairo-pango", "mako", "swayidle", NULL};
         for (int i = 0; svcs[i]; i++) {
             char check[128];
             snprintf(check, sizeof(check), "pgrep -x %s >/dev/null 2>&1", svcs[i]);
@@ -542,11 +542,11 @@ static gpointer update_check_worker(gpointer user_data) {
         }
     } else { g_error_free(e); }
 
-    /* Check sfwbar */
-    log_msg("Checking sfwbar...");
+    /* Check zigshell-cairo-pango */
+    log_msg("Checking zigshell-cairo-pango...");
     e = NULL; out = NULL;
-    gchar *argv_sfwbar[] = {"/bin/sh", "-c", "curl -sL 'https://api.github.com/repos/LBCrion/sfwbar/releases/latest' 2>/dev/null | grep '\"tag_name\"' | head -1 | sed 's/.*\"tag_name\": \"\\(.*\\)\".*/\\1/'", NULL};
-    if (g_spawn_sync(NULL, argv_sfwbar, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out, NULL, NULL, &e)) {
+    gchar *argv_zigshell[] = {"/bin/sh", "-c", "curl -sL 'https://api.github.com/repos/LBCrion/zigshell-cairo-pango/releases/latest' 2>/dev/null | grep '\"tag_name\"' | head -1 | sed 's/.*\"tag_name\": \"\\(.*\\)\".*/\\1/'", NULL};
+    if (g_spawn_sync(NULL, argv_zigshell, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out, NULL, NULL, &e)) {
         char buf[128] = {0};
         if (out) {
             strncpy(buf, out, sizeof(buf) - 1);
@@ -554,16 +554,16 @@ static gpointer update_check_worker(gpointer user_data) {
             g_free(out);
         }
         if (buf[0]) {
-            log_msg("  Latest sfwbar: %s", buf);
+            log_msg("  Latest zigshell-cairo-pango: %s", buf);
         } else {
-            log_msg("  Could not fetch latest sfwbar version");
+            log_msg("  Could not fetch latest zigshell-cairo-pango version");
         }
     } else { g_error_free(e); }
 
     /* Check OCWS repo */
     log_msg("Checking OCWS...");
     e = NULL; out = NULL;
-    gchar *argv_ocws[] = {"/bin/sh", "-c", "curl -sL 'https://api.github.com/repos/naranyala/labwc-fuzzel-sfwbar/commits?per_page=1' 2>/dev/null | grep '\"sha\"' | head -1 | sed 's/.*\"sha\": \"\\(.*\\)\".*/\\1/' | head -c 7", NULL};
+    gchar *argv_ocws[] = {"/bin/sh", "-c", "curl -sL 'https://api.github.com/repos/naranyala/labwc-fuzzel-zigshell-cairo-pango/commits?per_page=1' 2>/dev/null | grep '\"sha\"' | head -1 | sed 's/.*\"sha\": \"\\(.*\\)\".*/\\1/' | head -c 7", NULL};
     if (g_spawn_sync(NULL, argv_ocws, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, &out, NULL, NULL, &e)) {
         char buf[64] = {0};
         if (out) {
@@ -612,15 +612,15 @@ static gpointer update_engine_worker(gpointer user_data) {
             "pkexec ninja -C build install 2>&1 && "
             "cd /tmp && rm -rf _ocws-labwc-update");
         run_cmd_logged(cmd);
-    } else if (strcmp(engine, "sfwbar") == 0) {
+    } else if (strcmp(engine, "zigshell-cairo-pango") == 0) {
         snprintf(cmd, sizeof(cmd),
-            "cd /tmp && rm -rf _ocws-sfwbar-update && "
-            "git clone --depth=1 https://github.com/LBCrion/sfwbar.git _ocws-sfwbar-update && "
-            "cd _ocws-sfwbar-update && "
+            "cd /tmp && rm -rf _ocws-zigshell-cairo-pango-update && "
+            "git clone --depth=1 https://github.com/LBCrion/zigshell-cairo-pango.git _ocws-zigshell-cairo-pango-update && "
+            "cd _ocws-zigshell-cairo-pango-update && "
             "meson setup build --prefix=/usr/local --buildtype=release 2>&1 && "
             "ninja -C build 2>&1 && "
             "pkexec ninja -C build install 2>&1 && "
-            "cd /tmp && rm -rf _ocws-sfwbar-update");
+            "cd /tmp && rm -rf _ocws-zigshell-cairo-pango-update");
         run_cmd_logged(cmd);
     }
 
@@ -636,7 +636,7 @@ static void on_update_engine(GtkWidget *widget, gpointer data) {
 
 static gpointer update_all_worker(gpointer user_data) {
     (void)user_data;
-    const char *engines[] = {"labwc", "sfwbar", "ocws"};
+    const char *engines[] = {"labwc", "zigshell-cairo-pango", "ocws"};
     for (int i = 0; i < 3; i++) {
         update_engine_worker((gpointer)engines[i]);
     }
@@ -914,9 +914,9 @@ static void activate(GtkApplication *app, gpointer user_data) {
     g_signal_connect(update_labwc_btn, "clicked", G_CALLBACK(on_update_engine), (gpointer)"labwc");
     gtk_box_pack_start(GTK_BOX(update_action_row), update_labwc_btn, TRUE, TRUE, 0);
 
-    GtkWidget *update_sfwbar_btn = gtk_button_new_with_label("Update sfwbar");
-    g_signal_connect(update_sfwbar_btn, "clicked", G_CALLBACK(on_update_engine), (gpointer)"sfwbar");
-    gtk_box_pack_start(GTK_BOX(update_action_row), update_sfwbar_btn, TRUE, TRUE, 0);
+    GtkWidget *update_zigshell_btn = gtk_button_new_with_label("Update zigshell-cairo-pango");
+    g_signal_connect(update_zigshell_btn, "clicked", G_CALLBACK(on_update_engine), (gpointer)"zigshell-cairo-pango");
+    gtk_box_pack_start(GTK_BOX(update_action_row), update_zigshell_btn, TRUE, TRUE, 0);
 
     GtkWidget *update_all_btn = gtk_button_new_with_label("Update All");
     g_signal_connect(update_all_btn, "clicked", G_CALLBACK(on_update_all), NULL);

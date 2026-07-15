@@ -3,10 +3,10 @@ set -euo pipefail
 
 # ocws-icon-picker — Pick icon theme using rofi
 # Lists all available icon themes and lets user select one
-# Updates crystal-dock, GTK3, GTK4, and qt6ct simultaneously
+# Updates zigshell-cairo-pango, GTK3, GTK4, and qt6ct simultaneously
 
 OCWS_DIR="${OCWS_DIR:-$HOME/.config/ocws}"
-CRYSTAL_DOCK_DIR="$HOME/.config/crystal-dock"
+ZIGSHELL_DIR="$HOME/.config/zigshell-cairo-pango"
 GTK3_DIR="$HOME/.config/gtk-3.0"
 GTK4_DIR="$HOME/.config/gtk-4.0"
 QTCT_DIR="$HOME/.config/qt6ct"
@@ -43,7 +43,7 @@ collect_themes() {
 
 # --- Get current theme ---
 get_current_theme() {
-    grep "iconTheme=" "$CRYSTAL_DOCK_DIR/labwc/appearance.conf" 2>/dev/null | cut -d= -f2 || echo "Adwaita"
+    grep "iconTheme=" "$ZIGSHELL_DIR/labwc/appearance.conf" 2>/dev/null | cut -d= -f2 || echo "Adwaita"
 }
 
 # --- Apply theme to all surfaces ---
@@ -52,10 +52,10 @@ apply_theme() {
     
     echo -e "${CYAN}Applying icon theme: $theme${NC}"
     
-    # Crystal Dock
-    if [[ -f "$CRYSTAL_DOCK_DIR/labwc/appearance.conf" ]]; then
-        sed -i "s/^iconTheme=.*/iconTheme=$theme/" "$CRYSTAL_DOCK_DIR/labwc/appearance.conf"
-        pass "crystal-dock: $theme"
+    # Zigshell-cairo-pango
+    if [[ -f "$ZIGSHELL_DIR/labwc/appearance.conf" ]]; then
+        sed -i "s/^iconTheme=.*/iconTheme=$theme/" "$ZIGSHELL_DIR/labwc/appearance.conf"
+        pass "zigshell-cairo-pango: $theme"
     fi
     
     # GTK3
@@ -84,7 +84,7 @@ apply_theme() {
     
     echo ""
     echo -e "${GREEN}Icon theme changed to: $theme${NC}"
-    echo "Restart crystal-dock to apply: pkill -9 -x crystal-dock && nohup crystal-dock --start --overlay &"
+    echo "Restart zigshell-cairo-pango to apply: pkill -9 -x zigshell-cairo-pango && nohup zigshell-cairo-pango --start --overlay &"
 }
 
 # --- Preview icons from theme ---

@@ -1,7 +1,7 @@
 # OCWS Settings Panel Design
 
 ## Philosophy
-Inspired by DMS (DankMaterialShell) and Noctalia, but adapted for OCWS's C + sfwbar architecture. Uses GTK3 native widgets with OCWS CSS styling for glassmorphic appearance.
+Inspired by DMS (DankMaterialShell) and Noctalia, but adapted for OCWS's C + zigshell-cairo-pango architecture. Uses GTK3 native widgets with OCWS CSS styling for glassmorphic appearance.
 
 ## Architecture
 ```
@@ -175,7 +175,7 @@ ocws-settings (GTK3 app)
 | OCWS Version | Info | Current version |
 | Build Info | Info | C compiler, flags, date |
 | Compositor | Info | labwc version |
-| Bar Engine | Info | sfwbar version |
+| Bar Engine | Info | zigshell-cairo-pango version |
 | Contributors | List | Project contributors |
 | License | Info | MIT License |
 | Links | Buttons | GitHub, Documentation, Report Issue |
@@ -236,12 +236,12 @@ char *value = ocws_kv_get("bar.transparency");
 ocws_kv_set("bar.transparency", "0.85");
 
 // Apply setting (shell command)
-system("sfwbar-cmd bar-config topbar transparency 0.85");
+system("zigshell-cairo-pango-cmd bar-config topbar transparency 0.85");
 ```
 
 ### 2. Live Preview
 - Theme changes: Apply immediately via `theme-engine.sh apply`
-- Bar changes: Use `sfwbar-cmd` or IPC to update live
+- Bar changes: Use `zigshell-cairo-pango-cmd` or IPC to update live
 - Widget changes: Toggle widget visibility via CSS class
 
 ### 3. File Locations

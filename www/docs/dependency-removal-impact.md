@@ -54,8 +54,8 @@ What each component provides and what breaks if removed.
 ### Config shipped
 - `dotfiles/noctalia/config.toml` (473 lines) — full noctalia config
 - `/home/naranyala/.config/noctalia/config.toml` — live active config
-- `/home/naranyala/.config/sfwbar/noctalia.css` (433 lines) — **SFWBar theme only, no binary dependency**
-- `/home/naranyala/.config/sfwbar/sfwbar-noctalia.config` — **SFWBar layout only, no binary dependency**
+- `/home/naranyala/.config/zigshell-cairo-pango/noctalia.css` (433 lines) — **ZIGSHELL-CAIRO-PANGO theme only, no binary dependency**
+- `/home/naranyala/.config/zigshell-cairo-pango/zigshell-cairo-pango-noctalia.config` — **ZIGSHELL-CAIRO-PANGO layout only, no binary dependency**
 - `/home/naranyala/build/noctalia-src/` — source tree (already compiled)
 
 ### Desktop entry
@@ -66,31 +66,52 @@ What each component provides and what breaks if removed.
 ## crystal-dock
 
 ### Runtime — what breaks immediately
-- Shell modes `crystal` and `both` break in `labwc-shell-wrapper` and `toggle-shell`
-- `shell-mode-picker.sh` loses the "SFWBar + Crystal Dock" option
-- `/home/naranyala/.config/autostart/crystal-dock.desktop` launches missing binary
-- `scripts/actions/maintenance.sh` tries to restart crystal-dock
-- `compose-fixes.sh` fails — tries to fix crystal-dock `appearance.conf`
+- `labwc-shell-wrapper` `crystal` mode branch — already redirected to `zigshell-cairo-pango`
+- `toggle-shell` — no `crystal` mode (was never a toggle-shell mode; safe)
+- `install.sh` mode `crystaldock` entry + build/deploy case — removed
+- `scripts/toggle-dock` `crystal` dock target — renamed to `zigshell-cairo-pango`
+- `scripts/actions/shell-mode.sh` `crystal` alias — removed
+- `scripts/dock-sync.py` `crystaldock` parser — now reads `~/.config/zigshell-cairo-pango/panel_1.conf`
+
+### Config shipped (safe to delete)
+- `dotfiles/crystal-dock/` — full crystal-dock config
+- `dotfiles/ocws/modes/crystaldock.mode`
+- `sources/crystal-dock/` — upstream source tree
+
+### Notes
+- crystal-dock was the original default paired with zigshell-cairo-pango. Its panel/dock
+  role is fully covered by `zigshell-cairo-pango` (same `~/.config/zigshell-cairo-pango/panel_1.conf`).
+
+---
+
+## zigshell-cairo-pango
+
+### Runtime — what breaks immediately
+- Shell mode `both` (labwc-shell-wrapper) — starts two zigshell-cairo-pango instances; keep or repoint
+- `shell-mode-picker.sh` loses the "ZIGSHELL-CAIRO-PANGO + Zigshell-cairo-pango" option
+- `/home/naranyala/.config/autostart/zigshell-cairo-pango.desktop` launches missing binary
+- `scripts/actions/maintenance.sh` tries to restart zigshell-cairo-pango
+- `compose-fixes.sh` fails — tries to fix zigshell-cairo-pango `appearance.conf`
 
 ### rc.xml + menu (live config)
-- `<application class="crystal-dock">` — skip_taskbar/skip_pager rule
-- Menu entry `Launch Crystal Dock` in `menu.xml`
+- `<application class="zigshell-cairo-pango">` — skip_taskbar/skip_pager rule
+- Menu entry `Launch Zigshell-cairo-pango` in `menu.xml`
 - Present in all presets (`default.xml`, `super.xml`)
 
 ### shutdown
-- `pkill crystal-dock` in `~/.config/labwc/shutdown` — harmless no-op
+- `pkill zigshell-cairo-pango` in `~/.config/labwc/shutdown` — harmless no-op
 
 ### OCWS tools
-- `ocws-dock-mgr.c` — crystal-dock config parser (semicolon-delimited launcher format)
+- `ocws-dock-mgr.c` — zigshell-cairo-pango config parser (semicolon-delimited launcher format)
 - `ocws-welcome.c`, `ocws-pkgmgr.c` — references
 
 ### Integrations
-- `scripts/actions/icon-theme-picker.sh` — applies icon theme to crystal-dock + restarts it
-- `scripts/ocws-icon-picker.sh` — primary shell integration is crystal-dock (partially breaks)
+- `scripts/actions/icon-theme-picker.sh` — applies icon theme to zigshell-cairo-pango + restarts it
+- `scripts/ocws-icon-picker.sh` — primary shell integration is zigshell-cairo-pango (partially breaks)
 
 ### Config shipped (safe to delete)
-- `dotfiles/crystal-dock/panel_1.conf` (16 lines)
-- `dotfiles/crystal-dock/appearance.conf` (32 lines)
+- `dotfiles/zigshell-cairo-pango/panel_1.conf` (16 lines)
+- `dotfiles/zigshell-cairo-pango/appearance.conf` (32 lines)
 
 ---
 
@@ -119,4 +140,5 @@ And for specific components:
 |---|---|
 | **dankmaterialshell** | `scripts/actions/dock-pin-backup.sh`, `scripts/actions/dock-backup.sh`, `install.sh` mode 3 |
 | **noctalia** | `scripts/actions/dock-pin-backup.sh`, `scripts/actions/dock-backup.sh`, `install.sh` mode 4, `shell-switcher.sh` |
-| **crystal-dock** | `scripts/actions/dock-pin-backup.sh`, `scripts/ocws-icon-picker.sh`, `scripts/actions/icon-theme-picker.sh`, `compose-fixes.sh`, `install.sh` mode 2, `~/.config/autostart/crystal-dock.desktop` |
+| **crystal-dock** | `install.sh` mode 2, `scripts/toggle-dock`, `scripts/actions/shell-mode.sh`, `scripts/dock-sync.py`, `dotfiles/crystal-dock/`, `dotfiles/ocws/modes/crystaldock.mode` |
+| **zigshell-cairo-pango** | `scripts/actions/dock-pin-backup.sh`, `scripts/ocws-icon-picker.sh`, `scripts/actions/icon-theme-picker.sh`, `compose-fixes.sh`, `~/.config/autostart/zigshell-cairo-pango.desktop` |

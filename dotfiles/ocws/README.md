@@ -1,6 +1,6 @@
 # OCWS Widget Suite
 
-A comprehensive collection of native sfwbar widgets with real system integration. Each widget is a self-contained `.widget` file using sfwbar's `#Api2` syntax.
+A comprehensive collection of native zigshell-cairo-pango widgets with real system integration. Each widget is a self-contained `.widget` file using zigshell-cairo-pango's `#Api2` syntax.
 
 ---
 
@@ -13,10 +13,10 @@ OCWS uses a modular mode system. Each mode is an entry point in `modes/*.mode` t
 ./install.sh
 
 # Restart the shell (example: dual mode)
-pkill sfwbar && sfwbar -f ~/.config/ocws/modes/dual.mode &
+pkill zigshell-cairo-pango && zigshell-cairo-pango -f ~/.config/ocws/modes/dual.mode &
 
 # Or use the mode switcher
-sfwbar-mode start dual
+zigshell-cairo-pango-mode start dual
 ```
 
 ---
@@ -29,9 +29,9 @@ sfwbar-mode start dual
 | `single` | `modes/single.mode` | Single top statusbar with all widgets |
 | `minimal` | `modes/minimal.mode` | Minimal top bar (clock, volume, battery, tray) |
 | `compact` | `modes/compact.mode` | Single bar with integrated taskbar + dock icons |
-| `island` | `modes/island.mode` | Dynamic island (requires patched sfwbar) |
+| `island` | `modes/island.mode` | Dynamic island (requires patched zigshell-cairo-pango) |
 | `desktop` | `modes/desktop.mode` | Desktop widgets only, no status bars |
-| `crystaldock` | `modes/crystaldock.mode` | Single statusbar + external crystal-dock (legacy) |
+| `zigshell-cairo-pango` | `modes/zigshell-cairo-pango.mode` | Single statusbar + external zigshell-cairo-pango (legacy) |
 
 ---
 
@@ -44,14 +44,14 @@ dotfiles/ocws/
   plugins.config           # Widget includes
   env.config               # Generated env overrides
 
-  modes/                   # Entry points (launch with sfwbar -f)
+  modes/                   # Entry points (launch with zigshell-cairo-pango -f)
     dual.mode              # Top + bottom bars + desktop
     single.mode            # Single top bar
     minimal.mode           # Minimal top bar
     compact.mode           # Integrated taskbar + dock
     island.mode            # Dynamic island
     desktop.mode           # Desktop widgets only
-    crystaldock.mode       # Statusbar + crystal-dock
+    zigshell-cairo-pango.mode       # Statusbar + zigshell-cairo-pango
 
   bars/                    # Bar definitions
     statusbar.config       # Top statusbar
@@ -79,7 +79,7 @@ dotfiles/ocws/
 | Workspaces | `workspaces.widget` | Pager-based workspace switcher | Compositor IPC (wlr-workspace) |
 | Clock | `clock.widget` | Time display with calendar popup | Built-in `Time()` |
 | System Tray | `tray.widget` | Tray icons | StatusNotifierItem |
-| Show Desktop | `showdesktop.widget` | Toggle show desktop | sfwbar `ToggleDesktop()` |
+| Show Desktop | `showdesktop.widget` | Toggle show desktop | zigshell-cairo-pango `ToggleDesktop()` |
 | Dock | `dock.widget` | Pinned application dock | Desktop entries |
 | Keybinds | `keybinds.widget` | Keyboard shortcut reference | Static |
 
@@ -102,8 +102,8 @@ dotfiles/ocws/
 | Media Player | `media-player.widget` | Now-playing display (MPRIS) | `playerctl` |
 | Media Controls | `media.widget` | Compact controls (prev/play/next) | `playerctl` |
 | Bluetooth | `bluetooth.widget` | Bluetooth device status | `ocws-sysmon.source` |
-| WiFi | `wifi.widget` | WiFi connection management | sfwbar network module |
-| WiFi Secret | `wifi-secret.widget` | WiFi password entry | sfwbar network module |
+| WiFi | `wifi.widget` | WiFi connection management | zigshell-cairo-pango network module |
+| WiFi Secret | `wifi-secret.widget` | WiFi password entry | zigshell-cairo-pango network module |
 
 ### System Control
 
@@ -114,7 +114,7 @@ dotfiles/ocws/
 | Clipboard | `clipboard.widget` | Clipboard history | `wl-paste` / cliphist |
 | Quick Settings | `quick-settings.widget` | One-click toggles | Various |
 | Power Profile | `power-profile.widget` | Performance/balanced/saver modes | `powerprofilesctl` |
-| Keyboard Layout | `keyboard-layout.widget` | Current layout indicator | sfwbar xkbmap module |
+| Keyboard Layout | `keyboard-layout.widget` | Current layout indicator | zigshell-cairo-pango xkbmap module |
 | Night Light | `nightlight.widget` | Blue light filter toggle | `gammastep` |
 
 ### System Monitoring
@@ -125,15 +125,15 @@ dotfiles/ocws/
 | CPU Monitor | `cpu-monitor.widget` | Detailed CPU stats | `/proc/stat` |
 | Memory Monitor | `memory-monitor.widget` | Detailed memory breakdown | `/proc/meminfo` |
 | Disk | `disk.widget` | Disk usage and I/O | `df`, `/proc/diskstats` |
-| Notification Center | `notification-center.widget` | Notification history | sfwbar ncenter module |
+| Notification Center | `notification-center.widget` | Notification history | zigshell-cairo-pango ncenter module |
 
 ### Other
 
 | Widget | File | Description | Data Source |
 |--------|------|-------------|-------------|
 | Weather | `weather.widget` | Current weather conditions | Open-Meteo API |
-| Idle Inhibit | `idle-inhibit.widget` | Prevent screen blank | sfwbar idleinhibit module |
-| Privacy | `privacy.widget` | Mic/camera usage indicators | sfwbar pipewire module |
+| Idle Inhibit | `idle-inhibit.widget` | Prevent screen blank | zigshell-cairo-pango idleinhibit module |
+| Privacy | `privacy.widget` | Mic/camera usage indicators | zigshell-cairo-pango pipewire module |
 | Custom Script | `custom-script.widget` | Template for custom widgets | User-defined |
 
 ---
@@ -204,7 +204,7 @@ The consolidated `ocws.css` provides a glassmorphism theme with:
 
 Required for all widgets:
 
-- `sfwbar` (built from source)
+- `zigshell-cairo-pango` (built from source)
 - `wayland` compositor with layer-shell support
 
 Optional (for specific widgets):
@@ -226,7 +226,7 @@ Optional (for specific widgets):
 3. Update the parser (RegEx/Extract) to extract your data
 4. Customize the display (icon, label, progress bar)
 5. Add a popup panel for detailed view
-6. Place in `~/.config/ocws/plugins/` and restart sfwbar
+6. Place in `~/.config/ocws/plugins/` and restart zigshell-cairo-pango
 
 Example:
 

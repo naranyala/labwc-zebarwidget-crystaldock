@@ -103,8 +103,8 @@ register "theme/font-scale"      "$PROJECT_DIR/scripts/font-scale.sh"
 register "shell/mode"            "$SCRIPT_DIR/shell-mode-picker.sh"
 register "shell/reload"          "labwc:super+shift+c"
 register "shell/configure"       "$PROJECT_DIR/scripts/ocws-configure.sh"
-register "shell/dock-test"       "$PROJECT_DIR/scripts/sfwbar-dock-test.sh start"
-register "shell/dock-stop"       "$PROJECT_DIR/scripts/sfwbar-dock-test.sh stop"
+register "shell/dock-test"       "$PROJECT_DIR/scripts/zigshell-cairo-pango-dock-test.sh start"
+register "shell/dock-stop"       "$PROJECT_DIR/scripts/zigshell-cairo-pango-dock-test.sh stop"
 
 # Maintenance
 register "maint/backup"          "$PROJECT_DIR/scripts/backup.sh"
@@ -117,8 +117,8 @@ register "maint/dock-save"       "$SCRIPT_DIR/dock-pin-backup.sh save"
 register "maint/dock-load"       "$SCRIPT_DIR/dock-pin-backup.sh load"
 register "maint/dock-list"       "$SCRIPT_DIR/dock-pin-backup.sh list"
 register "maint/dock-mgr"        "ocws-dock-mgr"
-register "maint/dock-test"       "$PROJECT_DIR/scripts/sfwbar-dock-test.sh start"
-register "maint/dock-stop"       "$PROJECT_DIR/scripts/sfwbar-dock-test.sh stop"
+register "maint/dock-test"       "$PROJECT_DIR/scripts/zigshell-cairo-pango-dock-test.sh start"
+register "maint/dock-stop"       "$PROJECT_DIR/scripts/zigshell-cairo-pango-dock-test.sh stop"
 
 # ============================================================
 # Build sorted menu

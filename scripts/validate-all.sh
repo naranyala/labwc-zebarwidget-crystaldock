@@ -6,7 +6,7 @@
 # Usage:
 #   validate-all              Run all validators
 #   validate-all --quick      Run fast validators only (themes, build)
-#   validate-all <name>       Run specific validator (themes|build|widgets|sfwbar|contract)
+#   validate-all <name>       Run specific validator (themes|build|widgets|zigshell-cairo-pango|contract)
 # -------------------------------------------------------------------
 
 set -euo pipefail
@@ -50,7 +50,7 @@ fi
 
 # Run validators
 failed=0
-for v in themes build widgets sfwbar contract; do
+for v in themes build widgets zigshell-cairo-pango contract; do
     if [[ "$specific" == "--quick" && "$v" != "themes" && "$v" != "build" ]]; then
         continue
     fi

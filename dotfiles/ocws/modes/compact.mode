@@ -1,6 +1,8 @@
 #Api2
+
+# Renderer: use the glib-free zigshell instead of zigshell-cairo-pango
+Shell = "zigshell-cairo-pango"
 # compact.mode — Single bar with integrated taskbar + dock icons
-# Launch: sfwbar -f modes/compact.mode
 
 # --- Common Infrastructure ---
 include("../ocws.config")

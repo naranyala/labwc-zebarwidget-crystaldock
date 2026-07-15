@@ -189,8 +189,8 @@
   </mouse>
 
   <applications>
-    <!-- crystal-dock: layer shell, bottom, full width -->
-    <application class="crystal-dock">
+    <!-- zigshell-cairo-pango: layer shell, bottom, full width -->
+    <application class="zigshell-cairo-pango">
       <skip_taskbar>yes</skip_taskbar>
       <skip_pager>yes</skip_pager>
       <fixed_position>yes</fixed_position>

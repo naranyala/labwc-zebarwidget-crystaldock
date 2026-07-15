@@ -71,7 +71,7 @@ static void rebuild_menu(void) {
 int main(void) {
     /* Register the background processes this session manages. */
     ocws_proc_add("Equalizer",  "ocws-equalizer &");
-    ocws_proc_add("Dock",       "sfwbar &");
+    ocws_proc_add("Dock",       "zigshell-cairo-pango &");
     ocws_proc_add("Idleness",   "swayidle &");
 
     tray.icon = "audio-volume-high";

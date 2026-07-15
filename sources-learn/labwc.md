@@ -29,7 +29,7 @@ low-level Wayland compositor library. It supports all standard `wayland-protocol
 
 ### No Built-in Panels or Launchers
 labwc deliberately has no panel, launcher, wallpaper, or screenshot tool. Those are handled by
-external clients — in OCWS: sfwbar (panel), fuzzel (launcher), swaybg (wallpaper).
+external clients — in OCWS: zigshell-cairo-pango (panel), fuzzel (launcher), swaybg (wallpaper).
 
 ---
 
@@ -108,8 +108,8 @@ if command -v swaybg >/dev/null 2>&1; then
     swaybg -i "$WP_FILE" -m fill &
 fi
 
-# Start the sfwbar panel
-sfwbar &
+# Start the zigshell-cairo-pango panel
+zigshell-cairo-pango &
 
 # Notification daemon
 mako &
@@ -223,8 +223,8 @@ WP_DIR="$HOME/Pictures/wallpapers"
 WP_FILE=$(find "$WP_DIR" -type f \( -iname "*.jpg" -o -iname "*.png" \) | shuf -n 1)
 swaybg -i "$WP_FILE" -m fill &
 
-# Start the sfwbar panel
-sfwbar &
+# Start the zigshell-cairo-pango panel
+zigshell-cairo-pango &
 
 # Notification daemon
 mako &
@@ -287,8 +287,8 @@ if command -v swaybg >/dev/null 2>&1; then
     swaybg -i "$WP_FILE" -m fill &
 fi
 
-# Start the sfwbar panel
-sfwbar &
+# Start the zigshell-cairo-pango panel
+zigshell-cairo-pango &
 
 # Notification daemon
 mako &
@@ -303,7 +303,7 @@ swayidle -w timeout 300 'swaylock -f' &
 ```bash
 cat > ~/.config/labwc/autostart << 'EOF'
 # Essential components only
-sfwbar &
+zigshell-cairo-pango &
 EOF
 ```
 
@@ -317,7 +317,7 @@ swaybg -i ~/.config/ocws/wallpaper &
 foot &
 
 # Panel
-sfwbar &
+zigshell-cairo-pango &
 
 # Control Center
 ./scripts/actions/launcher.sh &
@@ -476,7 +476,7 @@ EOF
 | OCWS File | labwc Role |
 |-----------|-----------|
 | `dotfiles/labwc/rc.xml` | Keybindings, window rules, theme selection |
-| `dotfiles/labwc/autostart` | Boots sfwbar, ocws-daemon, swaybg, mako |
+| `dotfiles/labwc/autostart` | Boots zigshell-cairo-pango, ocws-daemon, swaybg, mako |
 | `dotfiles/labwc/environment` | Sets `WAYLAND_DISPLAY`, `XDG_CURRENT_DESKTOP`, etc. |
 | `dotfiles/labwc/themerc-override` | Applies OCWS glassmorphic window border colors |
 | `dotfiles/labwc/menu.xml` | Right-click desktop menu with OCWS actions |
@@ -568,7 +568,7 @@ chmod +x ~/.config/labwc/autostart
 ~/.config/labwc/autostart
 
 # Check if dependencies are installed
-command -v sfwbar || echo "sfwbar not found"
+command -v zigshell-cairo-pango || echo "zigshell-cairo-pango not found"
 command -v swaybg || echo "swaybg not found"
 ```
 
@@ -665,12 +665,12 @@ set -euo pipefail
 
 # Install dependencies
 if command -v pacman >/dev/null; then
-    sudo pacman -S labwc sfwbar fuzzel gtk-layer-shell \
+    sudo pacman -S labwc zigshell-cairo-pango fuzzel gtk-layer-shell \
                 pipewire wireplumber libpulse brightnessctl \
                 swaybg wl-clipboard cliphist mako
 elif command -v apt-get >/dev/null; then
     sudo apt-get update
-    sudo apt-get install labwc sfwbar fuzzel libgtk-3-0 \
+    sudo apt-get install labwc zigshell-cairo-pango fuzzel libgtk-3-0 \
                         libgtk-layer-shell libjson-c3 \
                         pipewire wireplumber swaybg grim slurp
 fi
@@ -709,9 +709,9 @@ cd ~/projects
 git clone --depth=1 https://github.com/labwc/labwc.git
 sources/labwc
 
-# SFWBar
-git clone --depth=1 https://github.com/LBCrion/sfwbar.git
-sources/sfwbar
+# ZIGSHELL-CAIRO-PANGO
+git clone --depth=1 https://github.com/LBCrion/zigshell-cairo-pango.git
+sources/zigshell-cairo-pango
 
 # Fuzzel
 git clone --depth=1 https://codeberg.org/dnkl/fuzzel.git
@@ -803,7 +803,7 @@ This documentation is inspired by:
 - [Openbox theme specification](https://openbox.org/wiki/Documentation)
 - [Wayland and wlroots documentation](https://wayland.freedesktop.org/docs/)
 - [GTK3 and GTK4 documentation](https://developer.gnome.org/gtk3/stable/)
-- [SFWBar documentation](https://github.com/LBCrion/sfwbar)
+- [ZIGSHELL-CAIRO-PANGO documentation](https://github.com/LBCrion/zigshell-cairo-pango)
 - [Fuzzel documentation](https://codeberg.org/dnkl/fuzzel)
 
 OCWS contributors and the broader Wayland community for their amazing work!

@@ -188,7 +188,7 @@ cp settings.json ~/.local/share/quickshell/dms/settings.json
 Or use the OCWS default settings:
 
 ```bash
-cp /path/to/labwc-fuzzel-sfwbar/dotfiles/DankMaterialShell/settings.json \
+cp /path/to/labwc-fuzzel-zigshell-cairo-pango/dotfiles/DankMaterialShell/settings.json \
    ~/.local/share/quickshell/dms/settings.json
 ```
 

@@ -1,16 +1,21 @@
-# Plan: SFwbar Unification — Replace Noctalia & Crystal-Dock
+# Plan: Zigshell Unification — Replace Noctalia & Zigshell-cairo-pango
 
 ## Executive Summary
 
-**Goal**: Deprecate `noctalia` and `crystal-dock` external shells by achieving full feature parity with our custom `sfwbar`-based OCWS. Retain multi-shell switcher as fallback during transition, but eventually phase out external dependencies.
+**Goal**: Deprecate `noctalia` and `zigshell-cairo-pango` external shells by achieving full feature parity with our custom `zigshell-cairo-pango`-based OCWS. Retain multi-shell switcher as fallback during transition, but eventually phase out external dependencies.
 
-**Current State**: Three shell modes exist:
-- `crystal` — labwc + crystal-dock only
-- `sfwbar` — labwc + sfwbar only (double panel)
-- `both` — labwc + both sfwbar and crystal-dock (default)
+**Current State**: Shell modes exist:
+- `zigshell-cairo-pango` — labwc + zigshell-cairo-pango only (merged panel + dock)
+- `both` — labwc + zigshell-cairo-pango (doublepanel) + zigshell-cairo-pango (single binary, two instances)
+- `doublepanel` — labwc + double-panel zigshell-cairo-pango (top status bar + bottom dock/taskbar)
+- `minimal` — labwc + minimal zigshell-cairo-pango
 - `noctalia` — labwc + noctalia shell
+- `dms` — labwc + dankmaterialshell
+- `lxqt-*` — labwc + lxqt-panel variants with zigshell-cairo-pango
 
-**Target State**: Single mode — `ocws` (labwc + sfwbar OCWS only)
+> Note: the legacy `crystal` mode (crystal-dock) was removed; its role is covered by `zigshell-cairo-pango`.
+
+**Target State**: Single mode — `ocws` (labwc + zigshell-cairo-pango OCWS only)
 
 ---
 
@@ -24,9 +29,9 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 
 ## Phase 1: Feature Gap Analysis
 
-### 1.1 What Crystal-Dock Provides
+### 1.1 What Zigshell-cairo-pango Provides
 
-| Feature | Crystal-Dock | OCWS Current | Gap |
+| Feature | Zigshell-cairo-pango | OCWS Current | Gap |
 |---------|--------------|--------------|-----|
 | Dock-style launcher |  Pinned app icons |  `dock.widget` + `dock-apps.widget` | Done |
 | Magnification effect |  Mac-like zoom |  Not supported | **NEED** |
@@ -79,7 +84,7 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 
 ### 2.2 Technical Approach
 
-**Option A: Pure sfwbar widget**
+**Option A: Pure zigshell-cairo-pango widget**
 - Use `button` widgets with icon images
 - CSS `transform: scale()` for magnification (GTK3 supports basic transforms)
 - `Exec()` action for launching apps
@@ -90,7 +95,7 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 - Custom rendering for smooth magnification
 - Better performance than CSS transforms
 
-**Recommendation**: Start with Option A (sfwbar widget), migrate to Option B if performance is insufficient.
+**Recommendation**: Start with Option A (zigshell-cairo-pango widget), migrate to Option B if performance is insufficient.
 
 ### 2.3 Implementation Steps
 
@@ -119,7 +124,7 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 - Transparent background
 - Draggable (optional)
 
-**sfwbar integration:**
+**zigshell-cairo-pango integration:**
 - Widget files with `layer = "background"` or `layer = "overlay"`
 - Configurable position and size
 
@@ -157,9 +162,9 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 
 **Approach**:
 - `gtk-layer-shell` supports `blur` region
-- sfwbar doesn't expose blur API directly
+- zigshell-cairo-pango doesn't expose blur API directly
 - **Option A**: Use `ocws-live-bg` for background blur
-- **Option B**: Patch sfwbar to support blur (complex)
+- **Option B**: Patch zigshell-cairo-pango to support blur (complex)
 - **Option C**: Accept CSS-only translucency (simpler, less resource-intensive)
 
 **Recommendation**: Option C (CSS-only) for now. Real blur is complex and may not be worth the effort.
@@ -170,15 +175,14 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 
 ### 5.1 Current Switcher Scripts
 
-- `toggle-shell` — Simple switcher (crystal/sfwbar/both/noctalia)
-- `shell-switcher.sh` — Complex switcher (double_panel/crystal_dock/noctalia)
+- `toggle-shell` — Simple switcher (zigshell-cairo-pango/doublepanel/minimal/both/noctalia/dms/lxqt-*)
+- `shell-switcher.sh` — Complex switcher (reads `~/.config/ocws/mode`, defaults to zigshell-cairo-pango)
 - `labwc-shell-wrapper` — Legacy wrapper
 
 ### 5.2 Target Switcher
 
 Single script: `ocws-shell` with modes:
-- `ocws` — labwc + sfwbar OCWS (default, recommended)
-- `legacy-crystal` — labwc + crystal-dock (deprecated)
+- `ocws` — labwc + zigshell-cairo-pango OCWS (default, recommended)
 - `legacy-noctalia` — labwc + noctalia (deprecated)
 
 ### 5.3 Implementation Steps
@@ -186,7 +190,7 @@ Single script: `ocws-shell` with modes:
 1. Create `scripts/ocws-shell` with mode selection
 2. Update `dotfiles/labwc/autostart` to use `ocws-shell`
 3. Deprecate `toggle-shell`, `shell-switcher.sh`, `labwc-shell-wrapper`
-4. Remove crystal-dock and noctalia from optional dependencies
+4. Remove zigshell-cairo-pango and noctalia from optional dependencies
 
 ---
 
@@ -199,15 +203,15 @@ Single script: `ocws-shell` with modes:
 | Month 1 | Dock widget implemented, desktop widgets beta |
 | Month 2 | Animation polish, glassmorphism finalized |
 | Month 3 | Mode switcher updated, deprecation warnings added |
-| Month 4 | Remove crystal-dock from autostart |
+| Month 4 | Remove zigshell-cairo-pango from autostart |
 | Month 5 | Remove noctalia from autostart |
 | Month 6 | Remove legacy modes from switcher |
 
 ### 6.2 Removal Checklist
 
-- [ ] Remove `dotfiles/crystal-dock/` directory
+- [ ] Remove `dotfiles/zigshell-cairo-pango/` directory
 - [ ] Remove `dotfiles/noctalia/` directory
-- [ ] Remove crystal-dock from `install-dependencies.sh`
+- [ ] Remove zigshell-cairo-pango from `install-dependencies.sh`
 - [ ] Remove noctalia from `install-dependencies.sh`
 - [ ] Update `install.sh` to skip legacy configs
 - [ ] Update `validate.sh` to check OCWS-only mode
@@ -219,7 +223,7 @@ Single script: `ocws-shell` with modes:
 
 ### 7.1 Feature Parity Tests
 
-| Test | Crystal-Dock | Noctalia | OCWS |
+| Test | Zigshell-cairo-pango | Noctalia | OCWS |
 |------|--------------|----------|------|
 | Launch app from dock |  | N/A |  |
 | Magnification effect |  | N/A | ️ |
@@ -232,7 +236,7 @@ Single script: `ocws-shell` with modes:
 
 ### 7.2 Performance Benchmarks
 
-| Metric | Crystal-Dock | Noctalia | OCWS Target |
+| Metric | Zigshell-cairo-pango | Noctalia | OCWS Target |
 |--------|--------------|----------|-------------|
 | Memory usage | ~40MB | ~40MB | <30MB |
 | Startup time | ~1s | ~1s | <0.5s |
@@ -243,7 +247,7 @@ Single script: `ocws-shell` with modes:
 
 ## Risk Mitigation
 
-1. **Keep fallback modes** — Don't remove crystal-dock/noctalia until OCWS reaches parity
+1. **Keep fallback modes** — Don't remove zigshell-cairo-pango/noctalia until OCWS reaches parity
 2. **Incremental rollout** — Implement one feature at a time, test thoroughly
 3. **Performance monitoring** — Track memory/CPU usage during development
 4. **User feedback** — Get community input before deprecating popular features
@@ -257,7 +261,7 @@ Single script: `ocws-shell` with modes:
 - [x] Desktop widgets (clock, weather, sysmon)
 - [ ] Animation polish matching Noctalia
 - [ ] Single-mode switcher (`ocws-shell`)
-- [ ] Crystal-dock and noctalia removed from autostart
+- [ ] Zigshell-cairo-pango-dock and noctalia removed from autostart
 - [ ] Performance benchmarks meet targets
 - [ ] All existing features preserved
 
@@ -265,8 +269,8 @@ Single script: `ocws-shell` with modes:
 
 ## References
 
-- `TODOS.md` — Phase 1.5: SFWBar Unification
+- `TODOS.md` — Phase 1.5: ZIGSHELL-CAIRO-PANGO Unification
 - `dotfiles/noctalia/config.toml` — Noctalia configuration reference
-- `dotfiles/crystal-dock/panel_1.conf` — Crystal-Dock configuration reference
+- `dotfiles/zigshell-cairo-pango/panel_1.conf` — Zigshell-cairo-pango configuration reference
 - `dotfiles/ocws/ocws.config` — Current OCWS configuration
 - `shell/OCWS.md` — OCWS design philosophy (if exists)

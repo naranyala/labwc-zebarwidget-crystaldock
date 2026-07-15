@@ -82,22 +82,22 @@ apply_theme() {
       pass "labwc reloaded" || true
   fi
 
-  # Restart sfwbar
-  if pidof sfwbar &>/dev/null; then
-    killall sfwbar 2>/dev/null
+  # Restart zigshell-cairo-pango
+  if pidof zigshell-cairo-pango &>/dev/null; then
+    killall zigshell-cairo-pango 2>/dev/null
     sleep 0.3
-    sfwbar &>/dev/null &
+    zigshell-cairo-pango &>/dev/null &
     disown
-    pass "sfwbar restarted"
+    pass "zigshell-cairo-pango restarted"
   fi
 
-  # Restart crystal-dock
-  if pidof crystal-dock &>/dev/null; then
-    killall crystal-dock 2>/dev/null
+  # Restart zigshell-cairo-pango
+  if pidof zigshell-cairo-pango &>/dev/null; then
+    killall zigshell-cairo-pango 2>/dev/null
     sleep 0.3
-    crystal-dock &>/dev/null &
+    zigshell-cairo-pango &>/dev/null &
     disown
-    pass "crystal-dock restarted"
+    pass "zigshell-cairo-pango restarted"
   fi
 
   echo "$name" > "$CURRENT_FILE"

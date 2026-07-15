@@ -151,9 +151,9 @@ set_wallpaper() {
                 
                 # Reload UI components to reflect new theme
                 command -v labwc >/dev/null 2>&1 && labwc -r 2>/dev/null || true
-                pkill -USR1 sfwbar 2>/dev/null || true
+                pkill -USR1 zigshell-cairo-pango 2>/dev/null || true
                 command -v makoctl >/dev/null 2>&1 && makoctl reload 2>/dev/null || true
-                if pidof crystal-dock >/dev/null; then killall crystal-dock; sleep 0.1; crystal-dock & disown; fi
+                if pidof zigshell-cairo-pango >/dev/null; then killall zigshell-cairo-pango; sleep 0.1; zigshell-cairo-pango & disown; fi
                 
                 # Update DankMaterialShell adaptive palette
                 if pgrep -x dms >/dev/null; then

@@ -1,0 +1,1355 @@
+const std = @import("std");
+const c = @import("c.zig").c;
+const toplevel = @import("toplevel.zig");
+const icon = @import("icon.zig");
+
+const PANEL_HEIGHT = 36;
+const MAX_TOPLEVELS = 64;
+const MAX_WIDGETS = 64;
+
+// ---- Widget System ----
+
+pub const WidgetType = enum {
+    workspaces,
+    toplevel_task,
+    launcher,
+    cpu,
+    mem,
+    temp,
+    disk,
+    battery,
+    volume,
+    network,
+    media,
+    clock,
+    power,
+    spacer,
+    kbindicator,
+    customcommand,
+    showdesktop,
+    worldclock,
+    backlight,
+};
+
+pub const Widget = struct {
+    wtype: WidgetType,
+    name: [64]u8,
+    side: u8, // 0 = left, 1 = right
+    cached_w: i32,
+
+    // measure: returns width needed
+    measure_fn: ?*const fn (*Widget, i32) i32 = null,
+    // draw: render at (x, y) with height h
+    draw_fn: ?*const fn (*Widget, *c.cairo_t, i32, i32, i32) void = null,
+    // update: refresh data from system
+    update_fn: ?*const fn (*Widget) void = null,
+    // click: handle click, return true if consumed
+    click_fn: ?*const fn (*Widget, u32, i32, i32) bool = null,
+
+    // Private data
+    priv: ?*anyopaque = null,
+
+    // Workspaces
+    ws_labels: [64]u8 = std.mem.zeroes([64]u8),
+
+    // CPU
+    cpu_prev_total: i32 = 0,
+    cpu_prev_idle: i32 = 0,
+    cpu_txt: [32]u8 = std.mem.zeroes([32]u8),
+
+    // Memory
+    mem_txt: [32]u8 = std.mem.zeroes([32]u8),
+
+    // Temperature
+    temp_txt: [32]u8 = std.mem.zeroes([32]u8),
+
+    // Disk
+    disk_txt: [32]u8 = std.mem.zeroes([32]u8),
+
+    // Battery
+    bat_lvl: i32 = -1,
+    bat_charging: bool = false,
+    bat_txt: [32]u8 = std.mem.zeroes([32]u8),
+
+    // Volume
+    vol_pct: i32 = 0,
+    vol_mute: bool = false,
+    vol_txt: [32]u8 = std.mem.zeroes([32]u8),
+
+    // Network
+    net_txt: [64]u8 = std.mem.zeroes([64]u8),
+
+    // Media
+    media_txt: [96]u8 = std.mem.zeroes([96]u8),
+    media_playing: bool = false,
+
+    // Clock
+    clock_fmt: [32]u8 = std.mem.zeroes([32]u8),
+    clock_txt: [64]u8 = std.mem.zeroes([64]u8),
+
+    // Launcher/Power
+    cmd: [128]u8 = std.mem.zeroes([128]u8),
+
+    // Spacer
+    spacer_w: i32 = 20,
+
+    // Keyboard layout indicator
+    kb_layouts: [256]u8 = std.mem.zeroes([256]u8),
+    kb_idx: i32 = 0,
+    kb_txt: [32]u8 = std.mem.zeroes([32]u8),
+
+    // Custom command
+    cc_out: [128]u8 = std.mem.zeroes([128]u8),
+
+    // World clock
+    wc_tz: [64]u8 = std.mem.zeroes([64]u8),
+    wc_label: [16]u8 = std.mem.zeroes([16]u8),
+
+    // Backlight
+    bl_lvl: i32 = -1,
+
+    // Network monitor
+    net_rx_prev: u64 = 0,
+    net_tx_prev: u64 = 0,
+    net_iface: [32]u8 = std.mem.zeroes([32]u8),
+    net_hist_rx: [16]f64 = std.mem.zeroes([16]f64),
+    net_hist_tx: [16]f64 = std.mem.zeroes([16]f64),
+};
+
+pub const PanelCtx = struct {
+    toplevels: []toplevel.ToplevelInfo,
+    count: *i32,
+    seat: ?*c.wl_seat,
+};
+
+// ---- Text Rendering Helpers ----
+
+pub fn widgetText(cr: *c.cairo_t, text: [*:0]const u8, x: i32, h: i32, font_desc: [*:0]const u8, r: f64, g: f64, b: f64) i32 {
+    return c.widget_text_c(cr, text, x, h, font_desc, r, g, b);
+}
+
+pub fn widgetIconGlyph(cr: *c.cairo_t, glyph: [*:0]const u8, x: i32, h: i32, r: f64, g: f64, b: f64) void {
+    c.widget_icon_glyph_c(cr, glyph, x, h, r, g, b);
+}
+
+// ---- Widget Measure/Draw Functions ----
+
+fn wsMeasure(w: *Widget, h: i32) i32 {
+    _ = h;
+    const len = std.mem.indexOfScalar(u8, &w.ws_labels, 0) orelse w.ws_labels.len;
+    return @intCast(len * 7 + 8);
+}
+
+fn wsDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    _ = widgetText(cr, @ptrCast(&w.ws_labels), x, h, "Sans 10", 0.6, 0.6, 0.7);
+}
+
+fn wsClick(w: *Widget, btn: u32, _: i32, _: i32) bool {
+    _ = w;
+    if (btn != 1) return false;
+    // Click on workspace label switches workspace via wlrctl or swaymsg
+    _ = c.system("wlrctl workgroup next");
+    return true;
+}
+
+fn tlMeasure(w: *Widget, h: i32) i32 {
+    if (w.priv == null) return 0;
+    const ctx: *PanelCtx = @ptrCast(@alignCast(w.priv.?));
+    const icon_size = h - 12;
+    if (ctx.count.* == 0) return 0;
+    return ctx.count.* * (icon_size + 4);
+}
+
+fn tlDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    if (w.priv == null) return;
+    const ctx: *PanelCtx = @ptrCast(@alignCast(w.priv.?));
+    const icon_size = h - 12;
+    const cy = y + @divTrunc(h - icon_size, 2);
+
+    for (0..@intCast(ctx.count.*)) |i| {
+        const icon_x = x + @as(i32, @intCast(i)) * (icon_size + 4);
+        const name_slice = ctx.toplevels[i].app_id[0..std.mem.indexOfScalar(u8, &ctx.toplevels[i].app_id, 0) orelse ctx.toplevels[i].app_id.len];
+        const title_slice = ctx.toplevels[i].title[0..std.mem.indexOfScalar(u8, &ctx.toplevels[i].title, 0) orelse ctx.toplevels[i].title.len];
+        const name = if (name_slice.len > 0) name_slice else title_slice;
+
+        const icon_surf = icon.load(@ptrCast(name.ptr), icon_size);
+
+        c.cairo_set_source_surface(cr, icon_surf, @floatFromInt(icon_x), @floatFromInt(cy));
+        c.cairo_paint(cr);
+
+        // Focus indicator
+        if (ctx.toplevels[i].focused) {
+            c.cairo_set_source_rgb(cr, 0.3, 0.5, 0.9);
+            c.cairo_rectangle(cr, @floatFromInt(icon_x + 2), @floatFromInt(h - 4), @floatFromInt(icon_size - 4), 2);
+            c.cairo_fill(cr);
+        }
+    }
+}
+
+fn tlClick(w: *Widget, btn: u32, lx: i32, ly: i32) bool {
+    _ = ly;
+    if (w.priv == null) return false;
+    const ctx: *PanelCtx = @ptrCast(@alignCast(w.priv.?));
+    // Here we hardcode h=36, icon_size=24
+    const icon_size = 24; 
+    const idx = @divTrunc(lx, icon_size + 4);
+    if (idx >= 0 and idx < ctx.count.*) {
+        const handle: ?*c.zwlr_foreign_toplevel_handle_v1 = @ptrCast(@alignCast(ctx.toplevels[@intCast(idx)].handle));
+        if (btn == 1) { // Left click
+            if (ctx.seat) |seat| {
+                _ = c.zwlr_foreign_toplevel_handle_v1_activate(handle, seat);
+            }
+        } else if (btn == 3 or btn == 274) { // Right or Middle click
+            _ = c.zwlr_foreign_toplevel_handle_v1_close(handle);
+        }
+        return true;
+    }
+    return false;
+}
+
+fn launcherMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 150;
+}
+
+fn launcherDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = w;
+    _ = y;
+    _ = widgetText(cr, "zigshell-cairo-pango", x + 4, h, "Sans Bold 11", 0.9, 0.9, 0.95);
+}
+
+fn launcherClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    // Launch the command (fuzzel by default)
+    _ = c.system(@ptrCast(&w.cmd));
+    return true;
+}
+
+fn cpuUpdate(w: *Widget) void {
+    const f = c.fopen("/proc/stat", "r") orelse return;
+    defer _ = c.fclose(f);
+    var line: [128]u8 = std.mem.zeroes([128]u8);
+    if (c.fgets(&line, line.len, f) != null) {
+        var u: i32 = 0;
+        var n: i32 = 0;
+        var s: i32 = 0;
+        var io_i: i32 = 0;
+        var irq: i32 = 0;
+        var sirq: i32 = 0;
+        _ = c.sscanf(&line, "cpu %d %d %d %d %*d %d %d", &u, &n, &s, &io_i, &irq, &sirq);
+        const idle = io_i;
+        const total = u + n + s + io_i + irq + sirq;
+        const dtotal = total - w.cpu_prev_total;
+        const didle = idle - w.cpu_prev_idle;
+        if (dtotal > 0) {
+            const pct = @divTrunc(100 * (dtotal - didle), dtotal);
+            _ = std.fmt.bufPrintZ(&w.cpu_txt, "CPU {d}%", .{pct}) catch {};
+        }
+        w.cpu_prev_total = total;
+        w.cpu_prev_idle = idle;
+    }
+}
+
+fn cpuMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 60;
+}
+
+fn cpuDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    const bar_w: f64 = 60.0;
+    const bar_h: f64 = @floatFromInt(h - 16);
+    const bar_y: f64 = @floatFromInt(y + 8);
+    c.cairo_set_source_rgb(cr, 0.15, 0.15, 0.2);
+    c.cairo_rectangle(cr, @floatFromInt(x), bar_y, bar_w, bar_h);
+    c.cairo_fill(cr);
+
+    var pct: f64 = 0;
+    if (c.sscanf(&w.cpu_txt, "CPU %lf%%", &pct) == 1) {
+        const fill_w = bar_w * pct / 100.0;
+        if (pct < 50.0) {
+            c.cairo_set_source_rgb(cr, 0.3, 0.8, 0.5);
+        } else if (pct < 80.0) {
+            c.cairo_set_source_rgb(cr, 0.9, 0.7, 0.2);
+        } else {
+            c.cairo_set_source_rgb(cr, 0.9, 0.2, 0.2);
+        }
+        c.cairo_rectangle(cr, @floatFromInt(x), bar_y, fill_w, bar_h);
+        c.cairo_fill(cr);
+    }
+    
+    _ = widgetText(cr, @ptrCast(&w.cpu_txt), x + 4, h, "Sans Bold 9", 1.0, 1.0, 1.0);
+}
+
+fn cpuClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system("foot btop &");
+    return true;
+}
+
+fn memUpdate(w: *Widget) void {
+    const f = c.fopen("/proc/meminfo", "r") orelse return;
+    defer _ = c.fclose(f);
+    var total: i64 = 0;
+    var avail: i64 = 0;
+    var k: [32]u8 = std.mem.zeroes([32]u8);
+    var v: i64 = 0;
+    while (c.fscanf(f, "%31s %ld kB", &k, &v) == 2) {
+        if (std.mem.eql(u8, std.mem.sliceTo(&k, 0), "MemTotal:")) total = v
+        else if (std.mem.eql(u8, std.mem.sliceTo(&k, 0), "MemAvailable:")) avail = v;
+    }
+    if (total > 0) {
+        const used = total - avail;
+        const pct: i64 = @divTrunc(100 * used, total);
+        _ = std.fmt.bufPrintZ(&w.mem_txt, "MEM {d}%", .{pct}) catch {};
+    }
+}
+
+fn memMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 70;
+}
+
+fn memDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    const bar_w: f64 = 70.0;
+    const bar_h: f64 = @floatFromInt(h - 16);
+    const bar_y: f64 = @floatFromInt(y + 8);
+    
+    c.cairo_set_source_rgb(cr, 0.15, 0.15, 0.2);
+    c.cairo_rectangle(cr, @floatFromInt(x), bar_y, bar_w, bar_h);
+    c.cairo_fill(cr);
+
+    var pct: f64 = 0;
+    if (c.sscanf(&w.mem_txt, "MEM %lf%%", &pct) == 1) {
+        const fill_w = bar_w * pct / 100.0;
+        c.cairo_set_source_rgb(cr, 0.4, 0.6, 0.9);
+        c.cairo_rectangle(cr, @floatFromInt(x), bar_y, fill_w, bar_h);
+        c.cairo_fill(cr);
+    }
+    
+    _ = widgetText(cr, @ptrCast(&w.mem_txt), x + 4, h, "Sans Bold 9", 1.0, 1.0, 1.0);
+}
+
+fn memClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system("foot htop &");
+    return true;
+}
+
+fn tempUpdate(w: *Widget) void {
+    const f = c.fopen("/sys/class/thermal/thermal_zone0/temp", "r") orelse {
+        _ = std.fmt.bufPrintZ(&w.temp_txt, "--°C", .{}) catch {};
+        return;
+    };
+    defer _ = c.fclose(f);
+    var mt: i32 = -1;
+    _ = c.fscanf(f, "%d", &mt);
+    if (mt > 0) {
+        _ = std.fmt.bufPrintZ(&w.temp_txt, "{d}°C", .{@divTrunc(mt, 1000)}) catch {};
+    } else {
+        _ = std.fmt.bufPrintZ(&w.temp_txt, "--°C", .{}) catch {};
+    }
+}
+
+fn tempMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 56;
+}
+
+fn tempDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    widgetIconGlyph(cr, "♨", x, h, 0.9, 0.6, 0.4);
+    _ = widgetText(cr, @ptrCast(&w.temp_txt), x + 16, h, "Sans 9", 0.8, 0.8, 0.82);
+}
+
+fn tempClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system("foot sensors &");
+    return true;
+}
+
+fn diskMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 64;
+}
+
+fn diskDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    widgetIconGlyph(cr, "▥", x, h, 0.5, 0.8, 0.6);
+    _ = widgetText(cr, @ptrCast(&w.disk_txt), x + 16, h, "Sans 9", 0.8, 0.8, 0.82);
+}
+
+fn diskClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system("pcmanfm-qt &");
+    return true;
+}
+
+fn batMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 64;
+}
+
+fn batDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    const bat_w: f64 = 24.0;
+    const bat_h: f64 = 14.0;
+    const bat_y: f64 = @floatFromInt(y + @divTrunc(h - 14, 2));
+    
+    // Outline
+    c.cairo_set_source_rgb(cr, 0.6, 0.6, 0.65);
+    c.cairo_set_line_width(cr, 1.5);
+    c.cairo_rectangle(cr, @as(f64, @floatFromInt(x)), bat_y, bat_w, bat_h);
+    c.cairo_stroke(cr);
+    
+    // Nub
+    c.cairo_rectangle(cr, @as(f64, @floatFromInt(x)) + bat_w, bat_y + 4.0, 2.0, bat_h - 8.0);
+    c.cairo_fill(cr);
+
+    if (w.bat_lvl >= 0) {
+        const fill_w = (bat_w - 4.0) * @as(f64, @floatFromInt(w.bat_lvl)) / 100.0;
+        if (w.bat_lvl > 50) {
+            c.cairo_set_source_rgb(cr, 0.3, 0.8, 0.5);
+        } else if (w.bat_lvl > 20) {
+            c.cairo_set_source_rgb(cr, 0.9, 0.7, 0.2);
+        } else {
+            c.cairo_set_source_rgb(cr, 0.9, 0.2, 0.2);
+        }
+        c.cairo_rectangle(cr, @as(f64, @floatFromInt(x)) + 2.0, bat_y + 2.0, fill_w, bat_h - 4.0);
+        c.cairo_fill(cr);
+    }
+
+    _ = widgetText(cr, @ptrCast(&w.bat_txt), x + 30, h, "Sans 9", 0.8, 0.8, 0.82);
+}
+
+fn batUpdate(w: *Widget) void {
+    // Read capacity
+    const f = c.fopen("/sys/class/power_supply/BAT0/capacity", "r");
+    if (f == null) {
+        std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
+        return;
+    }
+    const cap_file = f.?;
+    defer _ = c.fclose(cap_file);
+    var cap_buf: [32]u8 = std.mem.zeroes([32]u8);
+    if (c.fgets(@ptrCast(&cap_buf), cap_buf.len, cap_file) != null) {
+        const cap_str = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(&cap_buf)), 0);
+        w.bat_lvl = std.fmt.parseInt(i32, std.mem.trimEnd(u8, cap_str, "\n\r"), 10) catch -1;
+    }
+
+    // Read charging status
+    const st_file = c.fopen("/sys/class/power_supply/BAT0/status", "r");
+    if (st_file) |sf| {
+        defer _ = c.fclose(sf);
+        var st_buf: [32]u8 = std.mem.zeroes([32]u8);
+        if (c.fgets(@ptrCast(&st_buf), st_buf.len, sf) != null) {
+            const st_str = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(&st_buf)), 0);
+            w.bat_charging = std.mem.startsWith(u8, std.mem.trimEnd(u8, st_str, "\n\r"), "Charging");
+        }
+    }
+
+    // Format text
+    if (w.bat_lvl < 0) {
+        std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
+    } else if (w.bat_charging) {
+        _ = std.fmt.bufPrintZ(&w.bat_txt, "+{d}%", .{w.bat_lvl}) catch std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
+    } else {
+        _ = std.fmt.bufPrintZ(&w.bat_txt, "{d}%", .{w.bat_lvl}) catch std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
+    }
+}
+
+fn batClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system("foot upower -i /org/freedesktop/UPower/devices/battery_BAT0 &");
+    return true;
+}
+
+fn volMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 64;
+}
+
+fn volDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    widgetIconGlyph(cr, if (w.vol_mute) "🔇" else "🔊", x, h, 0.6, 0.8, 0.9);
+    _ = widgetText(cr, @ptrCast(&w.vol_txt), x + 18, h, "Sans 9", 0.8, 0.8, 0.82);
+}
+
+fn volClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    if (w.vol_mute) {
+        _ = c.system("pactl set-sink-mute @DEFAULT_SINK@ 0 &");
+    } else {
+        _ = c.system("pactl set-sink-mute @DEFAULT_SINK@ 1 &");
+    }
+    return true;
+}
+
+fn netMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 110;
+}
+
+fn netUpdate(w: *Widget) void {
+    // Find a suitable interface if none configured.
+    if (w.net_iface[0] == 0) {
+        var found: bool = false;
+    const f = c.fopen("/proc/net/dev", "r") orelse return;
+    defer _ = c.fclose(f);
+    var line: [256]u8 = std.mem.zeroes([256]u8);
+    // Skip header (2 lines)
+    _ = c.fgets(@ptrCast(&line), line.len, f);
+    _ = c.fgets(@ptrCast(&line), line.len, f);
+        while (c.fgets(@ptrCast(&line), line.len, f) != null) {
+            var i: usize = 0;
+            while (i < line.len and (line[i] == ' ' or line[i] == '\t')) : (i += 1) {}
+            var j = i;
+            while (j < line.len and line[j] != ':') : (j += 1) {}
+            if (j >= line.len) continue;
+            const name = line[i..j];
+            if (std.mem.eql(u8, name, "lo")) continue;
+            if (name.len > 0 and name.len < w.net_iface.len) {
+                @memcpy(w.net_iface[0..name.len], name);
+                w.net_iface[name.len] = 0;
+                found = true;
+                break;
+            }
+        }
+        if (!found) return;
+    }
+
+    const f2 = c.fopen("/proc/net/dev", "r") orelse return;
+    defer _ = c.fclose(f2);
+    var line2: [256]u8 = std.mem.zeroes([256]u8);
+    _ = c.fgets(@ptrCast(&line2), line2.len, f2);
+    _ = c.fgets(@ptrCast(&line2), line2.len, f2);
+    while (c.fgets(@ptrCast(&line2), line2.len, f2) != null) {
+        var i: usize = 0;
+        while (i < line2.len and (line2[i] == ' ' or line2[i] == '\t')) : (i += 1) {}
+        var j = i;
+        while (j < line2.len and line2[j] != ':') : (j += 1) {}
+        if (j >= line2.len) continue;
+        const name = line2[i..j];
+        const want = std.mem.sliceTo(&w.net_iface, 0);
+        if (!std.mem.eql(u8, name, want)) continue;
+
+        // After ':' : rx_bytes rx_packets ... tx_bytes ...
+        var col: usize = j + 1;
+        var vals: [16]u64 = std.mem.zeroes([16]u64);
+        var nvals: usize = 0;
+        while (col < line2.len and nvals < vals.len) {
+            while (col < line2.len and (line2[col] == ' ' or line2[col] == '\t')) : (col += 1) {}
+            if (col >= line2.len) break;
+            var end = col;
+            while (end < line2.len and line2[end] != ' ' and line2[end] != '\t' and line2[end] != '\n') : (end += 1) {}
+            vals[nvals] = std.fmt.parseUnsigned(u64, line2[col..end], 10) catch 0;
+            nvals += 1;
+            col = end;
+        }
+        if (nvals < 10) break;
+        const rx = vals[0];
+        const tx = vals[8]; // 9th column after ':' is tx_bytes
+        if (w.net_rx_prev != 0) {
+            const drx = rx -% w.net_rx_prev;
+            const dtx = tx -% w.net_tx_prev;
+            const rx_kb = @as(f64, @floatFromInt(drx)) / 1024.0;
+            const tx_kb = @as(f64, @floatFromInt(dtx)) / 1024.0;
+            // Shift history ring buffers
+            var k: usize = 0;
+            while (k < 15) : (k += 1) {
+                w.net_hist_rx[k] = w.net_hist_rx[k + 1];
+                w.net_hist_tx[k] = w.net_hist_tx[k + 1];
+            }
+            w.net_hist_rx[15] = rx_kb;
+            w.net_hist_tx[15] = tx_kb;
+            _ = std.fmt.bufPrintZ(&w.net_txt, "{d:.0}/{d:.0} KB/s", .{ rx_kb, tx_kb }) catch {};
+        }
+        w.net_rx_prev = rx;
+        w.net_tx_prev = tx;
+        break;
+    }
+}
+
+fn netDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    widgetIconGlyph(cr, "📶", x, h, 0.5, 0.9, 0.6);
+
+    // Sparkline of rx (top) and tx (bottom)
+    const sp_x = x + 18;
+    const sp_w: f64 = 56.0;
+    const sp_h: f64 = @floatFromInt(h - 18);
+    const sp_y: f64 = @floatFromInt(@divTrunc(h - 18, 2) + 2);
+
+    var maxv: f64 = 1.0;
+    for (w.net_hist_rx) |v| maxv = @max(maxv, v);
+    for (w.net_hist_tx) |v| maxv = @max(maxv, v);
+
+    const bw = sp_w / 16.0;
+    var k: usize = 0;
+    while (k < 16) : (k += 1) {
+        const rxh = (w.net_hist_rx[k] / maxv) * sp_h * 0.5;
+        const txh = (w.net_hist_tx[k] / maxv) * sp_h * 0.5;
+        c.cairo_set_source_rgb(cr, 0.3, 0.8, 0.5);
+        c.cairo_rectangle(cr, @as(f64, @floatFromInt(sp_x)) + @as(f64, @floatFromInt(k)) * bw, sp_y, bw - 1, rxh);
+        c.cairo_fill(cr);
+        c.cairo_set_source_rgb(cr, 0.5, 0.7, 0.9);
+        c.cairo_rectangle(cr, @as(f64, @floatFromInt(sp_x)) + @as(f64, @floatFromInt(k)) * bw, sp_y + sp_h * 0.5, bw - 1, txh);
+        c.cairo_fill(cr);
+    }
+
+    _ = widgetText(cr, @ptrCast(&w.net_txt), x + 80, h, "Sans 8", 0.8, 0.8, 0.82);
+}
+
+fn netClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system("nm-applet &");
+    return true;
+}
+
+fn mediaMeasure(w: *Widget, h: i32) i32 {
+    _ = h;
+    const len = std.mem.indexOfScalar(u8, &w.media_txt, 0) orelse w.media_txt.len;
+    return @intCast(len * 6 + 20);
+}
+
+fn mediaDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    if (w.media_txt[0] == 0) return;
+    widgetIconGlyph(cr, if (w.media_playing) "▶" else "❚❚", x, h, 0.9, 0.8, 0.4);
+    _ = widgetText(cr, @ptrCast(&w.media_txt), x + 18, h, "Sans 9", 0.85, 0.85, 0.88);
+}
+
+fn mediaClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system("playerctl play-pause &");
+    return true;
+}
+
+fn clkMeasure(w: *Widget, h: i32) i32 {
+    _ = h;
+    const len = std.mem.indexOfScalar(u8, &w.clock_txt, 0) orelse w.clock_txt.len;
+    return @intCast(len * 7 + 16);
+}
+
+fn clkDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    _ = widgetText(cr, @ptrCast(&w.clock_txt), x, h, "Sans 10", 0.85, 0.85, 0.85);
+}
+
+fn clkClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system("foot calcurse &");
+    return true;
+}
+
+fn pwrMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 22;
+}
+
+fn pwrDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = w;
+    _ = y;
+    widgetIconGlyph(cr, "⏻", x + 4, h, 0.9, 0.5, 0.5);
+}
+
+fn pwrClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system(@ptrCast(&w.cmd));
+    return true;
+}
+
+// ===== New widgets extracted from lxqt-panel plugins =====
+
+// ---- Spacer (plugin-spacer) ----
+fn spacerMeasure(w: *Widget, h: i32) i32 {
+    _ = h;
+    return w.spacer_w;
+}
+
+fn spacerDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = w;
+    _ = cr;
+    _ = x;
+    _ = y;
+    _ = h;
+}
+
+fn spacerClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = btn;
+    _ = x;
+    _ = y;
+    return false;
+}
+
+// ---- Keyboard layout indicator (plugin-kbindicator) ----
+fn kbMeasure(w: *Widget, h: i32) i32 {
+    _ = h;
+    const len = std.mem.indexOfScalar(u8, &w.kb_txt, 0) orelse w.kb_txt.len;
+    return @intCast(len * 8 + 12);
+}
+
+fn kbUpdate(w: *Widget) void {
+    // Show the layout we last selected (self-contained; external changes
+    // not detected). Parse the comma-separated list at kb_idx.
+    var i: usize = 0;
+    var seg: usize = 0;
+    var start: usize = 0;
+    while (i <= w.kb_layouts.len) : (i += 1) {
+        const eof = i == w.kb_layouts.len;
+        if (eof or w.kb_layouts[i] == ',') {
+            if (seg == @as(usize, @intCast(w.kb_idx))) {
+                const slice = w.kb_layouts[start..i];
+                const n = @min(slice.len, w.kb_txt.len - 1);
+                @memcpy(w.kb_txt[0..n], slice[0..n]);
+                w.kb_txt[n] = 0;
+                return;
+            }
+            seg += 1;
+            start = i + 1;
+        }
+    }
+    std.mem.copyForwards(u8, &w.kb_txt, "??");
+}
+
+fn kbDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    widgetIconGlyph(cr, "⌨", x, h, 0.7, 0.8, 0.9);
+    _ = widgetText(cr, @ptrCast(&w.kb_txt), x + 18, h, "Sans Bold 10", 0.85, 0.85, 0.9);
+}
+
+fn kbClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    // Count layouts
+    var count: i32 = 1;
+    for (w.kb_layouts) |ch| {
+        if (ch == ',') count += 1;
+    }
+    if (count <= 0) return false;
+    w.kb_idx = @mod(w.kb_idx + 1, count);
+    kbUpdate(w);
+    var layout: [64]u8 = std.mem.zeroes([64]u8);
+    const n = std.mem.indexOfScalar(u8, &w.kb_txt, 0) orelse w.kb_txt.len;
+    @memcpy(layout[0..n], w.kb_txt[0..n]);
+    layout[n] = 0;
+    var cmd: [128]u8 = std.mem.zeroes([128]u8);
+    _ = std.fmt.bufPrintZ(&cmd, "setxkbmap -layout {s} &", .{std.mem.sliceTo(&layout, 0)}) catch {};
+    _ = c.system(@ptrCast(&cmd));
+    return true;
+}
+
+// ---- Custom command (plugin-customcommand) ----
+fn ccMeasure(w: *Widget, h: i32) i32 {
+    _ = h;
+    const len = std.mem.indexOfScalar(u8, &w.cc_out, 0) orelse w.cc_out.len;
+    return @intCast(len * 7 + 12);
+}
+
+fn ccUpdate(w: *Widget) void {
+    // Run command, capture first line of stdout into cc_out.
+    var tmpl: [32]u8 = std.mem.zeroes([32]u8);
+    _ = std.fmt.bufPrintZ(&tmpl, "/tmp/.zigshell-cc-XXXXXX", .{}) catch {};
+    const fd = c.mkstemp(@ptrCast(&tmpl));
+    if (fd < 0) return;
+    _ = c.close(fd);
+    var cmd: [320]u8 = std.mem.zeroes([320]u8);
+    const cmd_slice = std.mem.sliceTo(&w.cmd, 0);
+    _ = std.fmt.bufPrintZ(&cmd, "sh -c '{s}' > '{s}' 2>/dev/null", .{ cmd_slice, std.mem.sliceTo(&tmpl, 0) }) catch {
+        _ = c.unlink(&tmpl);
+        return;
+    };
+    _ = c.system(@ptrCast(&cmd));
+    const f = c.fopen(@ptrCast(&tmpl), "r") orelse {
+        _ = c.unlink(@ptrCast(&tmpl));
+        return;
+    };
+    defer {
+        _ = c.fclose(f);
+        _ = c.unlink(@ptrCast(&tmpl));
+    }
+    var buf: [128]u8 = std.mem.zeroes([128]u8);
+    if (c.fgets(@ptrCast(&buf), buf.len, f)) |line| {
+        const raw = std.mem.sliceTo(line, 0);
+        var end = raw.len;
+        while (end > 0 and (raw[end - 1] == '\n' or raw[end - 1] == '\r')) : (end -= 1) {}
+        const trimmed = raw[0..end];
+        const n = @min(trimmed.len, w.cc_out.len - 1);
+        @memcpy(w.cc_out[0..n], trimmed[0..n]);
+        w.cc_out[n] = 0;
+    }
+}
+
+fn ccDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    if (w.cc_out[0] == 0) return;
+    _ = widgetText(cr, @ptrCast(&w.cc_out), x, h, "Sans 9", 0.85, 0.85, 0.88);
+}
+
+fn ccClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    ccUpdate(w);
+    return true;
+}
+
+// ---- Show Desktop (plugin-showdesktop) ----
+fn sdMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 22;
+}
+
+fn sdDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = w;
+    _ = y;
+    widgetIconGlyph(cr, "▣", x + 4, h, 0.7, 0.8, 0.9);
+}
+
+fn sdClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = x;
+    _ = y;
+    if (btn != 1) return false;
+    _ = c.system(@ptrCast(&w.cmd));
+    return true;
+}
+
+// ---- World clock (plugin-worldclock) ----
+fn wcMeasure(w: *Widget, h: i32) i32 {
+    _ = h;
+    const lbl_len = std.mem.indexOfScalar(u8, &w.wc_label, 0) orelse w.wc_label.len;
+    return @intCast(lbl_len * 7 + 56);
+}
+
+fn wcUpdate(w: *Widget) void {
+    const old = c.getenv("TZ");
+    var old_buf: [64]u8 = std.mem.zeroes([64]u8);
+    var had_old = false;
+    if (old) |o| {
+        const os = std.mem.sliceTo(o, 0);
+        const n = @min(os.len, old_buf.len - 1);
+        @memcpy(old_buf[0..n], os[0..n]);
+        old_buf[n] = 0;
+        had_old = true;
+    }
+    _ = c.setenv("TZ", @ptrCast(&w.wc_tz), 1);
+    c.tzset();
+    const now = c.time(null);
+    var tm: c.struct_tm = std.mem.zeroes(c.struct_tm);
+    _ = c.localtime_r(&now, &tm);
+    _ = c.strftime(&w.clock_txt, w.clock_txt.len, "%H:%M", &tm);
+    if (had_old) {
+        _ = c.setenv("TZ", @ptrCast(&old_buf), 1);
+    } else {
+        _ = c.unsetenv("TZ");
+    }
+    c.tzset();
+}
+
+fn wcDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    _ = y;
+    _ = widgetText(cr, @ptrCast(&w.wc_label), x, h, "Sans Bold 9", 0.7, 0.8, 0.9);
+    _ = widgetText(cr, @ptrCast(&w.clock_txt), x + 28, h, "Sans 10", 0.85, 0.85, 0.85);
+}
+
+// ---- Backlight (plugin-backlight) ----
+fn blMeasure(w: *Widget, h: i32) i32 {
+    _ = w;
+    _ = h;
+    return 64;
+}
+
+fn blUpdate(w: *Widget) void {
+    // Locate first backlight device under /sys/class/backlight
+    const dir = c.opendir("/sys/class/backlight") orelse {
+        w.bl_lvl = -1;
+        return;
+    };
+    defer _ = c.closedir(dir);
+    var ent: ?*c.struct_dirent = null;
+    var chosen: [256]u8 = std.mem.zeroes([256]u8);
+    var chosen_len: usize = 0;
+    while (true) {
+        ent = c.readdir(dir);
+        if (ent == null) break;
+        const dname = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(@alignCast(&ent.?.d_name[0]))), 0);
+        if (dname.len == 0 or std.mem.eql(u8, dname, ".") or std.mem.eql(u8, dname, "..")) continue;
+        const n = @min(dname.len, chosen.len - 32);
+        @memcpy(chosen[0..n], dname[0..n]);
+        chosen_len = n;
+        break;
+    }
+    if (chosen_len == 0) {
+        w.bl_lvl = -1;
+        return;
+    }
+    var path: [320]u8 = std.mem.zeroes([320]u8);
+    _ = std.fmt.bufPrintZ(&path, "/sys/class/backlight/{s}/brightness", .{chosen[0..chosen_len]}) catch {
+        w.bl_lvl = -1;
+        return;
+    };
+    const fb = c.fopen(@ptrCast(&path), "r") orelse {
+        w.bl_lvl = -1;
+        return;
+    };
+    defer _ = c.fclose(fb);
+    var cur: i32 = 0;
+    _ = c.fscanf(fb, "%d", &cur);
+
+    _ = std.fmt.bufPrintZ(&path, "/sys/class/backlight/{s}/max_brightness", .{chosen[0..chosen_len]}) catch {
+        w.bl_lvl = -1;
+        return;
+    };
+    const fm = c.fopen(@ptrCast(&path), "r") orelse {
+        w.bl_lvl = -1;
+        return;
+    };
+    defer _ = c.fclose(fm);
+    var maxv: i32 = 0;
+    _ = c.fscanf(fm, "%d", &maxv);
+
+    if (maxv > 0) {
+        w.bl_lvl = @divTrunc(100 * cur, maxv);
+    } else {
+        w.bl_lvl = -1;
+    }
+}
+
+fn blDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
+    widgetIconGlyph(cr, "☀", x, h, 0.9, 0.7, 0.2);
+    const bar_w: f64 = 26.0;
+    const bar_h: f64 = 10.0;
+    const bar_y: f64 = @floatFromInt(y + @divTrunc(h - 10, 2));
+    c.cairo_set_source_rgb(cr, 0.15, 0.15, 0.2);
+    c.cairo_rectangle(cr, @floatFromInt(x + 18), bar_y, bar_w, bar_h);
+    c.cairo_fill(cr);
+    if (w.bl_lvl >= 0) {
+        const fill_w = (bar_w - 2.0) * @as(f64, @floatFromInt(w.bl_lvl)) / 100.0;
+        c.cairo_set_source_rgb(cr, 0.9, 0.7, 0.2);
+        c.cairo_rectangle(cr, @floatFromInt(x + 19), bar_y + 1, fill_w, bar_h - 2);
+        c.cairo_fill(cr);
+    }
+    var txt: [16]u8 = std.mem.zeroes([16]u8);
+    if (w.bl_lvl >= 0) {
+        _ = std.fmt.bufPrintZ(&txt, "{d}%", .{w.bl_lvl}) catch {};
+    } else {
+        std.mem.copyForwards(u8, &txt, "n/a");
+    }
+    _ = widgetText(cr, @ptrCast(&txt), x + 48, h, "Sans 9", 0.8, 0.8, 0.82);
+}
+
+fn blClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
+    _ = w;
+    _ = x;
+    _ = y;
+    if (btn == 1) {
+        _ = c.system("brightnessctl set +5% &");
+    } else if (btn == 3) {
+        _ = c.system("brightnessctl set 5%- &");
+    } else {
+        return false;
+    }
+    return true;
+}
+
+// ---- Widget Creation ----
+
+pub const WidgetList = struct {
+    widgets: [MAX_WIDGETS]Widget,
+    count: i32,
+};
+
+pub fn widgetCreateDefault() WidgetList {
+    var result = WidgetList{
+        .widgets = std.mem.zeroes([MAX_WIDGETS]Widget),
+        .count = 0,
+    };
+
+    const defaults = [_]struct { wtype: WidgetType, side: u8 }{
+        .{ .wtype = .workspaces, .side = 0 },
+        .{ .wtype = .toplevel_task, .side = 0 },
+        .{ .wtype = .launcher, .side = 0 },
+        .{ .wtype = .cpu, .side = 1 },
+        .{ .wtype = .mem, .side = 1 },
+        .{ .wtype = .temp, .side = 1 },
+        .{ .wtype = .disk, .side = 1 },
+        .{ .wtype = .battery, .side = 1 },
+        .{ .wtype = .volume, .side = 1 },
+        .{ .wtype = .network, .side = 1 },
+        .{ .wtype = .media, .side = 1 },
+        .{ .wtype = .clock, .side = 1 },
+        .{ .wtype = .spacer, .side = 1 },
+        .{ .wtype = .kbindicator, .side = 1 },
+        .{ .wtype = .customcommand, .side = 1 },
+        .{ .wtype = .showdesktop, .side = 1 },
+        .{ .wtype = .worldclock, .side = 1 },
+        .{ .wtype = .backlight, .side = 1 },
+        .{ .wtype = .power, .side = 1 },
+    };
+
+    for (defaults) |d| {
+        const idx: usize = @intCast(result.count);
+        result.widgets[idx] = createWidget(d.wtype);
+        result.widgets[idx].side = d.side;
+        result.count += 1;
+    }
+
+    return result;
+}
+
+fn createWidget(wtype: WidgetType) Widget {
+    var w: Widget = undefined;
+    w.wtype = wtype;
+    w.name = std.mem.zeroes([64]u8);
+    w.side = 0;
+    w.cached_w = 0;
+    w.priv = null;
+    w.ws_labels = std.mem.zeroes([64]u8);
+    w.cpu_prev_total = 0;
+    w.cpu_prev_idle = 0;
+    w.cpu_txt = std.mem.zeroes([32]u8);
+    w.mem_txt = std.mem.zeroes([32]u8);
+    w.temp_txt = std.mem.zeroes([32]u8);
+    w.disk_txt = std.mem.zeroes([32]u8);
+    w.bat_lvl = -1;
+    w.bat_charging = false;
+    w.bat_txt = std.mem.zeroes([32]u8);
+    w.vol_pct = 0;
+    w.vol_mute = false;
+    w.vol_txt = std.mem.zeroes([32]u8);
+    w.net_txt = std.mem.zeroes([64]u8);
+    w.media_txt = std.mem.zeroes([96]u8);
+    w.media_playing = false;
+    w.clock_fmt = std.mem.zeroes([32]u8);
+    w.clock_txt = std.mem.zeroes([64]u8);
+    w.cmd = std.mem.zeroes([128]u8);
+    w.spacer_w = 20;
+    w.kb_layouts = std.mem.zeroes([256]u8);
+    w.kb_idx = 0;
+    w.kb_txt = std.mem.zeroes([32]u8);
+    w.cc_out = std.mem.zeroes([128]u8);
+    w.wc_tz = std.mem.zeroes([64]u8);
+    w.wc_label = std.mem.zeroes([16]u8);
+    w.bl_lvl = -1;
+    w.net_rx_prev = 0;
+    w.net_tx_prev = 0;
+    w.net_iface = std.mem.zeroes([32]u8);
+    w.net_hist_rx = std.mem.zeroes([16]f64);
+    w.net_hist_tx = std.mem.zeroes([16]f64);
+    w.update_fn = null;
+    w.click_fn = null;
+
+    switch (wtype) {
+        .workspaces => {
+            std.mem.copyForwards(u8, &w.ws_labels, " 1 2 3 4 ");
+            w.measure_fn = wsMeasure;
+            w.draw_fn = wsDraw;
+            w.click_fn = wsClick;
+        },
+        .toplevel_task => {
+            w.measure_fn = tlMeasure;
+            w.draw_fn = tlDraw;
+            w.click_fn = tlClick;
+        },
+        .launcher => {
+            std.mem.copyForwards(u8, &w.cmd, "fuzzel &");
+            w.measure_fn = launcherMeasure;
+            w.draw_fn = launcherDraw;
+            w.click_fn = launcherClick;
+        },
+        .cpu => {
+            std.mem.copyForwards(u8, &w.cpu_txt, "CPU --");
+            w.measure_fn = cpuMeasure;
+            w.draw_fn = cpuDraw;
+            w.update_fn = cpuUpdate;
+            w.click_fn = cpuClick;
+        },
+        .mem => {
+            std.mem.copyForwards(u8, &w.mem_txt, "MEM --");
+            w.measure_fn = memMeasure;
+            w.draw_fn = memDraw;
+            w.update_fn = memUpdate;
+            w.click_fn = memClick;
+        },
+        .temp => {
+            std.mem.copyForwards(u8, &w.temp_txt, "--\xc2\xb0C");
+            w.measure_fn = tempMeasure;
+            w.draw_fn = tempDraw;
+            w.update_fn = tempUpdate;
+            w.click_fn = tempClick;
+        },
+        .disk => {
+            std.mem.copyForwards(u8, &w.disk_txt, "SSD --");
+            w.measure_fn = diskMeasure;
+            w.draw_fn = diskDraw;
+            w.click_fn = diskClick;
+        },
+        .battery => {
+            std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
+            w.measure_fn = batMeasure;
+            w.draw_fn = batDraw;
+            w.click_fn = batClick;
+            w.update_fn = batUpdate;
+        },
+        .volume => {
+            w.measure_fn = volMeasure;
+            w.draw_fn = volDraw;
+            w.click_fn = volClick;
+        },
+        .network => {
+            std.mem.copyForwards(u8, &w.net_txt, "-- KB/s");
+            w.measure_fn = netMeasure;
+            w.draw_fn = netDraw;
+            w.click_fn = netClick;
+            w.update_fn = netUpdate;
+        },
+        .media => {
+            w.measure_fn = mediaMeasure;
+            w.draw_fn = mediaDraw;
+            w.click_fn = mediaClick;
+        },
+        .clock => {
+            std.mem.copyForwards(u8, &w.clock_fmt, "%H:%M");
+            w.measure_fn = clkMeasure;
+            w.draw_fn = clkDraw;
+            w.update_fn = clkUpdate;
+            w.click_fn = clkClick;
+        },
+        .power => {
+            std.mem.copyForwards(u8, &w.cmd, "loginctl poweroff &");
+            w.measure_fn = pwrMeasure;
+            w.draw_fn = pwrDraw;
+            w.click_fn = pwrClick;
+        },
+        .spacer => {
+            w.spacer_w = 20;
+            w.measure_fn = spacerMeasure;
+            w.draw_fn = spacerDraw;
+            w.click_fn = spacerClick;
+        },
+        .kbindicator => {
+            std.mem.copyForwards(u8, &w.kb_layouts, "us,ru");
+            w.kb_idx = 0;
+            std.mem.copyForwards(u8, &w.kb_txt, "us");
+            w.measure_fn = kbMeasure;
+            w.draw_fn = kbDraw;
+            w.update_fn = kbUpdate;
+            w.click_fn = kbClick;
+        },
+        .customcommand => {
+            std.mem.copyForwards(u8, &w.cmd, "date +%H:%M:%S");
+            w.measure_fn = ccMeasure;
+            w.draw_fn = ccDraw;
+            w.update_fn = ccUpdate;
+            w.click_fn = ccClick;
+        },
+        .showdesktop => {
+            std.mem.copyForwards(u8, &w.cmd, "wlrctl window minimize all &");
+            w.measure_fn = sdMeasure;
+            w.draw_fn = sdDraw;
+            w.click_fn = sdClick;
+        },
+        .worldclock => {
+            std.mem.copyForwards(u8, &w.wc_tz, "America/New_York");
+            std.mem.copyForwards(u8, &w.wc_label, "NYC");
+            w.measure_fn = wcMeasure;
+            w.draw_fn = wcDraw;
+            w.update_fn = wcUpdate;
+        },
+        .backlight => {
+            w.measure_fn = blMeasure;
+            w.draw_fn = blDraw;
+            w.update_fn = blUpdate;
+            w.click_fn = blClick;
+        },
+    }
+
+    return w;
+}
+
+fn clkUpdate(w: *Widget) void {
+    const now = c.time(null);
+    var tm: c.struct_tm = std.mem.zeroes(c.struct_tm);
+    _ = c.localtime_r(&now, &tm);
+    _ = c.strftime(&w.clock_txt, w.clock_txt.len, &w.clock_fmt, &tm);
+}
+
+// ---- Widget List Operations ----
+
+pub fn widgetListUpdate(widgets: []Widget) void {
+    for (widgets) |*w| {
+        if (w.update_fn) |fn_ptr| fn_ptr(w);
+    }
+}
+
+pub fn widgetListWidth(widgets: []Widget, h: i32, pad: i32) i32 {
+    var total: i32 = 0;
+    for (widgets) |*w| {
+        const width = if (w.measure_fn) |fn_ptr| fn_ptr(w, h) else 0;
+        w.cached_w = width;
+        total += width + pad;
+    }
+    return total;
+}
+
+// ---- Config Loading ----
+
+pub const LoadedWidgets = struct {
+    widgets: [MAX_WIDGETS]Widget,
+    count: i32,
+};
+
+pub fn configLoadWidgets(allocator: std.mem.Allocator, path: []const u8) ?LoadedWidgets {
+    const path_z = allocator.dupeZ(u8, path) catch return null;
+    defer allocator.free(path_z);
+    const f = c.fopen(path_z, "r") orelse return null;
+    defer _ = c.fclose(f);
+
+    var result: LoadedWidgets = .{
+        .widgets = std.mem.zeroes([MAX_WIDGETS]Widget),
+        .count = 0,
+    };
+
+    var cur_type: [64]u8 = std.mem.zeroes([64]u8);
+    var opts_buf: [1024]u8 = std.mem.zeroes([1024]u8);
+    var opts_len: usize = 0;
+
+    var line_buf: [1024]u8 = std.mem.zeroes([1024]u8);
+    while (c.fgets(&line_buf, line_buf.len, f) != null) {
+        const trimmed = std.mem.trimStart(u8, std.mem.sliceTo(&line_buf, 0), " \t\r");
+        if (trimmed.len == 0 or trimmed[0] == '#') continue;
+
+        if (trimmed[0] == '[') {
+            // Finalize previous section
+            if (cur_type[0] != 0) {
+                if (result.count < MAX_WIDGETS) {
+                    const wtype = parseWidgetType(std.mem.sliceTo(&cur_type, 0));
+                    if (wtype) |wt| {
+                        result.widgets[@intCast(result.count)] = createWidget(wt);
+                        result.count += 1;
+                    }
+                }
+            }
+            // Start new section
+            const end = std.mem.indexOfScalar(u8, trimmed, ']') orelse continue;
+            opts_len = 0;
+            const type_name = trimmed[1..end];
+            @memcpy(cur_type[0..@min(type_name.len, 63)], type_name[0..@min(type_name.len, 63)]);
+            cur_type[@min(type_name.len, 63)] = 0;
+        } else {
+            // Accumulate options
+            if (opts_len > 0 and opts_len < opts_buf.len - 1) {
+                opts_buf[opts_len] = '\n';
+                opts_len += 1;
+            }
+            const copy_len = @min(trimmed.len, opts_buf.len - opts_len - 1);
+            @memcpy(opts_buf[opts_len .. opts_len + copy_len], trimmed[0..copy_len]);
+            opts_len += copy_len;
+            opts_buf[opts_len] = 0;
+        }
+    }
+
+    // Finalize last section
+    if (cur_type[0] != 0 and result.count < MAX_WIDGETS) {
+        const wtype = parseWidgetType(std.mem.sliceTo(&cur_type, 0));
+        if (wtype) |wt| {
+            result.widgets[@intCast(result.count)] = createWidget(wt);
+            result.count += 1;
+        }
+    }
+
+    return result;
+}
+
+fn parseWidgetType(name: []const u8) ?WidgetType {
+    const map = [_]struct { n: []const u8, t: WidgetType }{
+        .{ .n = "workspaces", .t = .workspaces },
+        .{ .n = "toplevel", .t = .toplevel_task },
+        .{ .n = "launcher", .t = .launcher },
+        .{ .n = "cpu", .t = .cpu },
+        .{ .n = "mem", .t = .mem },
+        .{ .n = "temp", .t = .temp },
+        .{ .n = "disk", .t = .disk },
+        .{ .n = "battery", .t = .battery },
+        .{ .n = "volume", .t = .volume },
+        .{ .n = "network", .t = .network },
+        .{ .n = "media", .t = .media },
+        .{ .n = "clock", .t = .clock },
+        .{ .n = "power", .t = .power },
+        .{ .n = "spacer", .t = .spacer },
+        .{ .n = "kbindicator", .t = .kbindicator },
+        .{ .n = "customcommand", .t = .customcommand },
+        .{ .n = "showdesktop", .t = .showdesktop },
+        .{ .n = "worldclock", .t = .worldclock },
+        .{ .n = "backlight", .t = .backlight },
+    };
+    for (map) |entry| {
+        if (std.mem.eql(u8, name, entry.n)) return entry.t;
+    }
+    return null;
+}
+
+test "panel parseWidgetType" {
+    try std.testing.expectEqual(WidgetType.clock, parseWidgetType("clock").?);
+    try std.testing.expectEqual(WidgetType.cpu, parseWidgetType("cpu").?);
+    try std.testing.expectEqual(@as(?WidgetType, null), parseWidgetType("unknown"));
+}
+
+test "configLoadWidgets parses sections" {
+    const path = "/tmp/zigshell_test_config.ini";
+    const f = c.fopen(path, "w") orelse return;
+    defer {
+        _ = c.fclose(f);
+        _ = c.remove(path);
+    }
+    _ = c.fputs("[cpu]\n[clock]\n[spacer]\n[unknown_skip]\n", f);
+    const res = configLoadWidgets(std.testing.allocator, path) orelse return;
+    // Unknown sections are skipped; valid ones are created.
+    try std.testing.expect(res.count >= 3);
+    try std.testing.expectEqual(WidgetType.cpu, res.widgets[0].wtype);
+    try std.testing.expectEqual(WidgetType.clock, res.widgets[1].wtype);
+    try std.testing.expectEqual(WidgetType.spacer, res.widgets[2].wtype);
+}
+
+

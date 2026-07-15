@@ -1,6 +1,6 @@
 # Shell Removal Impact Analysis
 
-> Impact assessment of removing DankMaterialShell, Noctalia, and Crystal Dock from the OCWS dotfiles setup.
+> Impact assessment of removing DankMaterialShell, Noctalia, and Zigshell-cairo-pango from the OCWS dotfiles setup.
 
 ---
 
@@ -65,7 +65,7 @@ Ayu, Catppuccin, Dracula, Eldritch, Gruvbox, Kanagawa, Noctalia, Nord, Rosé Pin
 
 ---
 
-## Removing Crystal Dock
+## Removing Zigshell-cairo-pango
 
 ### Lost Features
 
@@ -74,12 +74,12 @@ Ayu, Catppuccin, Dracula, Eldritch, Gruvbox, Kanagawa, Noctalia, Nord, Rosé Pin
 | **Dock** | macOS-style Qt dock with smooth animations |
 | **Magnification** | Zoom effect on hover (`zoomingAnimationSpeed`) |
 | **Bouncing Icons** | Launcher bounce animation |
-| **Classic Layout** | Separate panel + dock (sfwbar top, crystal-dock bottom) |
+| **Classic Layout** | Separate panel + dock (zigshell-cairo-pango top, zigshell-cairo-pango bottom) |
 | **Qt Integration** | Native Qt dock (better Qt app integration) |
 
 ---
 
-## What OCWS Native (sfwbar) Already Provides
+## What OCWS Native (zigshell-cairo-pango) Already Provides
 
 | Feature | Status | Notes |
 |---------|--------|-------|
@@ -110,13 +110,13 @@ If removing all three shells, these external tools would be needed:
 | Wallpaper | `swaybg` | No transitions, no auto-rotate |
 | Night light | `gammastep` | Manual config required |
 | Idle management | `swayidle` | No pre-action fade overlay |
-| Dock magnification | Custom sfwbar widget | Not currently implemented |
+| Dock magnification | Custom zigshell-cairo-pango widget | Not currently implemented |
 
 ---
 
 ## Summary: Impact by Category
 
-| Category | DMS | Noctalia | Crystal Dock | OCWS Native |
+| Category | DMS | Noctalia | Zigshell-cairo-pango | OCWS Native |
 |----------|-----|----------|--------------|-------------|
 | Dynamic theming |  matugen |  wallpaper-based |  |  |
 | Lock screen |  full |  basic |  |  |
@@ -136,7 +136,7 @@ If removing all three shells, these external tools would be needed:
 
 ## Recommendation
 
-**Keep OCWS Native (sfwbar) as the primary shell** — it has the most widgets and is self-contained.
+**Keep OCWS Native (zigshell-cairo-pango) as the primary shell** — it has the most widgets and is self-contained.
 
 **Consider keeping Noctalia** as an alternative for users who want:
 - Built-in lock screen, notifications, night light, idle management
@@ -144,9 +144,9 @@ If removing all three shells, these external tools would be needed:
 - TOML-based configuration
 - Fewer external dependencies
 
-**DMS and Crystal Dock are optional** for users who specifically want:
+**DMS and Zigshell-cairo-pango are optional** for users who specifically want:
 - DMS: Material Design aesthetics, matugen dynamic theming
-- Crystal Dock: macOS-style dock experience
+- Zigshell-cairo-pango: macOS-style dock experience
 
 ---
 

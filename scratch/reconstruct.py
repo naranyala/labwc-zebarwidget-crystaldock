@@ -31,7 +31,7 @@ with open(transcript_path, 'r') as f:
             pass
 
 if lines:
-    with open('/media/naranyala/Data/projects-remote/labwc-fuzzel-sfwbar/build.zig', 'w') as f:
+    with open('/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/build.zig', 'w') as f:
         f.write('\n'.join(lines))
     print(f'Successfully reconstructed build.zig (part 1) with {len(lines)} lines.')
 else:

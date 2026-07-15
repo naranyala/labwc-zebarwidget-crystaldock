@@ -30,12 +30,12 @@ fi
 # Function to stop all shells
 stop_all_shells() {
     echo "Stopping all shells..."
-    if pgrep -x crystal-dock >/dev/null; then
-        pkill -x crystal-dock
-        rm -f /tmp/qipc_sharedmemory_crystaldock* /tmp/qipc_systemsem_crystaldock* 2>/dev/null
+    if pgrep -x zigshell-cairo-pango >/dev/null; then
+        pkill -x zigshell-cairo-pango
+        rm -f /tmp/qipc_sharedmemory_zigshell-cairo-pango* /tmp/qipc_systemsem_zigshell-cairo-pango* 2>/dev/null
     fi
-    if pgrep -x sfwbar >/dev/null; then
-        pkill -x sfwbar
+    if pgrep -x zigshell-cairo-pango >/dev/null; then
+        pkill -x zigshell-cairo-pango
     fi
     if pgrep -x noctalia >/dev/null; then
         pkill -x noctalia
@@ -46,24 +46,20 @@ stop_all_shells() {
 # Function to start shells based on mode
 start_shells() {
     case "$MODE" in
-        crystal)
-            echo "Starting crystal-dock only..."
-            nohup crystal-dock >/dev/null 2>&1 &
-            ;;
-        sfwbar)
-            echo "Starting sfwbar only (double panel)..."
+        zigshell-cairo-pango)
+            echo "Starting zigshell-cairo-pango only (double panel)..."
             if command -v ocws-plugin-loader.sh >/dev/null 2>&1; then
                 ocws-plugin-loader.sh
             fi
-            nohup sfwbar -f "$HOME/.config/ocws/ocws.config" >/dev/null 2>&1 &
+            nohup zigshell-cairo-pango -f "$HOME/.config/ocws/ocws.config" >/dev/null 2>&1 &
             ;;
         both)
-            echo "Starting both crystal-dock and sfwbar..."
-            nohup crystal-dock >/dev/null 2>&1 &
+            echo "Starting both zigshell-cairo-pango and zigshell-cairo-pango..."
+            nohup zigshell-cairo-pango >/dev/null 2>&1 &
             if command -v ocws-plugin-loader.sh >/dev/null 2>&1; then
                 ocws-plugin-loader.sh
             fi
-            nohup sfwbar -f "$HOME/.config/ocws/ocws.config" >/dev/null 2>&1 &
+            nohup zigshell-cairo-pango -f "$HOME/.config/ocws/ocws.config" >/dev/null 2>&1 &
             ;;
         noctalia)
             echo "Starting noctalia..."
@@ -78,8 +74,8 @@ start_shells() {
             if command -v noctalia >/dev/null 2>&1; then
                 nohup noctalia >/dev/null 2>&1 &
             else
-                echo "warning: noctalia not installed, falling back to crystal-dock"
-                nohup crystal-dock >/dev/null 2>&1 &
+                echo "warning: noctalia not installed, falling back to zigshell-cairo-pango"
+                nohup zigshell-cairo-pango >/dev/null 2>&1 &
             fi
             ;;
     esac

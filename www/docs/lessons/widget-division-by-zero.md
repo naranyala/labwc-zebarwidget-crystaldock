@@ -17,11 +17,11 @@ Set XCpuTotDiff = XCpuUser+XCpuNice+XCpuSystem+XCpuIntr+XCpuIdle
 Set Level = XBatteryLeft/XBatteryTotal*100
 ```
 
-On the **first scanner tick**, all values are still 0 (initial state or no data yet). The division yields `0/0` which produces either `NaN`, a crash, or an undefined value in sfwbar. The widget then displays `NaN%`, `---`, or blanks until the next tick.
+On the **first scanner tick**, all values are still 0 (initial state or no data yet). The division yields `0/0` which produces either `NaN`, a crash, or an undefined value in zigshell-cairo-pango. The widget then displays `NaN%`, `---`, or blanks until the next tick.
 
 ## Root Cause
 
-sfwbar initializes all scanner variables to 0. The expressions are evaluated immediately on the first scanner iteration. The division by zero happens before any real data arrives from `/proc/stat`, `/proc/meminfo`, or the battery sysfs interface.
+zigshell-cairo-pango initializes all scanner variables to 0. The expressions are evaluated immediately on the first scanner iteration. The division by zero happens before any real data arrives from `/proc/stat`, `/proc/meminfo`, or the battery sysfs interface.
 
 In `cpu.source`, all `.pval` fields are 0 at first, and the current values are also 0 before `/proc/stat` populates them, so the denominator is `0 - 0 = 0`.
 

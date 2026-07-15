@@ -1,16 +1,16 @@
-# Lesson: C Utilities as sfwbar Data Sources
+# Lesson: C Utilities as zigshell-cairo-pango Data Sources
 
 ## The Problem
 
-Shell commands (`wpctl`, `playerctl`, `cat /proc/...`) are slow and produce unstructured output that sfwbar scanners must parse with regex. C utilities can read kernel interfaces directly and output clean `KEY=VALUE` pairs.
+Shell commands (`wpctl`, `playerctl`, `cat /proc/...`) are slow and produce unstructured output that zigshell-cairo-pango scanners must parse with regex. C utilities can read kernel interfaces directly and output clean `KEY=VALUE` pairs.
 
 ## Architecture
 
 ```
-C Utility (ocws-sysmon) → stdout → sfwbar scanner → widget variables → UI
+C Utility (ocws-sysmon) → stdout → zigshell-cairo-pango scanner → widget variables → UI
 ```
 
-The C binary reads `/proc` and `/sys` directly, computes derived values, and outputs clean `KEY=VALUE` lines that sfwbar's scanner can parse with simple `Match()`/`Extract()` calls.
+The C binary reads `/proc` and `/sys` directly, computes derived values, and outputs clean `KEY=VALUE` lines that zigshell-cairo-pango's scanner can parse with simple `Match()`/`Extract()` calls.
 
 ## Example: `ocws-sysmon.c`
 

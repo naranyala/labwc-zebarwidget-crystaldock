@@ -1,14 +1,14 @@
 #!/bin/bash
-# toggle-dock — Switch between dock implementations: dms, noctalia, crystal
+# toggle-dock — Switch between dock implementations: dms, noctalia, zigshell-cairo-pango
 #
 # Shared state: dock-sync.py keeps pinned apps in sync across all docks.
 # This script saves state before switching and restores it to the new dock.
 #
 # Usage:
-#   toggle-dock              # cycle: dms → noctalia → crystal → dms
+#   toggle-dock              # cycle: dms → noctalia → zigshell-cairo-pango → dms
 #   toggle-dock dms          # switch to DankMaterialShell dock
 #   toggle-dock noctalia     # switch to Noctalia dock
-#   toggle-dock crystal      # switch to Crystal-dock
+#   toggle-dock zigshell-cairo-pango      # switch to Zigshell-cairo-pango-dock
 #   toggle-dock status       # show current dock state
 #   toggle-dock sync         # force sync pinned apps now
 #   toggle-dock backup       # save current state to backup
@@ -39,14 +39,14 @@ set_current_dock() {
 
 kill_all_docks() {
     local killed=0
-    for proc in dms noctalia crystal-dock; do
+    for proc in dms noctalia zigshell-cairo-pango; do
         if pgrep -x "$proc" >/dev/null 2>&1; then
             echo "  Stopping $proc..."
             pkill -x "$proc"
             killed=1
         fi
     done
-    rm -f /tmp/qipc_sharedmemory_crystaldock* /tmp/qipc_systemsem_crystaldock* 2>/dev/null
+    rm -f /tmp/qipc_sharedmemory_zigshell-cairo-pango* /tmp/qipc_systemsem_zigshell-cairo-pango* 2>/dev/null
     [ $killed -eq 1 ] && sleep 0.3
 }
 
@@ -74,15 +74,15 @@ start_noctalia() {
     pgrep -x noctalia >/dev/null 2>&1 && echo "  Noctalia dock running" || echo "  Warning: Noctalia may not have started"
 }
 
-start_crystal() {
-    if ! command -v crystal-dock >/dev/null 2>&1; then
-        echo "  Error: crystal-dock not installed"
+start_zigshell-cairo-pango() {
+    if ! command -v zigshell-cairo-pango >/dev/null 2>&1; then
+        echo "  Error: zigshell-cairo-pango not installed"
         return 1
     fi
-    echo "  Starting Crystal-dock..."
-    nohup crystal-dock >/dev/null 2>&1 &
+    echo "  Starting Zigshell-cairo-pango-dock..."
+    nohup zigshell-cairo-pango >/dev/null 2>&1 &
     sleep 0.5
-    pgrep -x crystal-dock >/dev/null 2>&1 && echo "  Crystal-dock running" || echo "  Warning: Crystal-dock may not have started"
+    pgrep -x zigshell-cairo-pango >/dev/null 2>&1 && echo "  Zigshell-cairo-pango-dock running" || echo "  Warning: Zigshell-cairo-pango-dock may not have started"
 }
 
 # === Sync Daemon ===
@@ -131,8 +131,8 @@ def get_noctalia():
     except: pass
     return None
 
-def get_crystal():
-    p = os.path.join(HOME, '.config/crystal-dock/panel_1.conf')
+def get_zigshell-cairo-pango():
+    p = os.path.join(HOME, '.config/zigshell-cairo-pango/panel_1.conf')
     if not os.path.exists(p): return None
     try:
         with open(p) as f:
@@ -146,7 +146,7 @@ def get_crystal():
 
 # Read from any available dock
 apps = None
-for getter in [get_dms, get_noctalia, get_crystal]:
+for getter in [get_dms, get_noctalia, get_zigshell-cairo-pango]:
     apps = getter()
     if apps: break
 
@@ -186,15 +186,15 @@ def set_noctalia(apps):
     content = re.sub(r'pinned\s*=.*', f'pinned = {val}', content)
     with open(p, 'w') as f: f.write(content)
 
-def set_crystal(apps):
-    p = os.path.join(HOME, '.config/crystal-dock/panel_1.conf')
+def set_zigshell-cairo-pango(apps):
+    p = os.path.join(HOME, '.config/zigshell-cairo-pango/panel_1.conf')
     if not os.path.exists(p): return
     with open(p) as f: content = f.read()
     launchers = 'show-desktop;' + ';'.join(apps) + ';separator;lxqt-lockscreen;lxqt-logout;separator'
     content = re.sub(r'launchers=.*', f'launchers=\"{launchers}\"', content)
     with open(p, 'w') as f: f.write(content)
 
-for setter in [set_dms, set_noctalia, set_crystal]:
+for setter in [set_dms, set_noctalia, set_zigshell-cairo-pango]:
     try: setter(apps)
     except: pass
 " 2>/dev/null
@@ -220,7 +220,7 @@ show_status() {
     echo ""
     
     echo "Running processes:"
-    for proc in dms noctalia crystal-dock; do
+    for proc in dms noctalia zigshell-cairo-pango; do
         local pid=$(pgrep -x "$proc" 2>/dev/null || echo "")
         if [ -n "$pid" ]; then
             echo "  $proc (PID: $pid)"
@@ -255,7 +255,7 @@ show_status() {
 # === Main ===
 
 case "${1:-}" in
-    dms|noctalia|crystal)
+    dms|noctalia|zigshell-cairo-pango)
         TARGET="$1"
         CURRENT=$(get_current_dock)
         
@@ -281,7 +281,7 @@ case "${1:-}" in
         case "$TARGET" in
             dms)     start_dms ;;
             noctalia) start_noctalia ;;
-            crystal)  start_crystal ;;
+            zigshell-cairo-pango)  start_zigshell-cairo-pango ;;
         esac
         
         # 4. Restore state to new dock
@@ -342,8 +342,8 @@ case "${1:-}" in
         CURRENT=$(get_current_dock)
         case "$CURRENT" in
             dms)     NEXT="noctalia" ;;
-            noctalia) NEXT="crystal" ;;
-            crystal)  NEXT="dms" ;;
+            noctalia) NEXT="zigshell-cairo-pango" ;;
+            zigshell-cairo-pango)  NEXT="dms" ;;
             *)       NEXT="dms" ;;
         esac
         exec "$0" "$NEXT"
@@ -355,8 +355,8 @@ case "${1:-}" in
         echo "Commands:"
         echo "  dms         Switch to DankMaterialShell dock"
         echo "  noctalia    Switch to Noctalia dock"
-        echo "  crystal     Switch to Crystal-dock"
-        echo "  cycle       Cycle through: dms → noctalia → crystal → dms"
+        echo "  zigshell-cairo-pango     Switch to Zigshell-cairo-pango-dock"
+        echo "  cycle       Cycle through: dms → noctalia → zigshell-cairo-pango → dms"
         echo "  status      Show current dock state and running processes"
         echo "  sync        Force sync pinned apps across all docks now"
         echo "  backup      Save current state to backup file"

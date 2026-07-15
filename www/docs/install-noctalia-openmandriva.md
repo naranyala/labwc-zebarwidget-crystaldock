@@ -188,7 +188,7 @@ mkdir -p ~/.config/noctalia
 Copy the OCWS default config:
 
 ```bash
-cp /path/to/labwc-fuzzel-sfwbar/dotfiles/noctalia/config.toml \
+cp /path/to/labwc-fuzzel-zigshell-cairo-pango/dotfiles/noctalia/config.toml \
    ~/.config/noctalia/config.toml
 ```
 

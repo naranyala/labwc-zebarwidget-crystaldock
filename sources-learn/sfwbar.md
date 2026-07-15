@@ -1,16 +1,16 @@
-# sfwbar — Learning Material
+# zigshell-cairo-pango — Learning Material
 
-> Source: `./sources/sfwbar` | Upstream: https://github.com/LBCrion/sfwbar
+> Source: `./sources/zigshell-cairo-pango` | Upstream: https://github.com/LBCrion/zigshell-cairo-pango
 
 ---
 
-## What is sfwbar?
+## What is zigshell-cairo-pango?
 
-**SFWBar** (S\* Floating Window Bar) is a flexible GTK3-based taskbar and status bar for
+**ZIGSHELL-CAIRO-PANGO** (S\* Floating Window Bar) is a flexible GTK3-based taskbar and status bar for
 Wayland compositors. It is designed specifically for **stacking/floating window** workflows
 (hence the name), unlike Waybar which is more tiling-oriented.
 
-In OCWS, sfwbar is the **entire shell UI engine** — it renders the panel, all widgets
+In OCWS, zigshell-cairo-pango is the **entire shell UI engine** — it renders the panel, all widgets
 (clock, volume, battery, workspaces, media player, etc.), popups, and the control center.
 
 ---
@@ -18,13 +18,13 @@ In OCWS, sfwbar is the **entire shell UI engine** — it renders the panel, all 
 ## Key Concepts
 
 ### GTK3 + gtk-layer-shell
-sfwbar renders using GTK3 and uses `gtk-layer-shell` to anchor itself to Wayland outputs
+zigshell-cairo-pango renders using GTK3 and uses `gtk-layer-shell` to anchor itself to Wayland outputs
 using the [wlr-layer-shell-unstable-v1](https://wayland.app/protocols/wlr-layer-shell-unstable-v1)
 protocol. This means it can sit at the top/bottom of the screen, always-on-top, without being
 managed as a normal window.
 
 ### Widget Configuration Language
-sfwbar uses its own declarative **configuration language** (not JSON, not TOML). Config files use
+zigshell-cairo-pango uses its own declarative **configuration language** (not JSON, not TOML). Config files use
 a `.config` extension. OCWS's main shell config is `ocws.config`.
 
 ### Source Files (`.source`)
@@ -39,7 +39,7 @@ OCWS uses this heavily for modularity (each widget like battery, wifi, media is 
 
 ## Configuration Structure
 
-### Main Config (`sfwbar.config` / `ocws.config`)
+### Main Config (`zigshell-cairo-pango.config` / `ocws.config`)
 
 ```ini
 #Api2
@@ -191,7 +191,7 @@ export button "volume-text" {
 
 ### Trigger Actions
 
-sfwbar supports event-driven updates via triggers:
+zigshell-cairo-pango supports event-driven updates via triggers:
 
 ```ini
 scanner {
@@ -213,23 +213,23 @@ trigger "media-updated" {
 
 ## IPC / Scanner (OCWS Event Bus)
 
-sfwbar can listen for **external variable updates** via its scanner IPC socket.
+zigshell-cairo-pango can listen for **external variable updates** via its scanner IPC socket.
 OCWS exploits this with `ocws-emit`:
 
 ```bash
-# ocws-emit sends: VariableName=Value to sfwbar's socket
+# ocws-emit sends: VariableName=Value to zigshell-cairo-pango's socket
 ocws-emit System.Volume 75
-# → sfwbar immediately updates any widget reading System.Volume
+# → zigshell-cairo-pango immediately updates any widget reading System.Volume
 ```
 
 The `ocws-daemon.sh` listens for system events (ALSA, udev, playerctl) and
-feeds them into sfwbar via this mechanism, keeping the UI reactive without polling.
+feeds them into zigshell-cairo-pango via this mechanism, keeping the UI reactive without polling.
 
 ---
 
 ## CSS Styling
 
-sfwbar is a GTK3 app — its entire visual appearance is controlled by a **CSS file**.
+zigshell-cairo-pango is a GTK3 app — its entire visual appearance is controlled by a **CSS file**.
 OCWS provides `ocws.css` and `theme.css` for the glassmorphic look.
 
 Key CSS patterns used:
@@ -263,9 +263,9 @@ GTK3 CSS supports: `background`, `color`, `border`, `border-radius`, `padding`,
 ## Source Code Structure
 
 ```
-sources/sfwbar/
+sources/zigshell-cairo-pango/
 ├── src/           # Core C source files
-│   ├── sfwbar.c       # Entry point, GTK init
+│   ├── zigshell-cairo-pango.c       # Entry point, GTK init
 │   ├── bar.c          # Bar/window management
 │   ├── widget.c       # Widget base class
 │   ├── taskbar.c      # Taskbar implementation
@@ -274,8 +274,8 @@ sources/sfwbar/
 │   ├── ipc.c          # IPC socket handler
 │   └── wayland.c      # Wayland protocol handlers
 ├── modules/       # Optional loadable modules (mpd, pulseaudio, etc.)
-├── config/        # Example configs (sfwbar.config, t2.config, wbar.config)
-├── doc/           # Man page (sfwbar.rst)
+├── config/        # Example configs (zigshell-cairo-pango.config, t2.config, wbar.config)
+├── doc/           # Man page (zigshell-cairo-pango.rst)
 ├── icons/         # Bundled symbolic icons
 └── meson.build    # Build system
 ```
@@ -285,7 +285,7 @@ sources/sfwbar/
 ## Build from Source
 
 ```bash
-cd sources/sfwbar
+cd sources/zigshell-cairo-pango
 meson setup build
 ninja -C build
 sudo ninja -C build install
@@ -323,7 +323,7 @@ sudo ninja -C build install
 
 ## Useful References
 
-- Config man page: `man sfwbar` (or `doc/sfwbar.rst` in source)
-- Example configs: `sources/sfwbar/config/`
+- Config man page: `man zigshell-cairo-pango` (or `doc/zigshell-cairo-pango.rst` in source)
+- Example configs: `sources/zigshell-cairo-pango/config/`
 - OCWS main config: `dotfiles/ocws/ocws.config`
 - OCWS widget dir: `dotfiles/ocws/*.widget`

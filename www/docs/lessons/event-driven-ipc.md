@@ -26,13 +26,13 @@ scanner {
 ```bash
 # ocws-daemon.sh listens for PipeWire events
 pactl subscribe 2>/dev/null | grep "Event 'change' on sink" | while read -r line; do
-    update_volume  # Immediately pushes to sfwbar via ocws-emit
+    update_volume  # Immediately pushes to zigshell-cairo-pango via ocws-emit
 done
 ```
 
 ```bash
-# ocws-emit pushes the value to sfwbar instantly
-sfwbar -R "SetVal XVolLevel = 75"
+# ocws-emit pushes the value to zigshell-cairo-pango instantly
+zigshell-cairo-pango -R "SetVal XVolLevel = 75"
 ```
 
 - Zero CPU when nothing changes
@@ -50,7 +50,7 @@ sfwbar -R "SetVal XVolLevel = 75"
 ## The IPC Chain
 
 ```
-System Event → ocws-daemon.sh → ocws-emit.sh → sfwbar -R "SetVal ..." → Widget Variable → UI Update
+System Event → ocws-daemon.sh → ocws-emit.sh → zigshell-cairo-pango -R "SetVal ..." → Widget Variable → UI Update
 ```
 
 Each link must use the **same variable name** — see [IPC Variable Mapping](ipc-variable-mapping.md).

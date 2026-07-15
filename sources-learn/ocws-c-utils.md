@@ -13,7 +13,7 @@ extraction, smooth hardware control) that shell scripts cannot provide.
 All utilities follow a consistent pattern:
 - Single `.c` file in `src/`
 - CLI interface with `--help`
-- `KEY=VALUE` output format (for sfwbar scanner integration)
+- `KEY=VALUE` output format (for zigshell-cairo-pango scanner integration)
 - No external dependencies where possible
 
 ---
@@ -51,7 +51,7 @@ ocws-sysmon
 # TEMP=45
 ```
 
-**Used by:** `ocws-sysmon.source` (sfwbar scanner polls this every 2s)
+**Used by:** `ocws-sysmon.source` (zigshell-cairo-pango scanner polls this every 2s)
 
 ---
 
@@ -67,7 +67,7 @@ ocws-brightness up           # +5% with animation
 ocws-brightness down         # -5% with animation
 ocws-brightness min          # 0%
 ocws-brightness max          # 100%
-ocws-brightness monitor      # Stream changes for sfwbar
+ocws-brightness monitor      # Stream changes for zigshell-cairo-pango
 ```
 
 **Replaces:** brightnessctl
@@ -81,7 +81,7 @@ ocws-volume set 50           # Smooth transition to 50%
 ocws-volume up               # +5% with animation
 ocws-volume down             # -5% with animation
 ocws-volume mute             # Toggle mute
-ocws-volume monitor          # Stream changes for sfwbar
+ocws-volume monitor          # Stream changes for zigshell-cairo-pango
 ocws-volume list             # List available sinks
 ocws-volume sink alsa_output # Set default sink
 ```
@@ -277,9 +277,9 @@ Screen lock wrapper with state save/restore.
 
 ---
 
-## Integration with sfwbar
+## Integration with zigshell-cairo-pango
 
-Most C utilities output `KEY=VALUE` lines that sfwbar scanners parse:
+Most C utilities output `KEY=VALUE` lines that zigshell-cairo-pango scanners parse:
 
 ```ini
 # In a .source file

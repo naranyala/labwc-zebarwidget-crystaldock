@@ -560,9 +560,9 @@ void load_system_info(GtkWidget *textview) {
     gchar *argv_labwc[] = {"/bin/sh", "-c", "labwc --version 2>/dev/null | head -1", NULL};
     RUN_CAPTURE(argv_labwc, "Compositor: ");
 
-    // sfwbar version
-    gchar *argv_sfwbar[] = {"/bin/sh", "-c", "sfwbar --version 2>/dev/null | head -1", NULL};
-    RUN_CAPTURE(argv_sfwbar, "Bar Engine: ");
+    // zigshell-cairo-pango version
+    gchar *argv_zigshell[] = {"/bin/sh", "-c", "zigshell-cairo-pango --version 2>/dev/null | head -1", NULL};
+    RUN_CAPTURE(argv_zigshell, "Bar Engine: ");
 
     // Memory
     gchar *argv_mem[] = {"/bin/sh", "-c", "free -h 2>/dev/null | awk '/Mem:/{print $3\"/\"$2}'", NULL};

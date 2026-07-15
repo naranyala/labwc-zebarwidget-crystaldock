@@ -15,13 +15,13 @@ PKGS=(
     rsync
 )
 
-# sfwbar — not always in default repos
-if apt-cache show sfwbar >/dev/null 2>&1; then
-    PKGS+=(sfwbar)
+# zigshell-cairo-pango — not always in default repos
+if apt-cache show zigshell-cairo-pango >/dev/null 2>&1; then
+    PKGS+=(zigshell-cairo-pango)
 else
     echo ""
-    echo "  sfwbar not found in apt repos. Build from source:"
-    echo "    https://github.com/sfwbar/sfwbar"
+    echo "  zigshell-cairo-pango not found in apt repos. Build from source:"
+    echo "    https://github.com/zigshell-cairo-pango/zigshell-cairo-pango"
 fi
 
 # cliphist — often missing in older Ubuntu/LTS
@@ -41,13 +41,13 @@ else
     echo "    https://codeberg.org/dnkl/fuzzel"
 fi
 
-# crystal-dock
-if apt-cache show crystal-dock >/dev/null 2>&1; then
-    PKGS+=(crystal-dock)
+# zigshell-cairo-pango
+if apt-cache show zigshell-cairo-pango >/dev/null 2>&1; then
+    PKGS+=(zigshell-cairo-pango)
 else
     echo ""
-    echo "  crystal-dock not found. Build from source:"
-    echo "    https://github.com/crystal-dock/crystal-dock"
+    echo "  zigshell-cairo-pango not found. Build from source:"
+    echo "    https://github.com/zigshell-cairo-pango/zigshell-cairo-pango"
 fi
 
 # FiraCode Nerd Font — primary icon font

@@ -12,7 +12,7 @@
 #   labwc-theme random           Apply a random theme
 #
 # Only touches labwc surfaces: themerc-override, environment, rc.xml.
-# Does NOT touch GTK, sfwbar, rofi, fuzzel, or other apps.
+# Does NOT touch GTK, zigshell-cairo-pango, rofi, fuzzel, or other apps.
 #
 
 set -euo pipefail

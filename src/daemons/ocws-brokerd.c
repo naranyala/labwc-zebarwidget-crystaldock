@@ -6,7 +6,7 @@
  *   - pactl subscribe for PulseAudio volume changes
  *   - playerctl metadata watcher for media art
  *
- * Emits state to sfwbar via ocws-emit (fork+exec).
+ * Emits state to zigshell-cairo-pango via ocws-emit (fork+exec).
  *
  * Build: zig build (in build.zig)
  * Usage: ocws-brokerd [--verbose] [--no-media]
@@ -78,10 +78,10 @@ static int             g_nplugins = 0;
 static char            g_active_id[64] = {0};
 static char            g_cfg_buf[256]  = {0};
 
-/* Forward plugin events to sfwbar via ocws-emit (skip internal topics).
+/* Forward plugin events to zigshell-cairo-pango via ocws-emit (skip internal topics).
  * Uses execlp with separate args (no shell) — safe by construction.
  * Added validation: reject topics/values with control characters. */
-static void brokerd_sfwbar_bridge(const char *topic, const char *value) {
+static void brokerd_zigshell_bridge(const char *topic, const char *value) {
     if (!topic || !value) return;
     if (topic[0] == '_') return;
     /* Reject control characters in topic and value */
@@ -154,7 +154,7 @@ static void load_plugins(void) {
     /* Register host services so plugins can emit/notify/config via
      * libocws-pluginrt (shared by host + plugins → one bus instance). */
     ocws_plugin_set_host(ocws_bus_emit, host_notify, host_config_get);
-    ocws_bus_set_sfwbar_bridge(brokerd_sfwbar_bridge);
+    ocws_bus_set_zigshell_bridge(brokerd_zigshell_bridge);
 
     const char *env = getenv("OCWS_PLUGIN_DIR");
     const char *h = getenv("HOME");
@@ -320,7 +320,7 @@ static void log_msg(const char *fmt, ...) {
 }
 
 /* ============================================================
- * Emit to sfwbar
+ * Emit to zigshell-cairo-pango
  * ============================================================ */
 
 static void emit_event(const char *ns, const char *value) {
@@ -684,7 +684,7 @@ int main(int argc, char *argv[]) {
     setup_signals();
 
     ocws_bus_init();
-    ocws_bus_set_sfwbar_bridge(brokerd_sfwbar_bridge);
+    ocws_bus_set_zigshell_bridge(brokerd_zigshell_bridge);
 
     log_msg("ocws-brokerd v%s starting", VERSION);
 

@@ -31,7 +31,7 @@ fi
 # Test ocws-emit via router
 # Just verify it doesn't crash when passing arguments
 if "$BIN_DIR/ocws" emit System.Test 123 > /dev/null 2>&1 || true; then
-    # It might fail to connect to wayland/sfwbar but the binary runs
+    # It might fail to connect to wayland/zigshell-cairo-pango but the binary runs
     pass "ocws emit binary executes"
 else
     fail "ocws emit binary execution failed"

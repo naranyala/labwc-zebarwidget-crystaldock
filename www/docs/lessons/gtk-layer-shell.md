@@ -71,9 +71,9 @@ gtk_layer_set_exclusive_zone(GTK_WINDOW(window), -1);
 
 This creates a full-screen background that never pushes other surfaces.
 
-## sfwbar's Equivalent
+## zigshell-cairo-pango's Equivalent
 
-sfwbar handles layer-shell internally via config:
+zigshell-cairo-pango handles layer-shell internally via config:
 
 ```ini
 bar "topbar:top" {
@@ -83,4 +83,4 @@ bar "topbar:top" {
 }
 ```
 
-The C code is equivalent to what sfwbar does internally — it's useful when you need custom layer-shell surfaces that sfwbar can't provide (like the live background or OSD notifications).
+The C code is equivalent to what zigshell-cairo-pango does internally — it's useful when you need custom layer-shell surfaces that zigshell-cairo-pango can't provide (like the live background or OSD notifications).

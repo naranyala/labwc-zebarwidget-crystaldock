@@ -163,7 +163,7 @@ Quit: `Ctrl-C` in foreground, or `pkill dms`.
 ## 6. Autostart under labwc
 
 Add DMS to `~/.config/labwc/autostart` so it starts at login. Insert before any
-`lxqt-panel`/`sfwbar` lines if you run those too:
+`lxqt-panel`/`zigshell-cairo-pango` lines if you run those too:
 
 ```sh
 # ~/.config/labwc/autostart

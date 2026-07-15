@@ -8,7 +8,7 @@
 
 `ocws-daemon.sh` is the background event loop that bridges system state changes to the
 OCWS UI. It monitors hardware events (volume keys, battery, brightness, media player,
-network, bluetooth) and pushes updates to sfwbar via `ocws-emit`.
+network, bluetooth) and pushes updates to zigshell-cairo-pango via `ocws-emit`.
 
 Without the daemon, widgets would only update on their polling intervals (2-5 seconds).
 With the daemon, updates are instant — volume changes appear in 0ms, not 2000ms.
@@ -34,7 +34,7 @@ ocws-daemon.sh (event loop)
     └── calls ocws-emit Variable Value
     │
     ▼
-sfwbar IPC → Widget Update
+zigshell-cairo-pango IPC → Widget Update
 ```
 
 ---
@@ -67,12 +67,12 @@ being re-launched by autostart).
 ## Relationship to ocws-emit
 
 ```
-ocws-daemon.sh  →  calls  →  ocws-emit.sh  →  pushes  →  sfwbar
+ocws-daemon.sh  →  calls  →  ocws-emit.sh  →  pushes  →  zigshell-cairo-pango
 (event detector)            (broadcaster)               (UI)
 ```
 
 The daemon is the "brain" that knows WHEN to send updates.
-ocws-emit is the "mouth" that sends them to sfwbar.
+ocws-emit is the "mouth" that sends them to zigshell-cairo-pango.
 
 ---
 
@@ -93,7 +93,7 @@ while `ocws-sysmon.source` handles POLL-DRIVEN sources (CPU usage, memory percen
 
 ## Persistence with ocws-kv
 
-When the compositor restarts, all sfwbar IPC variables are lost.
+When the compositor restarts, all zigshell-cairo-pango IPC variables are lost.
 `ocws-daemon.sh` can save/restore state using `ocws-kv`:
 
 ```bash
@@ -103,5 +103,5 @@ ocws-kv set brightness.percent "$NEW_BRIGHT"
 
 # Restore on startup
 VOL=$(ocws-kv get volume.level 2>/dev/null || echo "50")
-sfwbar -R "SetVal XVolLevel = $VOL"
+zigshell-cairo-pango -R "SetVal XVolLevel = $VOL"
 ```

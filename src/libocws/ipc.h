@@ -20,12 +20,12 @@ static inline void ocws_emit(const char *namespace, const char *value) {
     }
 }
 
-static inline void ocws_emit_raw(const char *sfwbar_var, const char *value) {
+static inline void ocws_emit_raw(const char *zigshell_var, const char *value) {
     char cmd[512];
     if (value && (value[0] == '-' || (value[0] >= '0' && value[0] <= '9'))) {
-        snprintf(cmd, sizeof(cmd), "sfwbar -R \"SetVal %s = %s\" 2>/dev/null", sfwbar_var, value);
+        snprintf(cmd, sizeof(cmd), "zigshell-cairo-pango -R \"SetVal %s = %s\" 2>/dev/null", zigshell_var, value);
     } else {
-        snprintf(cmd, sizeof(cmd), "sfwbar -R \"SetVal %s = \\\"%s\\\"\" 2>/dev/null", sfwbar_var, value);
+        snprintf(cmd, sizeof(cmd), "zigshell-cairo-pango -R \"SetVal %s = \\\"%s\\\"\" 2>/dev/null", zigshell_var, value);
     }
     system(cmd);
 }

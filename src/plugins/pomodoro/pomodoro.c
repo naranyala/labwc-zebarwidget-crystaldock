@@ -9,7 +9,7 @@ static int    g_running = 0;
 static int    g_work = 25;   /* minutes */
 static int    g_break = 5;   /* minutes */
 
-/* Publish state to the bus (and, via the host bridge, to sfwbar). */
+/* Publish state to the bus (and, via the host bridge, to zigshell-cairo-pango). */
 static void publish(const char *state) {
     char payload[128];
     snprintf(payload, sizeof(payload), "{\"state\":\"%s\"}", state);

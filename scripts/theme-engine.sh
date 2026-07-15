@@ -386,7 +386,7 @@ render_template() {
                         elif [[ "$var_name" == BG_ALPHA || "$var_name" == SURFACE_ALPHA || "$var_name" == BORDER_ALPHA ]]; then
                             :
                         elif [[ "$var_name" == FONT_SIZE || "$var_name" == FONT_SIZE_SMALL || "$var_name" == FONT_SIZE_LARGE || "$var_name" == MODULE_* ]]; then
-                            var_value=$(ini_get "sfwbar.${var_name,,}" "")
+                            var_value=$(ini_get "zigshell-cairo-pango.${var_name,,}" "")
                             if [[ -z "$var_value" ]]; then
                                 case "${var_name,,}" in
                                     font_size)       var_value="12px" ;;
@@ -469,14 +469,14 @@ declare -A OUTPUT_MAP=(
     [gtk4-settings.ini.tmpl]="$HOME/.config/gtk-4.0/settings.ini"
     [themerc-override.tmpl]="$HOME/.config/labwc/themerc-override"
     [environment.tmpl]="$HOME/.config/labwc/environment"
-    [sfwbar.css.tmpl]="$HOME/.config/ocws/css/theme.css"
+    [zigshell-cairo-pango.css.tmpl]="$HOME/.config/ocws/css/theme.css"
     [tokens.css.tmpl]="$HOME/.config/ocws/css/tokens.css"
     [rofi.rasi.tmpl]="$HOME/.config/rofi/config.rasi"
     [fuzzel.ini.tmpl]="$HOME/.config/fuzzel/fuzzel.ini"
     [mako.ini.tmpl]="$HOME/.config/mako/config"
     [foot.ini.tmpl]="$HOME/.config/foot/foot.ini"
     [contour.yml.tmpl]="$HOME/.config/contour/contour.yml"
-    [crystal-dock-appearance.conf.tmpl]="$HOME/.config/crystal-dock/appearance.conf"
+    [zigshell-cairo-pango-appearance.conf.tmpl]="$HOME/.config/zigshell-cairo-pango/appearance.conf"
     [tmux.conf.tmpl]="$HOME/.tmux.conf"
     [init.lua.tmpl]="$HOME/.config/nvim/init.lua"
     [lua/plugins/colorscheme.lua.tmpl]="$HOME/.config/nvim/lua/plugins/colorscheme.lua"
@@ -657,11 +657,11 @@ cmd_apply() {
     fi
 
     if [[ "$labwc_only" == false ]]; then
-    # SFWBar CSS
-    local sfwbar_css
-    sfwbar_css=$(render_template "$TEMPLATES_DIR/sfwbar.css.tmpl")
-    if [[ -n "$sfwbar_css" ]]; then
-        echo "$sfwbar_css" > "$HOME/.config/ocws/theme.css"
+    # ZIGSHELL-CAIRO-PANGO CSS
+    local zigshell_css
+    zigshell_css=$(render_template "$TEMPLATES_DIR/zigshell-cairo-pango.css.tmpl")
+    if [[ -n "$zigshell_css" ]]; then
+        echo "$zigshell_css" > "$HOME/.config/ocws/theme.css"
         pass "theme.css"
         applied=$((applied + 1))
     fi
@@ -731,13 +731,13 @@ cmd_apply() {
         applied=$((applied + 1))
     fi
 
-    # Crystal Dock
+    # Zigshell-cairo-pango
     local cd_conf
-    cd_conf=$(render_template "$TEMPLATES_DIR/crystal-dock-appearance.conf.tmpl")
+    cd_conf=$(render_template "$TEMPLATES_DIR/zigshell-cairo-pango-appearance.conf.tmpl")
     if [[ -n "$cd_conf" ]]; then
-        mkdir -p "$HOME/.config/crystal-dock"
-        echo "$cd_conf" > "$HOME/.config/crystal-dock/appearance.conf"
-        pass "crystal-dock appearance.conf"
+        mkdir -p "$HOME/.config/zigshell-cairo-pango"
+        echo "$cd_conf" > "$HOME/.config/zigshell-cairo-pango/appearance.conf"
+        pass "zigshell-cairo-pango appearance.conf"
         applied=$((applied + 1))
     fi
 
@@ -863,7 +863,7 @@ cmd_apply() {
         applied=$((applied + 1))
     fi
 
-    # Update widget profile if sfwbar config exists
+    # Update widget profile if zigshell-cairo-pango config exists
     local ocws_config="$HOME/.config/ocws/ocws.config"
     if [[ -f "$ocws_config" ]]; then
         sed -i "s|include(\"widget-sets/.*\.set\")|include(\"widget-sets/${profile}.set\")|g" "$ocws_config"
@@ -889,9 +889,9 @@ cmd_apply() {
         pass "Live reloaded mako"
     fi
 
-    if pgrep sfwbar >/dev/null; then
-        killall -SIGUSR1 sfwbar 2>/dev/null || true
-        pass "Live reloaded sfwbar"
+    if pgrep zigshell-cairo-pango >/dev/null; then
+        killall -SIGUSR1 zigshell-cairo-pango 2>/dev/null || true
+        pass "Live reloaded zigshell-cairo-pango"
     fi
 
     if command -v spicetify >/dev/null 2>&1; then

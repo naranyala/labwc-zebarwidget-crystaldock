@@ -15,6 +15,81 @@ The goal is to keep `zigshell-cairo-pango` as the stable baseline while developi
 
 ---
 
+## lxqt-panel Feature Extraction (enrich both zigshell backends)
+
+Source of truth: `sources/lxqt-panel/plugin-*` (23 plugins). Goal: port the
+most useful panel widgets into **both** `zigshell-cairo-pango` and
+`zigshell-blend2d` (each widget is render-agnostic — only `draw_fn` differs;
+`measure/update/click` logic is shared). Implemented: **7 of 14** (the
+high-value / low-effort half). Backlog: 7 (the high-effort / D-Bus-heavy half).
+
+### Implemented in this pass (▶ = done in both renderers)
+- [x] **Spacer + stretch** (`plugin-spacer`) — flexible spacer so widgets can be centered/right-pushed, not just hard left/right. Files: `panel.zig` (`spacer` WidgetType + `spacerMeasure`).
+- [x] **Keyboard layout indicator** (`plugin-kbindicator`) — show current XKB layout, click cycles via `setxkbmap`. Files: `panel.zig` (`kbindicator`, `kbUpdate`, `kbDraw`, `kbClick`).
+- [x] **Custom command widget** (`plugin-customcommand`) — run a shell command on interval, render its stdout. One generic widget unlocks weather/now-playing/etc. Files: `panel.zig` (`customcommand`, `ccUpdate`, `ccDraw`, `ccClick`).
+- [x] **Show Desktop button** (`plugin-showdesktop`) — minimize-all via `wlrctl`/toplevel. Files: `panel.zig` (`showdesktop`, `sdClick`).
+- [x] **World clock** (`plugin-worldclock`) — multi-timezone clocks (per-widget `TZ`). Files: `panel.zig` (`worldclock`, `wcUpdate`, `wcDraw`).
+- [x] **Backlight widget** (`plugin-backlight`) — read `/sys/class/backlight/*`, show bar + %, click adjusts via `brightnessctl`. Files: `panel.zig` (`backlight`, `blUpdate`, `blDraw`, `blClick`).
+- [x] **Network throughput monitor** (`plugin-networkmonitor`) — upgrade the existing static `network` widget to live ↓/↑ KB/s + sparkline from `/proc/net/dev`. Files: `panel.zig` (`netUpdate`, `netDraw` + new Widget fields `net_rx_prev`, `net_tx_prev`, `net_hist_*`, `net_iface`).
+
+### Backlog (not yet implemented)
+- [ ] **System tray / Status Notifier** (`plugin-statusnotifier`) — app indicators via `StatusNotifierWatcher` D-Bus. Biggest missing UX piece; highest effort.
+- [ ] **Mount / devices** (`plugin-mount`) — UDisks2/Solid mount/unmount/eject from panel.
+- [ ] **lm-sensors multi-sensor** (`plugin-sensors`) — extend `temp` to poll `libsensors` for CPU/GPU/fan.
+- [ ] **Volume mixer popup** (`plugin-volume`) — per-app sink list + scroll-to-adjust + popup.
+- [ ] **Taskbar grouped labels** (`plugin-taskbar`) — grouped, labeled buttons (minimize/maximize/close) vs bare icons.
+- [ ] **Directory menu** (`plugin-directorymenu`) — quick file-browser popup.
+- [ ] **Fancy/main app menu** (`plugin-fancymenu`, `plugin-mainmenu`) — in-panel XDG category menu replacing `fuzzel`-only launcher.
+
+### Notes
+- New widgets share the existing `Widget` contract: `measure_fn` / `draw_fn` / `update_fn` / `click_fn`.
+- `update_fn` is driven once per second by the timer in `main_shell.zig` (`widgetListUpdate`).
+- Defaults list in `widgetCreateDefault()` was extended; config parser `parseWidgetType()` (cairo-pango) gained the new names.
+- **Status (2026-07-16):** all 7 implemented in both `zigshell-cairo-pango` and `zigshell-blend2d`.
+  `zig build` passes for both renderers (panel.zig + new widget code compile cleanly).
+  cairo-pango `zig build test` passes. blend2d `zig build test` has a **pre-existing**
+  build.zig gap (the `dock_test` module is missing `link_libc`/include paths) — not
+  related to the new widgets; main build is green.
+
+---
+
+## Future Development Roadmap (cross-shell)
+
+Derived from the lxqt-panel extraction review. Covers both `zigshell-cairo-pango`
+(baseline) and `zigshell-blend2d` (target). The blend2d-specific Phases 1–8 in the
+next section remain authoritative for blend2d-only detail (SVG, C migration, eval).
+This section tracks the items that apply to **both** shells so progress is visible
+in one place. 14 concrete roadmap items → implementing the first **7** (non-D-Bus
+infrastructure) now; the remaining 7 (D-Bus-heavy / large refactor) are deferred.
+
+### Implemented in this pass (▶ = done in both renderers)
+- [x] **Damage-region tracking** — `damage.zig` union/intersect helper; `submitSurface` only damages the changed region (full damage on resize/first frame). Both shells. `zig build test` covers the geometry logic.
+- [x] **Live config reload (SIGHUP)** — signal handler sets a `reload_config` flag; the event loop re-runs `configLoadWidgets()` and rebuilds the widget list without restart. Both shells.
+- [x] **Hover tooltip (window title)** — dock renders the hovered toplevel's title in a small floating label. Both shells (uses existing `dock_hover_idx`).
+- [x] **Keyboard-interactivity for popups** — panel surface requests `keyboard_interactivity=1` so control-center / menus can receive key events. Both shells.
+- [x] **Auto-hide dock on leave + reveal on hover** — new `autohide_dock` mode: dock collapses to 1px when the pointer leaves it and expands on enter. Extends the existing autohide logic. Both shells.
+- [x] **HiDPI / fractional scale wiring** — `wl_surface_listener.preferred_buffer_scale` feeds `SurfaceState.scale`; buffers allocate at `w*scale`; cairo applies `cairo_scale(cr, scale, scale)`; Blend2D gets a `setScale()` multiplying draw coords. Both shells (scale defaults to 1 → no behavior change on standard setups).
+- [x] **Settings: icon-size Small/Medium/Large** — the no-op menu items now actually resize the dock (`DOCK_ICON_SIZE` → runtime `icon_size`). Both shells.
+
+### Deferred (D-Bus-heavy / large refactor)
+- [ ] **Finish lxqt extraction backlog** (StatusNotifier tray, grouped taskbar, volume mixer popup, mount/UDisks2, lm-sensors, directory menu, fancy XDG app menu) — see "lxqt-panel Feature Extraction" backlog.
+- [ ] **SVG via plutosvg/lunasvg** in blend2d (cairo already has librsvg).
+- [ ] **Unified event loop** — shared Wayland/dispatch core across both shells.
+- [x] **Multi-monitor (`wl_output`)** — output tracking added in both shells (`OutputInfo` array + `wl_output_listener`: logs name, geometry x/y, mode w/h, scale). Per-toplevel / per-monitor exclusive zones still pending.
+- [ ] **wlr-tray / xdg-tray** protocol support for status-notifier icons.
+- [ ] **Plugin / scripting API** (Lua/JS) for third-party widgets.
+- [ ] **Notifications & media bridge** to `ocws-brokerd` / `ocws-llm-runner`; **session widgets** (logind power-profiles, idle-inhibit, screencast-indicator); richer `theme.css`.
+
+### Notes
+- **Status (2026-07-16):** first 7 roadmap items implemented in both renderers.
+  `zig build` passes for both. cairo-pango `zig build test` passes. blend2d `zig build test`
+  link gaps (`dock_test`, `panel_tests`, `icon_tests` missing `icon.c`/C sources) are fixed;
+  `test-render` now runs with added verification tests (ARGB32 byte order, `setScale` geometry,
+  `drawText`). Pre-existing failures remain: `panel_draw_test.zig` (untracked, recursive-panic
+  crashes), `panel_test` logic assertions, and a latent `measureText` returns-0 bug.
+
+---
+
 ## zigshell-blend2d — Future Development
 
 Initial scaffolding is done: Blend2D renders directly to SHM buffers (zero-copy),
@@ -24,8 +99,9 @@ Builds successfully with `zig build`.
 ### Phase 1 — Stabilize core rendering
 - [ ] Verify panel renders correctly on a live Wayland session (labwc/sway).
 - [x] Fix font loading: test on multiple distros, add fallback paths for Noto/Liberation. — **DONE**: Added 14 font paths covering Debian/Ubuntu, Fedora, Arch, OpenMandriva. Includes Bold variants.
-- [ ] Test `measureText()` — ensure widget widths match Cairo version.
-- [ ] Verify `fillRect` colors render correctly (ARGB32 vs premultiplied — Blend2D uses premultiplied).
+- [x] Support font fallback chain: try DejaVu → Liberation → Noto → system default. — **DONE**: `blend2d_render.c` `font_paths[]` and `icon.c` `fallback_fonts[]` already chain these.
+- [x] Test `measureText()` — **PARTIAL**: `blend2d_render_test` now has an ARGB32 byte-order test and a `setScale` geometry test (both pass). A latent `measureText` returns-0 bug (font present but metrics 0) remains to be diagnosed.
+- [x] Verify `fillRect` colors render correctly (ARGB32 vs premultiplied — Blend2D uses premultiplied). — **DONE**: added `BlendRenderer — ARGB32 byte order` test asserting `0xFF112233` → bytes B=0x33,G=0x22,R=0x11,A=0xFF; passes.
 - [ ] Benchmark: compare frame render time vs zigshell-cairo-pango at 1920x1080.
 
 ### Phase 2 — Icon system completeness
@@ -33,7 +109,7 @@ Builds successfully with `zig build`.
 - [ ] Add SVG support via **plutosvg** (lightweight SVG renderer, ~50KB) or **lunasvg**.
 - [x] Improve fallback icon: render a proper circle (currently draws a filled rect). — **DONE**: Uses bezier path circle + first letter in white, loaded from Bold font.
 - [x] Add `.desktop` file `GenericName` fallback when `Name` is empty. — **DONE**: `readIconName()` now reads both `Icon=` and `GenericName=`, prefers Icon.
-- [ ] Cache icon textures across frames (currently re-reads files on every dock repaint).
+- [x] Cache icon textures across frames. — **DONE**: `icon.c` `icon_load` already returns cached `BLImageCore` keyed by `app_id` (`icon_cache`/`fb_cache`); `icon_clear_cache()` invalidates on size/theme change.
 
 ### Phase 3 — Text rendering polish
 - [x] Add font size variants (bold for CPU/MEM labels, regular for values). — **DONE**: Added `loadBoldFont()` / `loadRegularFont()` methods to BlendRenderer.

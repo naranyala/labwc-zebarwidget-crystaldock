@@ -3,7 +3,7 @@
 # labwc autostart — runs once at compositor startup
 #
 # Default shell: noctalia
-# Alternative:   dms, crystal-dock, sfwbar (use toggle-shell to switch)
+# Alternative:   dms, zigshell-cairo-pango (use toggle-shell to switch)
 #
 
 # Ensure local and package manager binaries are in PATH
@@ -18,7 +18,7 @@ if command -v systemctl >/dev/null 2>&1; then
 fi
 
 # --- XDG Desktop Portal ---
-# Clean crystal-dock IPC artifacts to prevent startup failures on soft-reboots
+# Clean stale IPC shared-memory artifacts to prevent startup failures on soft-reboots
 rm -f /tmp/qipc_sharedmemory_* /tmp/qipc_systemsem_* /dev/shm/qipc_sharedmemory_* /dev/shm/qipc_systemsem_* 2>/dev/null
 
 # Kill stale portals, then start fresh instances
@@ -51,8 +51,8 @@ fi
 
 # --- Shell Mode Selection ---
 # Uses toggle-shell to start the configured shell mode.
-# Default mode is "tworow": lxqt-panel docked at the top (Wayland /
-# layer-shell) plus the OCWS 2-row sfwbar taskbar docked at the bottom.
+# Default mode is "zigshell-cairo-pango": merged panel + dock
+# rendered via Cairo/Pango on the Wayland layer-shell.
 
 # Wait until the Wayland compositor is actually accepting clients, so the
 # panels don't fail to connect on a slow startup and silently never appear.
@@ -75,7 +75,7 @@ elif [ -f "$HOME/.config/ocws/mode" ]; then
 elif [ -f "$HOME/.config/labwc-widgets/shell-mode" ]; then
   MODE="$(cat "$HOME/.config/labwc-widgets/shell-mode")"
 fi
-MODE="${MODE:-crystaldock}"
+MODE="${MODE:-zigshell-cairo-pango}"
 
 # Helper: start lxqt-panel only if it isn't already running.
 start_lxqt_panel() {
@@ -93,38 +93,29 @@ if command -v toggle-shell >/dev/null 2>&1; then
 elif command -v shell-switcher.sh >/dev/null 2>&1; then
   shell-switcher.sh
 else
-  # Direct sfwbar launch — no toggle-shell available
+  # Direct launch — no toggle-shell available
   case "$MODE" in
-    doublepanel|dual)
-      nohup sfwbar -f "$HOME/.config/ocws/modes/dual.mode" > /dev/null 2>&1 &
-      ;;
-    crystaldock)
-      nohup sfwbar -f "$HOME/.config/ocws/modes/crystaldock.mode" > /dev/null 2>&1 &
-      if command -v crystal-dock >/dev/null 2>&1; then
-        nohup crystal-dock >/dev/null 2>&1 &
+    doublepanel|dual|minimal|tworow)
+      if command -v zigshell-cairo-pango >/dev/null 2>&1; then
+        nohup zigshell-cairo-pango > /dev/null 2>&1 &
+      fi
+      if [ "$MODE" = "tworow" ]; then
+        start_lxqt_panel
       fi
       ;;
-    minimal)
-      nohup sfwbar -f "$HOME/.config/ocws/modes/minimal.mode" > /dev/null 2>&1 &
-      ;;
-    tworow)
-      nohup sfwbar -f "$HOME/.config/ocws/modes/tworow.mode" > /dev/null 2>&1 &
-      start_lxqt_panel
-      ;;
     lxqt-classic)
-      # Deploy lxqt-panel config
       if [ -f "$HOME/.config/lxqt/modes/classic.conf" ]; then
         cp "$HOME/.config/lxqt/modes/classic.conf" "$HOME/.config/lxqt/panel.conf"
       fi
       start_lxqt_panel
-      nohup sfwbar -f "$HOME/.config/ocws/modes/lxqt-classic.mode" > /dev/null 2>&1 &
+      nohup zigshell-cairo-pango > /dev/null 2>&1 &
       ;;
     lxqt-minimal)
       if [ -f "$HOME/.config/lxqt/modes/minimal.conf" ]; then
         cp "$HOME/.config/lxqt/modes/minimal.conf" "$HOME/.config/lxqt/panel.conf"
       fi
       start_lxqt_panel
-      nohup sfwbar -f "$HOME/.config/ocws/modes/lxqt-minimal.mode" > /dev/null 2>&1 &
+      nohup zigshell-cairo-pango > /dev/null 2>&1 &
       ;;
     lxqt-standalone)
       if [ -f "$HOME/.config/lxqt/modes/standalone.conf" ]; then
@@ -143,14 +134,14 @@ else
         cp "$HOME/.config/lxqt/modes/vertical.conf" "$HOME/.config/lxqt/panel.conf"
       fi
       start_lxqt_panel
-      nohup sfwbar -f "$HOME/.config/ocws/modes/lxqt-vertical.mode" > /dev/null 2>&1 &
+      nohup zigshell-cairo-pango > /dev/null 2>&1 &
       ;;
     lxqt-bottom)
       if [ -f "$HOME/.config/lxqt/modes/bottom.conf" ]; then
         cp "$HOME/.config/lxqt/modes/bottom.conf" "$HOME/.config/lxqt/panel.conf"
       fi
       start_lxqt_panel
-      nohup sfwbar -f "$HOME/.config/ocws/modes/lxqt-bottom.mode" > /dev/null 2>&1 &
+      nohup zigshell-cairo-pango > /dev/null 2>&1 &
       ;;
     dms)
       if command -v dms >/dev/null 2>&1; then
@@ -162,43 +153,28 @@ else
         nohup noctalia > /dev/null 2>&1 &
       fi
       ;;
-    fltk-panel)
-      if command -v fltk-panel >/dev/null 2>&1; then
-        nohup fltk-panel > /dev/null 2>&1 &
-      fi
-      if command -v fltk-dock >/dev/null 2>&1; then
-        nohup fltk-dock > /dev/null 2>&1 &
-      fi
-      ;;
-    fltk-panel-zig)
-      if command -v fltk-zig-shell >/dev/null 2>&1; then
-        nohup fltk-zig-shell > /dev/null 2>&1 &
+    zigshell-cairo-pango)
+      if command -v zigshell-cairo-pango >/dev/null 2>&1; then
+        nohup zigshell-cairo-pango > /dev/null 2>&1 &
       fi
       ;;
     *)
-      nohup sfwbar -f "$HOME/.config/ocws/modes/dual.mode" > /dev/null 2>&1 &
+      if command -v zigshell-cairo-pango >/dev/null 2>&1; then
+        nohup zigshell-cairo-pango > /dev/null 2>&1 &
+      fi
       ;;
   esac
 fi
 
 # --- Guarantee panels are running (re-run if the compositor was late) ---
-# For lxqt-panel + sfwbar pairings, retry a few times so both are up even
+# For lxqt-panel + zigshell pairings, retry a few times so both are up even
 # if labwc wasn't ready on the first launch attempt.
 case "$MODE" in
-  doublepanel|crystaldock|minimal)
-    # Sfwbar-only modes — retry until sfwbar is up
-    for _ in 1 2 3 4 5; do
-      if pgrep -x sfwbar >/dev/null 2>&1; then
-        break
-      fi
-      sleep 1
-    done
-    ;;
-  tworow|lxqt-classic|lxqt-minimal|lxqt-vertical|lxqt-bottom)
-    # Modes that pair lxqt-panel with sfwbar
+  doublepanel|minimal|tworow|lxqt-classic|lxqt-minimal|lxqt-vertical|lxqt-bottom)
+    # Modes that use zigshell-cairo-pango (some also pair lxqt-panel)
     for _ in 1 2 3 4 5; do
       start_lxqt_panel
-      if pgrep -x sfwbar >/dev/null 2>&1 && \
+      if pgrep -x zigshell-cairo-pango >/dev/null 2>&1 && \
          { ! command -v lxqt-panel >/dev/null 2>&1 || pgrep -x lxqt-panel >/dev/null 2>&1; }; then
         break
       fi
@@ -206,7 +182,7 @@ case "$MODE" in
     done
     ;;
   lxqt-standalone|lxqt-dual-lxqt)
-    # Modes with lxqt-panel only (no sfwbar)
+    # Modes with lxqt-panel only
     for _ in 1 2 3 4 5; do
       start_lxqt_panel
       if { ! command -v lxqt-panel >/dev/null 2>&1 || pgrep -x lxqt-panel >/dev/null 2>&1; }; then
@@ -217,16 +193,16 @@ case "$MODE" in
     ;;
 esac
 
-# --- OCWS State Daemon (event-driven IPC to sfwbar) ---
-# Listens for volume/brightness/media changes and pushes them to sfwbar
-# via ocws-emit. Self-retries until sfwbar is reachable on startup, and
-# self-manages a PIDFILE so it won't collide with previous instances.
+# --- OCWS State Daemon (event-driven IPC) ---
+# Listens for volume/brightness/media changes and pushes them to the active
+# shell via ocws-emit. Self-retries until the shell is reachable on startup,
+# and self-manages a PIDFILE so it won't collide with previous instances.
 if [ -x "$HOME/.config/ocws/ocws-daemon.sh" ]; then
   nohup "$HOME/.config/ocws/ocws-daemon.sh" >/dev/null 2>&1 &
 fi
 
 # --- Bi-Directional Dock Sync Daemon ---
-# Keeps pinned apps synchronized across DMS, Noctalia, Crystal-Dock, and SFWBar
+# Keeps pinned apps synchronized across DMS, Noctalia, and ZIGSHELL-CAIRO-PANGO
 if command -v dock-sync.py >/dev/null 2>&1; then
   pkill -f "python3.*dock-sync.py" 2>/dev/null || true
   nohup dock-sync.py >/dev/null 2>&1 &

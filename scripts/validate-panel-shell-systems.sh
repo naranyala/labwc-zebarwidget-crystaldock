@@ -11,7 +11,7 @@ set -uo pipefail
 # Default paths for each panel/shell system
 declare -A PANEL_SYSTEMS=(
     ["labwc"]="$HOME/.config/labwc"
-    ["sfwbar"]="$HOME/.config/sfwbar"
+    ["zigshell-cairo-pango"]="$HOME/.config/zigshell-cairo-pango"
     ["noctalia"]="$HOME/.config/noctalia"
     ["DankMaterialShell"]="$HOME/.local/share/DankMaterialShell"
 )
@@ -159,20 +159,20 @@ validate_labwc() {
     fi
 }
 
-validate_sfwbar() {
+validate_zigshell() {
     local config_dir="$1"
     local rel_path="${config_dir#$HOME/}"
     
-    section_header "SFWBar Validation" "📟"
+    section_header "ZIGSHELL-CAIRO-PANGO Validation" "📟"
     
     if [ ! -d "$config_dir" ]; then
-        emoji_log "WARNING" "SFWBar config not found: $rel_path"
+        emoji_log "WARNING" "ZIGSHELL-CAIRO-PANGO config not found: $rel_path"
         return
     fi
     
     # Check for essential configuration files
     local config_files=(
-        "$config_dir/config/sfwbar.config"
+        "$config_dir/config/zigshell-cairo-pango.config"
         "$config_dir/config/switcher.config"
     )
     
@@ -190,21 +190,21 @@ validate_sfwbar() {
     done
     
     # Check for critical configuration values
-    if [ -f "${config_dir}config/sfwbar.config" ]; then
+    if [ -f "${config_dir}config/zigshell-cairo-pango.config" ]; then
         # Look for essential settings
         local has_title_bar=0
         local has_menu=0
         local has_close_button=0
         
-        if grep -q "title.*bar" "${config_dir}config/sfwbar.config" 2>/dev/null; then
+        if grep -q "title.*bar" "${config_dir}config/zigshell-cairo-pango.config" 2>/dev/null; then
             has_title_bar=1
         fi
         
-        if grep -q "menu.*entry" "${config_dir}config/sfwbar.config" 2>/dev/null; then
+        if grep -q "menu.*entry" "${config_dir}config/zigshell-cairo-pango.config" 2>/dev/null; then
             has_menu=1
         fi
         
-        if grep -q "close.*button" "${config_dir}config/sfwbar.config" 2>/dev/null; then
+        if grep -q "close.*button" "${config_dir}config/zigshell-cairo-pango.config" 2>/dev/null; then
             has_close_button=1
         fi
         
@@ -217,10 +217,10 @@ validate_sfwbar() {
     
     # Update system status
     if [ $configs_found -ge 1 ]; then
-        SYSTEM_STATUS["sfwbar"]="PASS"
+        SYSTEM_STATUS["zigshell-cairo-pango"]="PASS"
         TOTAL_PASS=$((TOTAL_PASS + 1))
     else
-        SYSTEM_STATUS["sfwbar"]="FAIL"
+        SYSTEM_STATUS["zigshell-cairo-pango"]="FAIL"
         TOTAL_FAIL=$((TOTAL_FAIL + 1))
     fi
 }
@@ -410,7 +410,7 @@ main() {
             local config_dir="${PANEL_SYSTEMS[$system]}"
             case "$system" in
                 labwc) validate_labwc "$config_dir" ;;
-                sfwbar) validate_sfwbar "$config_dir" ;;
+                zigshell-cairo-pango) validate_zigshell "$config_dir" ;;
                 noctalia) validate_noctalia "$config_dir" ;;
                 DankMaterialShell) validate_DankMaterialShell "$config_dir" ;;
                 lxqt) validate_lxqt "$config_dir" ;;
@@ -423,12 +423,12 @@ main() {
             # Look for configuration directories in common locations
             local common_dirs=(
                 "$HOME/.config/labwc"
-                "$HOME/.config/sfwbar"
+                "$HOME/.config/zigshell-cairo-pango"
                 "$HOME/.config/noctalia"
                 "$HOME/.local/share/DankMaterialShell"
             )
             
-            for system in labwc sfwbar noctalia DankMaterialShell lxqt; do
+            for system in labwc zigshell-cairo-pango noctalia DankMaterialShell lxqt; do
                 case "$system" in
                     labwc) 
                         for dir in "${common_dirs[@]}"; do
@@ -438,10 +438,10 @@ main() {
                             fi
                         done
                         ;;
-                    sfwbar)
+                    zigshell-cairo-pango)
                         for dir in "${common_dirs[@]}"; do
-                            if [ "${dir#$HOME/.config/sfwbar}" = "$dir" ]; then
-                                validate_sfwbar "$dir"
+                            if [ "${dir#$HOME/.config/zigshell-cairo-pango}" = "$dir" ]; then
+                                validate_zigshell "$dir"
                                 break
                             fi
                         done

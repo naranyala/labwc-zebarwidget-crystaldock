@@ -7,20 +7,20 @@ set -euo pipefail
 CFG="$HOME/.config/ocws/mode"
 mkdir -p "$(dirname "$CFG")"
 
-CURRENT="$(cat "$CFG" 2>/dev/null || echo crystaldock)"
+CURRENT="$(cat "$CFG" 2>/dev/null || echo zigshell-cairo-pango)"
 
 # Define available modes with descriptions
 declare -A MODES=(
-    ["doublepanel"]="  OCWS Double Panel — Dual sfwbar panels"
-    ["crystaldock"]="  Crystal Dock — SFWBar statusbar + macOS-style dock"
+    ["doublepanel"]="  OCWS Double Panel — Dual zigshell-cairo-pango panels"
+    ["zigshell-cairo-pango"]="  Zigshell-cairo-pango — ZIGSHELL-CAIRO-PANGO statusbar + macOS-style dock"
     ["minimal"]="  OCWS Minimal — Single top panel, lightweight"
     ["dms"]="  Dank Material Shell — Material 3 bar + dock"
     ["noctalia"]="  Noctalia Shell — Minimal config shell"
     ["tworow"]="  LXQt Tworow — Top panel + 2-row taskbar"
     ["lxqt-classic"]="  LXQt Classic — Bottom panel + top statusbar"
     ["lxqt-minimal"]="  LXQt Minimal — Tray+clock panel + minimal bar"
-    ["lxqt-standalone"]="  LXQt Standalone — All-in-one panel, no sfwbar"
-    ["lxqt-dual-lxqt"]="  LXQt Dual — Two lxqt-panels, no sfwbar"
+    ["lxqt-standalone"]="  LXQt Standalone — All-in-one panel, no zigshell-cairo-pango"
+    ["lxqt-dual-lxqt"]="  LXQt Dual — Two lxqt-panels, no zigshell-cairo-pango"
     ["lxqt-vertical"]="  LXQt Vertical — Right side panel + top statusbar"
     ["lxqt-bottom"]="  LXQt Bottom — Full bottom panel + top statusbar"
 )
@@ -55,7 +55,7 @@ fi
 NEW_MODE=""
 case "$SELECTED" in
     *"Double Panel"*)   NEW_MODE="doublepanel" ;;
-    *"Crystal Dock"*)   NEW_MODE="crystaldock" ;;
+    *"Zigshell-cairo-pango"*)   NEW_MODE="zigshell-cairo-pango" ;;
     *"OCWS Minimal"*)   NEW_MODE="minimal" ;;
     *"Dank Material"*)  NEW_MODE="dms" ;;
     *"Noctalia"*)       NEW_MODE="noctalia" ;;

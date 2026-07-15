@@ -425,7 +425,7 @@ APP_COUNT=$(echo "$APP_CLASSES" | grep -c . 2>/dev/null)
 pass "application rules defined: $APP_COUNT"
 
 # Check expected classes
-for cls in sfwbar noctalia crystal-dock; do
+for cls in zigshell-cairo-pango noctalia zigshell-cairo-pango; do
     if echo "$APP_CLASSES" | grep -q "^${cls}$"; then
         pass "app rule present: $cls"
     else

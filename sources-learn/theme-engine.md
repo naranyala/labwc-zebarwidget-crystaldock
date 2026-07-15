@@ -8,7 +8,7 @@
 
 The OCWS Theme Engine is a custom shell script responsible for achieving the system-wide glassmorphic UI. It parses configuration variables from `.ini` theme files and dynamically compiles multiple dotfile templates into their final rendered states.
 
-Because tools like `foot`, `sfwbar`, and `labwc` all use entirely different configuration formats (INI, XML, Custom), the theme engine acts as the unified bridge linking them to a single color palette.
+Because tools like `foot`, `zigshell-cairo-pango`, and `labwc` all use entirely different configuration formats (INI, XML, Custom), the theme engine acts as the unified bridge linking them to a single color palette.
 
 ---
 
@@ -26,7 +26,7 @@ Because tools like `foot`, `sfwbar`, and `labwc` all use entirely different conf
    surface=313244
    accent=89b4fa
 
-   [sfwbar]
+   [zigshell-cairo-pango]
    blur=0.75
    opacity=0.92
 
@@ -49,8 +49,8 @@ Because tools like `foot`, `sfwbar`, and `labwc` all use entirely different conf
    * **Parses** the INI theme file, loading all `[section]` groups into associative arrays.
    * **Finds** all `.tmpl` files in the `templates/` directory.
    * **Replaces** all `{{section.key}}` placeholders with actual values using `sed`.
-   * **Writes** the final rendered config files to `~/.config/` (foot, sfwbar, labwc, fuzzel, etc.).
-   * **Triggers** live reloads: `killall -USR1 foot`, `sfwbar -R`.
+   * **Writes** the final rendered config files to `~/.config/` (foot, zigshell-cairo-pango, labwc, fuzzel, etc.).
+   * **Triggers** live reloads: `killall -USR1 foot`, `zigshell-cairo-pango -R`.
 
 ---
 

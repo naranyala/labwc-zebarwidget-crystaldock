@@ -8,7 +8,7 @@ OCWS ships as a complete desktop environment: a compositor-integrated shell with
 
 ## What OCWS Is
 
-OCWS is a Wayland desktop shell that replaces the typical GNOME/KDE stack with a set of small, focused C binaries and shell scripts. It runs on top of labwc (a tiling/stacking Wayland compositor), uses sfwbar for panels and widgets, and fuzzel as the application launcher.
+OCWS is a Wayland desktop shell that replaces the typical GNOME/KDE stack with a set of small, focused C binaries and shell scripts. It runs on top of labwc (a tiling/stacking Wayland compositor), uses zigshell-cairo-pango for panels and widgets, and fuzzel as the application launcher.
 
 The project targets developers, power users, and anyone who wants full control over their desktop environment without the overhead of a full desktop suite.
 
@@ -17,7 +17,7 @@ The project targets developers, power users, and anyone who wants full control o
 - **Pure C and GTK3** -- Every GUI utility (settings manager, theme center, font manager, dock manager, welcome wizard) is a native C binary. No web technologies.
 - **Under 200 MB RAM** -- A complete session with panels, widgets, notifications, and media controls runs comfortably within 200 MB.
 - **Modular architecture** -- Panels, widgets, daemons, and plugins are independent units. Replace any component without touching the others.
-- **Theme engine** -- Change one INI file and the palette propagates to labwc, sfwbar, GTK, fuzzel, foot, rofi, mako, Qt6, and color tokens simultaneously.
+- **Theme engine** -- Change one INI file and the palette propagates to labwc, zigshell-cairo-pango, GTK, fuzzel, foot, rofi, mako, Qt6, and color tokens simultaneously.
 - **Security-hardened** -- umask(0077) on all entry points, shell metacharacter validation before system(), XDG_RUNTIME_DIR for temp files, path traversal rejection, async-signal-safe signal handlers.
 
 ---
@@ -27,7 +27,7 @@ The project targets developers, power users, and anyone who wants full control o
 | Layer | Component | Role |
 |-------|-----------|------|
 | Compositor | labwc | Window management, input handling, keybindings, decorations |
-| Shell UI | sfwbar | Panels, widgets, taskbar, tray, popups (C-native rendering) |
+| Shell UI | zigshell-cairo-pango | Panels, widgets, taskbar, tray, popups (C-native rendering) |
 | Launcher | fuzzel | Application launcher and dmenu-mode script runner |
 | Layer Shell | gtk-layer-shell | Anchors shell surfaces to Wayland outputs |
 
@@ -43,8 +43,8 @@ OCWS supports multiple desktop paradigms through modular configuration. Switch b
 |------|-------------|
 | Double Panel | Top status bar + bottom dock/taskbar (default OCWS experience) |
 | Noctalia | Minimalist floating dynamic island bar (DankMaterialShell-inspired) |
-| Crystal Dock | Status bar + macOS-style bottom dock |
-| Single Bar | Status bar only (crystal-dock handles the dock) |
+| Zigshell-cairo-pango | Status bar + macOS-style bottom dock |
+| Single Bar | Status bar only (zigshell-cairo-pango handles the dock) |
 | Minimal | Lightweight bar with clock, volume, battery |
 
 ---
@@ -69,7 +69,7 @@ All system interactions are handled by compiled C binaries built with the Zig bu
 | ocws-clip | Clipboard manager |
 | ocws-recorder | Screen recording (wf-recorder wrapper) |
 | ocws-state | Persistent key-value state store |
-| ocws-emit | IPC event emitter to sfwbar |
+| ocws-emit | IPC event emitter to zigshell-cairo-pango |
 | ocws-validate | Configuration validator |
 
 ### GUI Applications
@@ -115,7 +115,7 @@ All GUI utilities are native GTK3 C binaries. They share a common pattern: heade
 
 ## Theme Engine
 
-OCWS uses an INI-based theme system. Each theme file defines colors for labwc, sfwbar, GTK, fuzzel, foot, rofi, mako, Qt6, and more. The theme engine reads a single INI and generates all 14 configuration surfaces atomically.
+OCWS uses an INI-based theme system. Each theme file defines colors for labwc, zigshell-cairo-pango, GTK, fuzzel, foot, rofi, mako, Qt6, and more. The theme engine reads a single INI and generates all 14 configuration surfaces atomically.
 
 ### Built-in Themes
 
@@ -146,7 +146,7 @@ labwc-theme next
 **Arch Linux:**
 
 ```bash
-sudo pacman -S labwc sfwbar fuzzel gtk-layer-shell pipewire wireplumber \
+sudo pacman -S labwc zigshell-cairo-pango fuzzel gtk-layer-shell pipewire wireplumber \
   libpulse inotify-tools playerctl bc wl-clipboard cliphist \
   polkit-gnome swayidle swaylock grim slurp foot tesseract leptonica
 ```
@@ -156,8 +156,8 @@ sudo pacman -S labwc sfwbar fuzzel gtk-layer-shell pipewire wireplumber \
 ### Build from Source
 
 ```bash
-git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-sfwbar.git
-cd labwc-fuzzel-sfwbar
+git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango.git
+cd labwc-fuzzel-zigshell-cairo-pango
 zig build
 ```
 
@@ -245,7 +245,7 @@ The settings panel provides:
 
 ## Event Bus
 
-OCWS uses a lightweight IPC mechanism. Background daemons emit events via `ocws-emit`, and sfwbar subscribes to them through its variable system.
+OCWS uses a lightweight IPC mechanism. Background daemons emit events via `ocws-emit`, and zigshell-cairo-pango subscribes to them through its variable system.
 
 ```bash
 # Emit a volume update
@@ -263,7 +263,7 @@ Full event namespace reference: `www/docs/configuration.md`
 ## Project Structure
 
 ```
-labwc-fuzzel-sfwbar/
+labwc-fuzzel-zigshell-cairo-pango/
   build.zig              -- Zig build system (70+ targets)
   src/
     cli/                 -- CLI utilities (ocws-clip, ocws-shot, etc.)
@@ -273,7 +273,7 @@ labwc-fuzzel-sfwbar/
     libocws/             -- Header-only C libraries (easing, audio, fs)
   dotfiles/
     labwc/               -- labwc config (rc.xml, themerc-override)
-    ocws/                -- sfwbar config, widgets, CSS
+    ocws/                -- zigshell-cairo-pango config, widgets, CSS
   scripts/               -- Shell scripts (theme-engine, keybinds, etc.)
   themes/                -- INI theme files (11 built-in)
   templates/             -- Template files for theme engine

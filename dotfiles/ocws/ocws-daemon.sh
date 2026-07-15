@@ -1,9 +1,9 @@
 #!/bin/bash
 # -------------------------------------------------------------------
-# OCWS State Daemon - Event-driven IPC for sfwbar
+# OCWS State Daemon - Event-driven IPC for zigshell-cairo-pango
 #
 # Detects hardware/software state changes (volume keys, brightness,
-# media player) and pushes them to sfwbar instantly via `ocws-emit`
+# media player) and pushes them to zigshell-cairo-pango instantly via `ocws-emit`
 # - NO per-widget polling.
 #
 # Widgets read the pushed variables (XVolLevel, XBrightness,
@@ -130,12 +130,12 @@ if command -v playerctl >/dev/null 2>&1; then
     ) &
 fi
 
-# Initial state push (retry until sfwbar is up, then listeners take over)
+# Initial state push (retry until zigshell-cairo-pango is up, then listeners take over)
 for _ in $(seq 1 10); do
     update_volume
     update_brightness
     [ "$(command -v playerctl)" ] && update_media
-    sfwbar -R "Ping" >/dev/null 2>&1 && break
+    zigshell-cairo-pango -R "Ping" >/dev/null 2>&1 && break
     sleep 1
 done
 

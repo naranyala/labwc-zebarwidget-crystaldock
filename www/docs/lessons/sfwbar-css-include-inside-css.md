@@ -22,7 +22,7 @@ The `include()` on the last line does **nothing**. Every style in `ocws.css` —
 
 ## Root Cause
 
-In sfwbar's config format, everything **after the `#CSS` marker** is treated as raw GTK CSS text, not as sfwbar configuration directives. The `include()` directive is a config-level command, not valid GTK CSS. GTK's CSS parser sees:
+In zigshell-cairo-pango's config format, everything **after the `#CSS` marker** is treated as raw GTK CSS text, not as zigshell-cairo-pango configuration directives. The `include()` directive is a config-level command, not valid GTK CSS. GTK's CSS parser sees:
 
 ```css
 include("ocws.css")
@@ -30,7 +30,7 @@ include("ocws.css")
 
 and discards it as unrecognized syntax. The file is never loaded.
 
-The same applies to all sfwbar config directives (`Set`, `Exec`, `Function`, etc.) — none work inside the `#CSS` section.
+The same applies to all zigshell-cairo-pango config directives (`Set`, `Exec`, `Function`, etc.) — none work inside the `#CSS` section.
 
 ## The Fix
 
@@ -47,7 +47,7 @@ include("ocws.css")
 @define-color shell_bg rgba(30, 30, 46, 0.65);
 ```
 
-When `include()` runs before `#CSS`, sfwbar processes it as a config directive. If the included file contains a `#CSS` section of its own, its CSS is appended to the CSS from the parent file.
+When `include()` runs before `#CSS`, zigshell-cairo-pango processes it as a config directive. If the included file contains a `#CSS` section of its own, its CSS is appended to the CSS from the parent file.
 
 ### Option B: Use a GTK CSS `@import`
 
@@ -56,7 +56,7 @@ When `include()` runs before `#CSS`, sfwbar processes it as a config directive. 
 @import url("ocws.css");
 ```
 
-GTK CSS supports `@import url("...")` for local file includes — but with a critical catch: the path is relative to the **current working directory** when sfwbar started, not relative to the config file.
+GTK CSS supports `@import url("...")` for local file includes — but with a critical catch: the path is relative to the **current working directory** when zigshell-cairo-pango started, not relative to the config file.
 
 ## Where This Applies
 

@@ -1,7 +1,9 @@
 #Api2
-# island.mode — Dynamic island bar (requires patched sfwbar)
-# Launch: sfwbar -f modes/island.mode
-# Relies on the C-patched sfwbar for floating island geometry
+
+# Renderer: use the glib-free zigshell instead of zigshell-cairo-pango
+Shell = "zigshell-cairo-pango"
+# island.mode — Dynamic island bar (requires patched zigshell-cairo-pango)
+# Relies on the C-patched zigshell-cairo-pango for floating island geometry
 
 # --- Common Infrastructure ---
 include("../ocws.config")

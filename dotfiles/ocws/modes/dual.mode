@@ -1,6 +1,8 @@
 #Api2
+
+# Renderer: use the glib-free zigshell instead of zigshell-cairo-pango
+Shell = "zigshell-cairo-pango"
 # dual.mode — Dual-panel mode (top statusbar + bottom dock/taskbar + desktop)
-# Launch: sfwbar -f modes/dual.mode
 
 # --- Common Infrastructure ---
 include("../ocws.config")

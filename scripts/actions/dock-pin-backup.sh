@@ -1,6 +1,6 @@
 #!/bin/bash
 # dock-pin-backup.sh — Backup & restore dock pinned apps
-# Supports: Noctalia, Crystal Dock, DankMaterialShell
+# Supports: Noctalia, Zigshell-cairo-pango, DankMaterialShell
 #
 # Usage:
 #   dock-pin-backup save [name]     Save current pinned apps
@@ -40,8 +40,8 @@ detect_shell() {
         # Auto-detect from installed configs
         if [[ -f "$CONFIG_DIR/noctalia/config.toml" ]]; then
             echo "noctalia"
-        elif [[ -f "$CONFIG_DIR/crystal-dock/panel_1.conf" ]]; then
-            echo "crystaldock"
+        elif [[ -f "$CONFIG_DIR/zigshell-cairo-pango/panel_1.conf" ]]; then
+            echo "zigshell-cairo-pango"
         elif [[ -f "$CONFIG_DIR/DankMaterialShell/settings.json" ]]; then
             echo "dms"
         else
@@ -70,8 +70,8 @@ extract_noctalia() {
     echo "$pinned_line" | sed 's/^pinned\s*=\s*//' | tr -d '[:space:]'
 }
 
-extract_crystaldock() {
-    local config="$CONFIG_DIR/crystal-dock/panel_1.conf"
+extract_zigshell-cairo-pango() {
+    local config="$CONFIG_DIR/zigshell-cairo-pango/panel_1.conf"
     [[ -f "$config" ]] || return 1
 
     local launchers
@@ -139,10 +139,10 @@ restore_noctalia() {
     info "Restart noctalia to apply: noctalia msg reload"
 }
 
-restore_crystaldock() {
+restore_zigshell-cairo-pango() {
     local pinned="$1"
-    local config="$CONFIG_DIR/crystal-dock/panel_1.conf"
-    [[ -f "$config" ]] || fail "Crystal Dock config not found"
+    local config="$CONFIG_DIR/zigshell-cairo-pango/panel_1.conf"
+    [[ -f "$config" ]] || fail "Zigshell-cairo-pango config not found"
 
     # Convert JSON array back to semicolon-separated, adding back separators
     local launchers
@@ -156,7 +156,7 @@ print(';'.join(result))
 
     if [[ -n "$launchers" ]]; then
         sed -i "s|^launchers=.*|launchers=\"$launchers\"|" "$config"
-        pass "Crystal Dock pinned apps restored"
+        pass "Zigshell-cairo-pango pinned apps restored"
     else
         fail "Failed to parse pinned apps"
     fi
@@ -184,8 +184,8 @@ cmd_save() {
         noctalia)
             pinned=$(extract_noctalia) || fail "Failed to read Noctalia config"
             ;;
-        crystaldock)
-            pinned=$(extract_crystaldock) || fail "Failed to read Crystal Dock config"
+        zigshell-cairo-pango)
+            pinned=$(extract_zigshell-cairo-pango) || fail "Failed to read Zigshell-cairo-pango config"
             ;;
         dms)
             pinned=$(extract_dms)
@@ -236,8 +236,8 @@ cmd_load() {
         noctalia)
             restore_noctalia "$pinned"
             ;;
-        crystaldock)
-            restore_crystaldock "$pinned"
+        zigshell-cairo-pango)
+            restore_zigshell-cairo-pango "$pinned"
             ;;
         dms)
             restore_dms
@@ -298,7 +298,7 @@ cmd_diff() {
     local current
     case "$shell" in
         noctalia) current=$(extract_noctalia) ;;
-        crystaldock) current=$(extract_crystaldock) ;;
+        zigshell-cairo-pango) current=$(extract_zigshell-cairo-pango) ;;
         *) fail "Diff not supported for $shell" ;;
     esac
 

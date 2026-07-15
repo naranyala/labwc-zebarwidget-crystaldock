@@ -14,6 +14,6 @@ fi
 # Apply to ~/.config if it exists
 if [ -f "$OCWS_CFG" ]; then
     cp "$LOCAL_CFG" "$OCWS_CFG"
-    killall -USR1 sfwbar 2>/dev/null || true
+    killall -USR1 zigshell-cairo-pango 2>/dev/null || true
     echo "Live config reloaded."
 fi

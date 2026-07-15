@@ -2,7 +2,7 @@
 
 ## The Problem
 
-`ocws-sysmon.c` outputs `KEY=VALUE` lines in a fixed order. The sfwbar scanner in `ocws-sysmon.source` parses these lines sequentially, and **derived variables are computed when the last line is seen**. If the output order changes, intermediate values are stale.
+`ocws-sysmon.c` outputs `KEY=VALUE` lines in a fixed order. The zigshell-cairo-pango scanner in `ocws-sysmon.source` parses these lines sequentially, and **derived variables are computed when the last line is seen**. If the output order changes, intermediate values are stale.
 
 ## How It Works
 
@@ -39,7 +39,7 @@ If (Match(SysMonLine, "^TEMP=")) {
 
 ## The Rule
 
-When a C binary feeds data to an sfwbar scanner:
+When a C binary feeds data to an zigshell-cairo-pango scanner:
 
 1. **Raw values** (counters, state) must come **before** derived values
 2. **Derived calculations** that depend on multiple raw values should be triggered by the **last line** of output

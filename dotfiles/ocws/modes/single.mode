@@ -1,6 +1,8 @@
 #Api2
+
+# Renderer: use the glib-free zigshell instead of zigshell-cairo-pango
+Shell = "zigshell-cairo-pango"
 # single.mode — Single statusbar (all-in-one top bar)
-# Launch: sfwbar -f modes/single.mode
 
 # --- Common Infrastructure ---
 include("../ocws.config")

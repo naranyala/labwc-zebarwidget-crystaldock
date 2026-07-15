@@ -20,7 +20,7 @@ int main(int argc, char **argv) {
     printf("OCWS Plugin Loader (C Native) initialized.\n");
     // TODO: 1. Scan plugin_dir for plugin.ini manifests
     // TODO: 2. Parse dependencies (requires=XVolLevel)
-    // TODO: 3. Verify sfwbar contract is met
+    // TODO: 3. Verify zigshell-cairo-pango contract is met
     // TODO: 4. Generate output config with safe includes
 
     return 0;

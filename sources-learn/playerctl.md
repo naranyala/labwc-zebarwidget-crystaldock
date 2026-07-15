@@ -89,7 +89,7 @@ playerctl status --format "{{ emoji(status) }} {{ title }}"
 ## Follow Mode (for widgets)
 
 ```bash
-# Print artist+title every time it changes — feeds sfwbar widgets
+# Print artist+title every time it changes — feeds zigshell-cairo-pango widgets
 playerctl metadata --format "{{ artist }} - {{ title }}" --follow
 ```
 
@@ -113,7 +113,7 @@ OCWS starts it from `dotfiles/labwc/autostart`.
 
 | File | Role |
 |------|------|
-| `dotfiles/ocws/media-player.widget` | Now playing display in sfwbar |
+| `dotfiles/ocws/media-player.widget` | Now playing display in zigshell-cairo-pango |
 | `dotfiles/ocws/media.widget` | Compact media controls (prev/play/next) |
 | `scripts/ocws-media-widget-updater.sh` | `playerctl --follow` → `ocws-emit Media.*` |
 | `scripts/ocws-media-art.sh` | Fetches album art via `playerctl metadata mpris:artUrl` |

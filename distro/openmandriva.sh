@@ -9,7 +9,7 @@ echo "Installing OCWS dependencies for OpenMandriva Lx..."
 
 PKGS=(
     labwc
-    sfwbar
+    zigshell-cairo-pango
     fuzzel
     foot
     playerctl
