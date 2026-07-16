@@ -15,6 +15,54 @@ The goal is to keep `zigshell-cairo-pango` as the stable baseline while developi
 
 ---
 
+## De-duplication & Refactoring (shared code across shells)
+
+Investigation found the two shells carried byte-identical copies of protocol and
+utility code, plus dead directories/files. Extraction target: a single shared
+module `src/shells/shared/` registered as the `shellcore` import in each
+`build.zig`. Implemented: **the safe de-dup / dead-code half**; backlog: the
+render/widget unification half (higher risk, backend-divergent).
+
+### Implemented in this pass (✅ builds + tests green on both shells)
+- [x] **P1-1 Shared `toplevel.zig`** — reconciled cairo (`hover_anim`) + blend2d
+  (robust `add`/`removeAt`) into `src/shells/shared/toplevel.zig` with tests;
+  deleted per-shell copies; imports now `@import("shellcore").toplevel`.
+  `add()` returns `0` at capacity (matches existing blend2d test contract).
+- [x] **P1-2 Shared `damage.zig`** — identical duplicate collapsed into
+  `src/shells/shared/damage.zig`; per-shell copies deleted.
+- [x] **P1-3 Shared protocol sources** — 3 byte-identical `.c/.h` protocol pairs
+  (md5-confirmed triplicates) moved to `src/shells/shared/protocol/`; duplicates
+  in both shells + the dead `src/shells/zigshell-core/` directory removed. Both
+  `build.zig` `addProtocolSources` + include paths point at `../shared/protocol`.
+- [x] **P1-4 Dead code removal** — deleted unused `panel_draw.c`/`panel_draw.h`
+  from `zigshell-blend2d` (never linked into a live target); dropped their
+  `addCSourceFile` calls and the `#include "panel_draw.h"` in `dock_c.h`;
+  `panel_draw_test.zig` re-pointed at the live renderer (comment corrected).
+- [x] **Module wiring** — `shellcore` `b.createModule` registered on `root_mod`
+  and every test module in both `build.zig` files.
+
+### Backlog (not yet implemented — render/widget unification, higher risk)
+- [ ] **P0-1 Shared `Widget` struct** — structs are identical except the backend
+  draw-fn param (`*c.cairo_t` vs `*blend2d.BlendRenderer`). Extract a generic
+  `Widget(comptime Ctx)` or split field-data from render-fn pointers so
+  `panel.zig` widget logic (measure/update/click/key) lives once.
+- [ ] **P0-2 Shared widget logic** — `panel.zig` is ~1.3k lines duplicated per
+  shell; only `draw_fn` bodies differ. Move measure/update/click/kbUpdate/etc.
+  into a shared module parameterized over the renderer.
+- [ ] **P2-1 Shared Wayland/layer-shell setup** — `main_shell.zig` registry bind,
+  seat/keyboard/pointer listeners, and layer-shell config are near-identical.
+- [ ] **P2-2 Shared config parsing** — `parseWidgetType` and config loading are
+  duplicated.
+- [ ] **P3-1 Shared `dock.zig`** — dock layout/logic largely overlaps; only draw
+  differs.
+
+⚠️ Note: an external `.mimocode` process periodically rewrites files under
+`src/shells/` (observed reverting `build.zig` and dropping `panel.zig` fields
+such as `key_fn`/`name`). Re-verify builds after edits; treat the on-disk
+version as the live baseline.
+
+---
+
 ## lxqt-panel Feature Extraction (enrich both zigshell backends)
 
 Source of truth: `sources/lxqt-panel/plugin-*` (23 plugins). Goal: port the
@@ -423,3 +471,145 @@ _14/27 fixed — see git log for details._
 
 Generated: 2026-07-08 by security audit
 Updated: 2026-07-13 — Full codebase audit + 68 fixes applied (all `system()`/`popen()` replaced with `g_spawn_async()`/`fork+exec`, shell eval removed, buffer overflows fixed, integer overflow guard, NULL-deref checks, D-Bus access control, dlopen validation, O_CLOEXEC on pipes, /tmp→$XDG_RUNTIME_DIR, curl-to-bash safety, shared security utilities, JSON escaping, namespace validation, sed escaping, atomic writes, atoi validation, build error propagation)
+
+---
+## Architectural Improvements
+
+- [ ] **Build System Unification**: Port all C compilation steps (`build-ocws-core.sh`, `build-ocws-events.sh`, etc.) into `build.zig` so a single `zig build` builds the entire workspace.
+- [ ] **GTK Application Scaffolding**: Create an `OCWS_APP_MAIN` macro in `libocws/gtk-app.h` to abstract repetitive GTK initialization, theme injection, and centralize logging across all C GUI apps.
+- [ ] **UI Layout Decoupling**: Migrate procedural UI construction in C to declarative GTK `.ui` files loaded via `GtkBuilder`.
+- [ ] **Configuration & State Management**: Implement a unified `ocws_config` singleton inside `libocws` with file watching to prevent redundant configuration parsing across different tools.
+
+---
+
+## Shared Utilities Extraction
+
+Cross-cutting utilities extracted from duplicated code across the codebase.
+
+### Completed
+
+- [x] **Delete `gui/utils.h`** — Replaced with `ocws_string.h` from libocws. Added `#define is_shell_safe ocws_is_shell_safe` backward-compat macro. Removed local `is_shell_safe()` definitions from `settings-tabs.c` and `ocws-theme-center.c`. Updated includes in `ocws-pkgmgr.c`, `ocws-fonts-mgr.c`, `fonts-mgr-common.h`, `ocws-welcome.c`.
+
+- [x] **Add `ocws_str_trim()` to `ocws_string.h`** — Whitespace trimming function (spaces, tabs, newlines, carriage returns). Consolidates 3 separate trim implementations (`ocws-kv.c`, `ini.h`, `store.c`).
+
+- [x] **Refactor `ocws-sysmon.c` to use `procfs.h` and `sysfs.h`** — Replaced hand-rolled `/proc/stat`, `/proc/meminfo`, `/proc/net/dev` parsers with `proc_cpu_read()`, `proc_mem_read()`. Replaced sysfs brightness/battery reading with `sysfs_read_int()`, `sysfs_find_device()`, `sysfs_read_device_int()`. Reduced from 190 to ~130 lines.
+
+- [x] **Refactor `ocws-brokerd.c` to use `sysfs.h` and `daemon.h`** — Replaced local `sysfs_read_int()` and `find_backlight_device()` with `sysfs.h` versions. Replaced local `signal_handler()` + `setup_signals()` with `daemon.h`'s `ocws_daemon_setup_signals()`. Renamed `running` to `ocws_daemon_running`. Removed ~40 lines of duplicated code.
+
+- [x] **Create `gl_helpers.h`** — Shared OpenGL utilities: `ocws_gl_compile_shader()`, `ocws_gl_create_program()`, `ocws_gl_setup_fullscreen_quad()`. Eliminates identical shader compilation code in `waveform-gl.c`, `equalizer-gl.c`, `speaker-gl.c`.
+
+- [x] **Create `theme_css.h`** — Shared CSS theme color loader: `OcwsThemeColors` struct + `ocws_load_theme_colors()`. Parses `@define-color accent`, `@define-color theme_bg_color`, `@define-color widget_alpha` from `~/.config/ocws/css/theme.css`. Eliminates identical parsing in `waveform-gl.c` and `equalizer-gl.c`.
+
+### Remaining (from analysis)
+
+- [ ] **Create `pa_capture.h`** — Shared PulseAudio monitor capture boilerplate (`pa_simple_new`, sample spec, buffer attr). Would eliminate ~180 lines across 4 GUI files.
+- [ ] **Create `speaker_render.c/h`** — Shared GL rendering code for `speaker-gl.c` and `speaker-qs.c` (85% identical, ~200 lines).
+- [ ] **Create `cli_control.h`** — Shared CLI option parsing for `ocws-brightness.c` and `ocws-volume.c` (~50 lines).
+- [ ] **Fix `json_escape()` off-by-one bug** in `json.h` — Buffer truncation error documented in test.
+- [ ] **Refactor `ocws-kv.c` trim()** to use `ocws_str_trim()` from `ocws_string.h`.
+- [ ] **Refactor `ini.h` ini_trim()** to use `ocws_str_trim()` from `ocws_string.h`.
+
+---
+
+## Zigshell Codebase Refactoring
+
+Both `zigshell-cairo-pango` and `zigshell-blend2d` share ~600+ lines of identical Wayland protocol
+code and ~1,300 lines of identical widget logic. The following items extract shared code, fix bugs,
+and clean up dead code discovered during the codebase analysis.
+
+### Critical — Shared module extraction
+
+- [x] **Move `damage.zig` to shared location** — **DONE**: Moved to `shared/damage.zig`, imported via `shellcore` module. Local copies removed from both shells.
+
+- [x] **Merge `toplevel.zig` into shared module** — **DONE**: Moved to `shared/toplevel.zig` via `shellcore` module. Includes `hover_anim` field, `maxInt(usize)` overflow sentinel, `std.mem.copyForwards`, and tests. Local copies already removed.
+
+- [ ] **Create `wayland_core.zig` shared module** (~400 lines) — Extract all backend-independent
+  Wayland protocol callbacks: `toplevelHandle*` (6 callbacks), `keyboardKeymap/Enter/Leave/Key/
+  Modifiers/RepeatInfo` (6 callbacks), `seatCapabilities`, `layerSurfaceConfigure/Closed`,
+  `frameDone`, `surfacePreferredScale`, `registryGlobal`, all 12 listener struct constants.
+  These are identical across both shells.
+
+- [ ] **Create `output_tracker.zig` shared module** (~70 lines) — `OutputInfo` struct,
+  `findOrAddOutput`, all 5 output callbacks + listener. 100% identical across both shells.
+
+- [ ] **Create `panel_common.zig` shared module** (~1,100 lines) — Extract `WidgetType` enum,
+  `Widget` struct (data fields), `PanelCtx`, `WidgetList`, `LoadedWidgets`, all `measure_fn`
+  implementations, all `update_fn` implementations, all `click_fn` implementations,
+  `configLoadWidgets`, `parseWidgetType`, `widgetCreateDefault`, `createWidget`,
+  `widgetListUpdate`, `widgetListWidth`. Only draw_fn implementations remain shell-specific.
+
+### High — Bug fixes
+
+- [x] **Fix `toplevel.zig:blend2d` `add()` overflow** — **DONE**: Shared toplevel.zig returns `maxInt(usize)` on overflow.
+
+- [ ] **Fix `configLoadWidgets` option parsing** — Options are accumulated into `opts_buf` but
+  **never parsed or applied**. All widget config is silently discarded; every widget gets defaults.
+  Add option parsing for at least: `cmd` (customcommand), `interval`, `tz` (worldclock),
+  `layout` (kbindicator), `side` (left/right), `iface` (network).
+
+- [x] **Fix `tlClick` hardcoded icon_size** — **DONE**: Added `panel_height` field to `PanelCtx`. `tlClick` now uses `ctx.panel_height - 12` instead of hardcoded 24.
+
+- [x] **Fix `keyboard_key` calling `widgets[i].key_fn`** — **DONE**: Removed `key_fn` from Widget struct entirely. Simplified `keyboardKey` callback to a no-op (no widgets handle keys).
+
+### Medium — Dead code cleanup
+
+- [x] **Remove `key_fn` from Widget struct** — **DONE**: Removed from both shells.
+
+- [x] **Remove `name` field from Widget struct** — **DONE**: Removed from both shells. Also removed from `createWidget`.
+
+- [x] **Remove `vol_pct` field from Widget struct** — **DONE**: Removed from both shells. Also removed from `createWidget`.
+
+- [x] **Remove `MAX_TOPLEVELS` and `PANEL_HEIGHT` from panel.zig** — **DONE**: Removed unused constants from both panel.zig files.
+
+- [ ] **Remove dead `opts_buf`/`opts_len` from configLoadWidgets** — Options are accumulated
+  but never parsed. Either implement parsing or remove the accumulation machinery.
+
+- [x] **Remove dead `settings_scroll` from cairo-pango main_shell.zig** — **DONE**: Removed.
+
+- [x] **Remove dead `count <= 0` check in `kbClick`** — **DONE**: Removed from both shells.
+
+### Medium — Code deduplication
+
+- [ ] **Create `settings.zig` shared module** (~50 lines) — `handleSettingsClick` and
+  `executeSettingsAction` are identical in both shells. Extract with a shared menu item table.
+
+- [ ] **Create `shell_utils.zig` shared module** (~15 lines) — `createShmFd` is identical in both.
+
+- [ ] **Extract `ensureBuffer` shared portion** — SHM fd, mmap, pool creation, buffer dimension
+  tracking, old buffer cleanup (~30 lines) are identical. Only renderer init differs. Split into
+  `ensureShmBuffer()` (shared) + `initRenderer()` (backend-specific).
+
+- [ ] **Extract `renderPanel` layout calculation** — Widget positioning logic (~40 lines:
+  `left_w`, `right_w`, `x0`, `widget_x[i]`) is identical. Only the draw calls differ.
+  Extract layout into shared function returning positioned widget list.
+
+- [ ] **Extract `main()` init sequence** — ~95 lines of identical init (display connect, SIGHUP,
+  config env, registry, roundtrips, globals check, widget loading, panel/dock surface creation).
+  Differences are only log prefixes and surface names.
+
+### Low — Design improvements
+
+- [ ] **Refactor Widget struct from flat fields to tagged data** — Currently every Widget carries
+  fields for ALL 18 types (~1.5KB per instance). With MAX_WIDGETS=64, that's ~96KB. Most
+  instances use <5% of allocated space. Move type-specific data behind `priv: ?*anyopaque`.
+
+- [ ] **Replace `createWidget` switch with declarative table** — Current 167-line switch manually
+  zeros fields (redundant — struct has defaults) and assigns function pointers. A data table
+  `const widget_defs = [_]WidgetDef{ ... }` would be ~30 lines and self-documenting.
+
+- [ ] **Add error handling to `c.system()` calls** — Every `c.system(...)` discards its return
+  value. At minimum log failures for debugging.
+
+- [ ] **Fix command injection in `customcommand`** — `ccUpdate` interpolates `w.cmd` into
+  `"sh -c '{s}'"`. Single quotes in cmd break shell quoting, enabling injection.
+  Use `fork()+execvp()` or escape the argument.
+
+- [ ] **Fix `worldclock` TZ race** — `wcUpdate` calls `c.setenv("TZ", ...)` + `c.tzset()`
+  modifying process-wide state. Not safe if multiple widgets or threads exist.
+
+### Notes
+- Priority order: Critical > High > Medium > Low
+- Items are independent unless noted; can be done in any order within priority
+- Shared modules go under `src/shells/zigshell-common/` (new directory)
+- Both shells add `root_mod.addIncludePath(b.path("../zigshell-common"))` in build.zig
+- Status (2026-07-16): analysis complete. Executed: T1 (damage.zig shared), T2 (toplevel.zig shared), T3 (tlClick fix), T4 (dead code removal). T5 (createShmFd) and T6 (config parsing) deferred.

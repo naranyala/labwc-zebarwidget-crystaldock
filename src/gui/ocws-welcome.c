@@ -22,56 +22,34 @@
 #include "../core/utils.h"
 #include "../libocws/gtk.h"
 #include "../libocws/ocws_string.h"
+#include "../libocws/log.h"
 #include <unistd.h>
 #include <sys/stat.h>
-#include "utils.h"
 #include <sys/wait.h>
 #include <stdarg.h>
 #include <time.h>
 
 static void free_ptr(gpointer data, GClosure *closure);
 
-static void log_msg(const char *fmt, ...) {
-    char path[512];
-    snprintf(path, sizeof(path), "%s/.cache/ocws-welcome.log", getenv("HOME") ? getenv("HOME") : "/tmp");
-    FILE *f = fopen(path, "a");
-    if (!f) return;
-    
-    time_t now = time(NULL);
-    struct tm *t = localtime(&now);
-    char tbuf[64];
-    strftime(tbuf, sizeof(tbuf), "%Y-%m-%d %H:%M:%S", t);
-    
-    fprintf(f, "[%s] ", tbuf);
-    
-    va_list args;
-    va_start(args, fmt);
-    vfprintf(f, fmt, args);
-    va_end(args);
-    
-    fprintf(f, "\n");
-    fclose(f);
-}
-
 static int run_cmd_logged(const char *cmd) {
-    log_msg("EXEC: %s", cmd);
+    LOG_INFO("welcome", "EXEC: %s", cmd);
     GError *error = NULL;
     gchar *argv[4] = {"/bin/sh", "-c", (gchar*)cmd, NULL};
     gint exit_status;
     if (!g_spawn_sync(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL, NULL, NULL, &exit_status, &error)) {
-        log_msg("ERROR: spawn failed: %s", error->message);
+        LOG_ERR("welcome", "spawn failed: %s", error->message);
         g_error_free(error);
         return -1;
     }
     if (!WIFEXITED(exit_status)) {
-        log_msg("ERROR: command terminated abnormally: %s", cmd);
+        LOG_ERR("welcome", "command terminated abnormally: %s", cmd);
         return -1;
     }
     int rc = WEXITSTATUS(exit_status);
     if (rc != 0) {
-        log_msg("ERROR: command failed with code %d: %s", rc, cmd);
+        LOG_ERR("welcome", "command failed with code %d: %s", rc, cmd);
     } else {
-        log_msg("SUCCESS: %s", cmd);
+        LOG_INFO("welcome", "SUCCESS: %s", cmd);
     }
     return rc;
 }

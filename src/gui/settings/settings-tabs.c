@@ -10,19 +10,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int is_shell_safe(const char *s) {
-    if (!s || !*s) return 0;
-    for (const char *p = s; *p; p++) {
-        char c = *p;
-        if (c == ';' || c == '|' || c == '&' || c == '$' ||
-            c == '(' || c == ')' || c == '{' || c == '}' ||
-            c == '`' || c == '"' || c == '\'' || c == '\\' ||
-            c == '\n' || c == '\r' || c == '<' || c == '>')
-            return 0;
-    }
-    return 1;
-}
-
 // ============================================================
 // Tab: Shell Modes
 // ============================================================

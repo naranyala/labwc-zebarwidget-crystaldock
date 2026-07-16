@@ -1,6 +1,6 @@
 // toplevel_test.zig — Unit tests for toplevel.zig
 const std = @import("std");
-const toplevel = @import("toplevel.zig");
+const toplevel = @import("shellcore").toplevel;
 
 test "ToplevelInfo default initialization" {
     const info = toplevel.ToplevelInfo{};

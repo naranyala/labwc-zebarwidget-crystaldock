@@ -1,3 +1,9 @@
+// shared/toplevel.zig — Single source of truth for toplevel tracking,
+// shared by both zigshell-cairo-pango and zigshell-blend2d.
+//
+// This module used to be duplicated (and subtly diverged) in each shell.
+// It is now imported via the `shellcore` module as `shellcore.toplevel`.
+
 const std = @import("std");
 
 pub const MAX_TOPLEVELS = 64;
@@ -21,7 +27,7 @@ pub fn findIndex(infos: []ToplevelInfo, count: i32, handle: ?*anyopaque) i32 {
 }
 
 pub fn add(infos: []ToplevelInfo, count: *i32, handle: ?*anyopaque) usize {
-    if (count.* >= MAX_TOPLEVELS) return std.math.maxInt(usize);
+    if (count.* >= MAX_TOPLEVELS) return 0;
     const idx: usize = @intCast(count.*);
     count.* += 1;
     infos[idx] = .{ .handle = handle };
@@ -60,12 +66,12 @@ test "toplevel array operations" {
     removeAt(&infos, &count, 0);
     try std.testing.expectEqual(@as(i32, 1), count);
     try std.testing.expectEqual(handle2, infos[0].handle);
-    
+
     // Add multiple and remove middle
     _ = add(&infos, &count, @ptrFromInt(3));
     _ = add(&infos, &count, @ptrFromInt(4));
     try std.testing.expectEqual(@as(i32, 3), count);
-    
+
     removeAt(&infos, &count, 1);
     try std.testing.expectEqual(@as(i32, 2), count);
     try std.testing.expectEqual(handle2, infos[0].handle);

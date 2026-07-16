@@ -31,6 +31,8 @@
 #include "../libocws/plugin_api.h"
 #include "../libocws/bus.h"
 #include "../libocws/notify.h"
+#include "../libocws/sysfs.h"
+#include "../libocws/daemon.h"
 
 /* ============================================================
  * Plugin host — loads .so plugins and bridges the event bus
@@ -262,7 +264,7 @@ static void unload_plugins(void) {
 #define POLL_INTERVAL_MS 100
 
 static int opt_verbose = 0;
-static volatile sig_atomic_t running = 1;
+/* ocws_daemon_running flag is provided by daemon.h as ocws_daemon_ocws_daemon_running */
 static char g_cover_path[512] = {0};
 
 static const char *get_cover_path(void) {
@@ -284,23 +286,7 @@ static const char *get_cover_path(void) {
     return g_cover_path;
 }
 
-/* ============================================================
- * Signal Handling
- * ============================================================ */
-
-static void signal_handler(int sig) {
-    (void)sig;
-    running = 0;
-}
-
-static void setup_signals(void) {
-    struct sigaction sa;
-    sa.sa_handler = signal_handler;
-    sigemptyset(&sa.sa_mask);
-    sa.sa_flags = 0;
-    sigaction(SIGINT, &sa, NULL);
-    sigaction(SIGTERM, &sa, NULL);
-}
+/* Signal handling via daemon.h — ocws_daemon_setup_signals() + ocws_daemon_running */
 
 /* ============================================================
  * Logging
@@ -336,39 +322,7 @@ static void emit_event(const char *ns, const char *value) {
     }
 }
 
-/* ============================================================
- * Sysfs Helpers
- * ============================================================ */
-
-static int sysfs_read_int(const char *path) {
-    FILE *f = fopen(path, "r");
-    if (!f) return -1;
-    int val = -1;
-    fscanf(f, "%d", &val);
-    fclose(f);
-    return val;
-}
-
-static int find_backlight_device(char *name, size_t len) {
-    DIR *d = opendir("/sys/class/backlight");
-    if (!d) return -1;
-    struct dirent *ent;
-    while ((ent = readdir(d)) != NULL) {
-        if (ent->d_name[0] == '.') continue;
-        char path[256];
-        snprintf(path, sizeof(path), "/sys/class/backlight/%s/brightness", ent->d_name);
-        FILE *f = fopen(path, "r");
-        if (f) {
-            fclose(f);
-            strncpy(name, ent->d_name, len - 1);
-            name[len - 1] = '\0';
-            closedir(d);
-            return 0;
-        }
-    }
-    closedir(d);
-    return -1;
-}
+/* Sysfs helpers from sysfs.h — sysfs_read_int(), sysfs_find_device() */
 
 /* ============================================================
  * Backlight Watcher (inotify)
@@ -380,7 +334,7 @@ static char backlight_dev[64] = {0};
 static int last_brightness = -1;
 
 static int init_backlight_watcher(void) {
-    if (find_backlight_device(backlight_dev, sizeof(backlight_dev)) != 0) {
+    if (sysfs_find_device("backlight", "brightness", backlight_dev, sizeof(backlight_dev)) != 0) {
         log_msg("No backlight device found");
         return -1;
     }
@@ -401,7 +355,7 @@ static int init_backlight_watcher(void) {
         return -1;
     }
 
-    last_brightness = sysfs_read_int(path);
+    last_brightness = sysfs_read_int(path, -1);
     log_msg("Watching backlight: %s (value=%d)", backlight_dev, last_brightness);
     return 0;
 }
@@ -426,13 +380,13 @@ static void check_backlight(void) {
         if (event->mask & IN_MODIFY) {
             char path[256];
             snprintf(path, sizeof(path), "/sys/class/backlight/%s/brightness", backlight_dev);
-            int cur = sysfs_read_int(path);
+            int cur = sysfs_read_int(path, -1);
             if (cur >= 0 && cur != last_brightness) {
-                int max_b = sysfs_read_int("/sys/class/backlight/" "/max_brightness");
+                int max_b = sysfs_read_int("/sys/class/backlight/" "/max_brightness", 0);
                 /* Try with device name */
                 char max_path[256];
                 snprintf(max_path, sizeof(max_path), "/sys/class/backlight/%s/max_brightness", backlight_dev);
-                max_b = sysfs_read_int(max_path);
+                max_b = sysfs_read_int(max_path, 0);
                 int pct = max_b > 0 ? (cur * 100) / max_b : cur;
                 emit_event("System.Brightness", "0"); /* placeholder */
                 char val[16];
@@ -681,7 +635,7 @@ int main(int argc, char *argv[]) {
     }
 
     umask(0077);
-    setup_signals();
+    ocws_daemon_setup_signals();
 
     ocws_bus_init();
     ocws_bus_set_zigshell_bridge(brokerd_zigshell_bridge);
@@ -695,10 +649,10 @@ int main(int argc, char *argv[]) {
 
     load_plugins();
 
-    log_msg("Event loop running (Ctrl+C to stop)");
+    log_msg("Event loop ocws_daemon_running (Ctrl+C to stop)");
 
     /* Event loop */
-    while (running) {
+    while (ocws_daemon_running) {
         check_backlight();
         check_volume();
         if (!no_media) check_media();

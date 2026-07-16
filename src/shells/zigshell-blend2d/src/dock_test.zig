@@ -1,7 +1,7 @@
 // dock_test.zig — Unit tests for dock.zig layout functions
 const std = @import("std");
 const dock = @import("dock.zig");
-const toplevel = @import("toplevel.zig");
+const toplevel = @import("shellcore").toplevel;
 
 test "DOCK_ICON_SIZE constant" {
     try std.testing.expectEqual(@as(i32, 28), dock.DOCK_ICON_SIZE);

@@ -1,11 +1,11 @@
 const std = @import("std");
 const c = @import("c.zig").c;
 const theme = @import("theme.zig");
-const toplevel = @import("toplevel.zig");
+const toplevel = @import("shellcore").toplevel;
 const panel_mod = @import("panel.zig");
 const dock_mod = @import("dock.zig");
 const icon = @import("icon.zig");
-const damage = @import("damage.zig");
+const damage = @import("shellcore").damage;
 
 const PANEL_HEIGHT = 36;
 const DOCK_HEIGHT = 48;
@@ -21,6 +21,14 @@ var toplevel_manager: ?*c.zwlr_foreign_toplevel_manager_v1 = null;
 var registry: ?*c.wl_registry = null;
 var seat: ?*c.wl_seat = null;
 var pointer: ?*c.wl_pointer = null;
+var keyboard: ?*c.wl_keyboard = null;
+
+// ---- keyboard state ----
+// We don't link xkbcommon, so we only map the keymap (required by the
+// wl_keyboard protocol) without parsing it.
+var keyboard_keymap_fd: c_int = -1;
+var keyboard_keymap_size: usize = 0;
+var keyboard_keymap_mapped: ?[*]align(1) u8 = null;
 
 // ---- surface state ----
 const SurfaceState = struct {
@@ -71,7 +79,6 @@ var pointer_on_dock = false;
 
 // ---- settings state ----
 var settings_open = false;
-var settings_scroll: i32 = 0;
 
 // ==== WAYLAND CALLBACKS ====
 
@@ -433,11 +440,96 @@ fn seatCapabilities(data: ?*anyopaque, s: ?*c.wl_seat, caps: u32) callconv(.c) v
         pointer = c.wl_seat_get_pointer(s);
         _ = c.wl_pointer_add_listener(pointer, &pointer_listener, null);
     }
+    // Without creating a wl_keyboard object the compositor has nothing to
+    // deliver key events to, so the panel can never receive keyboard input
+    // even when keyboard_interactivity is enabled.
+    if ((caps & c.WL_SEAT_CAPABILITY_KEYBOARD) != 0 and keyboard == null) {
+        keyboard = c.wl_seat_get_keyboard(s);
+        _ = c.wl_keyboard_add_listener(keyboard, &keyboard_listener, null);
+    }
 }
 
 const seat_listener = c.wl_seat_listener{
     .capabilities = seatCapabilities,
     .name = struct { fn f(_: ?*anyopaque, _: ?*c.wl_seat, _: [*c]const u8) callconv(.c) void {} }.f,
+};
+
+// ==== KEYBOARD CALLBACKS ====
+
+fn keyboardKeymap(data: ?*anyopaque, kb: ?*c.wl_keyboard, format: u32, fd: c_int, size: u32) callconv(.c) void {
+    _ = data;
+    _ = kb;
+    _ = format;
+    // Per the wl_keyboard protocol the client must map the shared keymap
+    // memory. Closing the fd without mapping it can leave the keyboard
+    // unusable on some compositors. We don't parse it (no xkbcommon dep),
+    // but we map it and keep it mapped for the lifetime of the seat.
+    if (keyboard_keymap_mapped) |m| {
+        _ = c.munmap(@ptrCast(m), keyboard_keymap_size);
+        keyboard_keymap_mapped = null;
+    }
+    if (keyboard_keymap_fd >= 0) _ = c.close(keyboard_keymap_fd);
+    keyboard_keymap_fd = fd;
+    keyboard_keymap_size = size;
+    if (size > 0 and fd >= 0) {
+        const mapped = c.mmap(null, size, c.PROT_READ, c.MAP_PRIVATE, fd, 0);
+        if (mapped != c.MAP_FAILED) {
+            keyboard_keymap_mapped = @ptrCast(@alignCast(mapped));
+        }
+    }
+}
+
+fn keyboardEnter(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, surface: ?*c.wl_surface, keys: ?*c.wl_array) callconv(.c) void {
+    _ = data;
+    _ = kb;
+    _ = serial;
+    _ = surface;
+    _ = keys;
+    dirty = true;
+}
+
+fn keyboardLeave(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, surface: ?*c.wl_surface) callconv(.c) void {
+    _ = data;
+    _ = kb;
+    _ = serial;
+    _ = surface;
+    dirty = true;
+}
+
+fn keyboardKey(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, time: u32, key: u32, state_w: u32) callconv(.c) void {
+    _ = data;
+    _ = kb;
+    _ = serial;
+    _ = time;
+    _ = key;
+    _ = state_w;
+}
+
+fn keyboardModifiers(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, mods_depressed: u32, mods_latched: u32, mods_locked: u32, group: u32) callconv(.c) void {
+    _ = data;
+    _ = kb;
+    _ = serial;
+    _ = mods_depressed;
+    _ = mods_latched;
+    _ = mods_locked;
+    _ = group;
+    dirty = true;
+}
+
+fn keyboardRepeatInfo(data: ?*anyopaque, kb: ?*c.wl_keyboard, rate: i32, delay: i32) callconv(.c) void {
+    _ = data;
+    _ = kb;
+    _ = rate;
+    _ = delay;
+}
+
+const keyboard_listener = c.wl_keyboard_listener{
+    .keymap = keyboardKeymap,
+    .enter = keyboardEnter,
+    .leave = keyboardLeave,
+    .key = keyboardKey,
+    .modifiers = keyboardModifiers,
+    .repeat_info = keyboardRepeatInfo,
 };
 
 // ==== LAYER SURFACE CALLBACKS ====
@@ -919,7 +1011,12 @@ pub fn main() !void {
     c.zwlr_layer_surface_v1_set_anchor(panel_surface.layer_surface, panel_anchor);
     c.zwlr_layer_surface_v1_set_size(panel_surface.layer_surface, 0, PANEL_HEIGHT);
     c.zwlr_layer_surface_v1_set_exclusive_zone(panel_surface.layer_surface, PANEL_HEIGHT);
-    c.zwlr_layer_surface_v1_set_keyboard_interactivity(panel_surface.layer_surface, 1);
+    // The panel/dock is an indicator+launcher bar with no in-process text
+    // entry, so it must NOT grab keyboard focus. Using interactivity 1 here
+    // meant the panel always held keyboard focus and discarded every key
+    // press — i.e. "keyboard can't type anything". Keep it NONE (0); the
+    // launcher spawns external tools (fuzzel) that manage their own focus.
+    c.zwlr_layer_surface_v1_set_keyboard_interactivity(panel_surface.layer_surface, 0);
     c.wl_surface_commit(panel_surface.surface);
 
     // Create dock surface (BOTTOM)

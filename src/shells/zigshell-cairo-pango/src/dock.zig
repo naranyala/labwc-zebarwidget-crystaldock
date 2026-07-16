@@ -1,7 +1,7 @@
 const std = @import("std");
 const c = @import("c.zig").c;
 
-const toplevel = @import("toplevel.zig");
+const toplevel = @import("shellcore").toplevel;
 const icon = @import("icon.zig");
 const theme = @import("theme.zig");
 

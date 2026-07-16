@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <unistd.h>
-#include "utils.h"
+#include "../libocws/ocws_string.h"
 #include "ocws-theme-utils.h"
 #include "../libocws/gtk.h"
 

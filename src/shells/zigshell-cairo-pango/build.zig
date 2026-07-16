@@ -19,6 +19,15 @@ pub fn build(b: *std.Build) void {
         .root_module = root_mod,
     });
 
+    // Shared cross-shell module (damage/toplevel), single source of truth.
+    const shellcore = b.createModule(.{
+        .root_source_file = b.path("../shared/shellcore.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    root_mod.addImport("shellcore", shellcore);
+
     linkDeps(root_mod, b);
     addProtocolSources(root_mod, b, c_flags);
 
@@ -32,6 +41,7 @@ pub fn build(b: *std.Build) void {
     run_step.dependOn(&run_cmd.step);
 
     // Tests
+    root_mod.addImport("shellcore", shellcore);
     const exe_unit_tests = b.addTest(.{
         .root_module = root_mod,
     });
@@ -51,6 +61,7 @@ fn linkDeps(root_mod: *std.Build.Module, b: *std.Build) void {
     root_mod.linkSystemLibrary("librsvg-2.0", .{});
     root_mod.addIncludePath(b.path("src"));
     root_mod.addIncludePath(b.path("."));
+    root_mod.addIncludePath(b.path("../shared/protocol"));
 }
 
 fn addProtocolSources(root_mod: *std.Build.Module, b: *std.Build, c_flags: []const []const u8) void {
@@ -58,16 +69,17 @@ fn addProtocolSources(root_mod: *std.Build.Module, b: *std.Build, c_flags: []con
         .file = b.path("src/dock_c_impl.c"),
         .flags = c_flags,
     });
+    // Single-source Wayland protocol bindings shared by both shells.
     root_mod.addCSourceFile(.{
-        .file = b.path("wlr-layer-shell-unstable-v1-client-protocol.c"),
+        .file = b.path("../shared/protocol/wlr-layer-shell-unstable-v1-client-protocol.c"),
         .flags = c_flags,
     });
     root_mod.addCSourceFile(.{
-        .file = b.path("wlr-foreign-toplevel-management-unstable-v1-client-protocol.c"),
+        .file = b.path("../shared/protocol/wlr-foreign-toplevel-management-unstable-v1-client-protocol.c"),
         .flags = c_flags,
     });
     root_mod.addCSourceFile(.{
-        .file = b.path("xdg-shell-client-protocol.c"),
+        .file = b.path("../shared/protocol/xdg-shell-client-protocol.c"),
         .flags = c_flags,
     });
 }

@@ -32,6 +32,15 @@ pub fn build(b: *std.Build) void {
         .link_libc = true,
     });
 
+    // Shared cross-shell module (damage/toplevel), single source of truth.
+    const shellcore = b.createModule(.{
+        .root_source_file = b.path("../shared/shellcore.zig"),
+        .target = target,
+        .optimize = optimize,
+        .link_libc = true,
+    });
+    root_mod.addImport("shellcore", shellcore);
+
     const exe = b.addExecutable(.{
         .name = "zigshell-blend2d",
         .root_module = root_mod,
@@ -43,6 +52,7 @@ pub fn build(b: *std.Build) void {
     root_mod.addIncludePath(b.path("src"));
     root_mod.addIncludePath(b.path("."));
     root_mod.addIncludePath(b.path("deps/blend2d"));
+    root_mod.addIncludePath(b.path("../shared/protocol"));
 
     // Link Blend2D
     root_mod.addLibraryPath(b.path("build/deps/blend2d"));
@@ -69,10 +79,6 @@ pub fn build(b: *std.Build) void {
         .file = b.path("src/dock.c"),
         .flags = &.{ "-std=gnu11", "-Wall" },
     });
-    root_mod.addCSourceFile(.{
-        .file = b.path("src/panel_draw.c"),
-        .flags = &.{ "-std=gnu11", "-Wall" },
-    });
 
     b.installArtifact(exe);
 
@@ -94,6 +100,7 @@ pub fn build(b: *std.Build) void {
         .target = target,
         .optimize = optimize,
     });
+    toplevel_mod.addImport("shellcore", shellcore);
     const toplevel_tests = b.addTest(.{ .root_module = toplevel_mod });
     const run_toplevel_tests = b.addRunArtifact(toplevel_tests);
 
@@ -106,10 +113,12 @@ pub fn build(b: *std.Build) void {
     dock_mod.addIncludePath(b.path("src"));
     dock_mod.addIncludePath(b.path("."));
     dock_mod.addIncludePath(b.path("deps/blend2d"));
+    dock_mod.addIncludePath(b.path("../shared/protocol"));
     dock_mod.addLibraryPath(b.path("build/deps/blend2d"));
     dock_mod.linkSystemLibrary("blend2d", .{});
     dock_mod.linkSystemLibrary("stdc++", .{});
     dock_mod.linkSystemLibrary("wayland-client", .{});
+    dock_mod.addImport("shellcore", shellcore);
     dock_mod.addCSourceFile(.{
         .file = b.path("src/dock_c_impl.c"),
         .flags = &.{ "-std=gnu11", "-Wall", "-DBLEND2D_STATIC" },
@@ -139,10 +148,12 @@ pub fn build(b: *std.Build) void {
     panel_mod_test.addIncludePath(b.path("src"));
     panel_mod_test.addIncludePath(b.path("."));
     panel_mod_test.addIncludePath(b.path("deps/blend2d"));
+    panel_mod_test.addIncludePath(b.path("../shared/protocol"));
     panel_mod_test.addLibraryPath(b.path("build/deps/blend2d"));
     panel_mod_test.linkSystemLibrary("blend2d", .{});
     panel_mod_test.linkSystemLibrary("stdc++", .{});
     panel_mod_test.linkSystemLibrary("wayland-client", .{});
+    panel_mod_test.addImport("shellcore", shellcore);
     panel_mod_test.addCSourceFile(.{
         .file = b.path("src/dock_c_impl.c"),
         .flags = &.{ "-std=gnu11", "-Wall", "-DBLEND2D_STATIC" },
@@ -169,9 +180,11 @@ pub fn build(b: *std.Build) void {
     render_mod.addIncludePath(b.path("src"));
     render_mod.addIncludePath(b.path("."));
     render_mod.addIncludePath(b.path("deps/blend2d"));
+    render_mod.addIncludePath(b.path("../shared/protocol"));
     render_mod.addLibraryPath(b.path("build/deps/blend2d"));
     render_mod.linkSystemLibrary("blend2d", .{});
     render_mod.linkSystemLibrary("stdc++", .{});
+    render_mod.addImport("shellcore", shellcore);
     render_mod.addCSourceFile(.{
         .file = b.path("src/dock_c_impl.c"),
         .flags = &.{ "-std=gnu11", "-Wall", "-DBLEND2D_STATIC" },
@@ -193,9 +206,11 @@ pub fn build(b: *std.Build) void {
     icon_mod.addIncludePath(b.path("src"));
     icon_mod.addIncludePath(b.path("."));
     icon_mod.addIncludePath(b.path("deps/blend2d"));
+    icon_mod.addIncludePath(b.path("../shared/protocol"));
     icon_mod.addLibraryPath(b.path("build/deps/blend2d"));
     icon_mod.linkSystemLibrary("blend2d", .{});
     icon_mod.linkSystemLibrary("stdc++", .{});
+    icon_mod.addImport("shellcore", shellcore);
     icon_mod.addCSourceFile(.{
         .file = b.path("src/dock_c_impl.c"),
         .flags = &.{ "-std=gnu11", "-Wall", "-DBLEND2D_STATIC" },
@@ -222,19 +237,17 @@ pub fn build(b: *std.Build) void {
     panel_draw_mod.addIncludePath(b.path("src"));
     panel_draw_mod.addIncludePath(b.path("."));
     panel_draw_mod.addIncludePath(b.path("deps/blend2d"));
+    panel_draw_mod.addIncludePath(b.path("../shared/protocol"));
     panel_draw_mod.addLibraryPath(b.path("build/deps/blend2d"));
     panel_draw_mod.linkSystemLibrary("blend2d", .{});
     panel_draw_mod.linkSystemLibrary("stdc++", .{});
+    panel_draw_mod.addImport("shellcore", shellcore);
     panel_draw_mod.addCSourceFile(.{
         .file = b.path("src/dock_c_impl.c"),
         .flags = &.{ "-std=gnu11", "-Wall", "-DBLEND2D_STATIC" },
     });
     panel_draw_mod.addCSourceFile(.{
         .file = b.path("src/blend2d_render.c"),
-        .flags = &.{ "-std=gnu11", "-Wall" },
-    });
-    panel_draw_mod.addCSourceFile(.{
-        .file = b.path("src/panel_draw.c"),
         .flags = &.{ "-std=gnu11", "-Wall" },
     });
     const panel_draw_tests = b.addTest(.{ .root_module = panel_draw_mod });
@@ -275,16 +288,17 @@ pub fn build(b: *std.Build) void {
 }
 
 fn addProtocolSources(root_mod: *std.Build.Module, b: *std.Build, c_flags: []const []const u8) void {
+    // Single-source Wayland protocol bindings shared by both shells.
     root_mod.addCSourceFile(.{
-        .file = b.path("wlr-layer-shell-unstable-v1-client-protocol.c"),
+        .file = b.path("../shared/protocol/wlr-layer-shell-unstable-v1-client-protocol.c"),
         .flags = c_flags,
     });
     root_mod.addCSourceFile(.{
-        .file = b.path("wlr-foreign-toplevel-management-unstable-v1-client-protocol.c"),
+        .file = b.path("../shared/protocol/wlr-foreign-toplevel-management-unstable-v1-client-protocol.c"),
         .flags = c_flags,
     });
     root_mod.addCSourceFile(.{
-        .file = b.path("xdg-shell-client-protocol.c"),
+        .file = b.path("../shared/protocol/xdg-shell-client-protocol.c"),
         .flags = c_flags,
     });
 }

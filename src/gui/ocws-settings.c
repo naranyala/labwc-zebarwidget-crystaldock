@@ -13,6 +13,7 @@
 #include "settings/settings-tabs.h"
 #include <gtk/gtk.h>
 #include "../libocws/gtk.h"
+#include "../libocws/gtk-app.h"
 
 static void activate(GtkApplication *app, gpointer user_data) {
     (void)user_data;
@@ -66,10 +67,4 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_widget_show_all(window);
 }
 
-int main(int argc, char **argv) {
-    GtkApplication *app = gtk_application_new("org.ocws.settings", G_APPLICATION_DEFAULT_FLAGS);
-    g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
-    int status = g_application_run(G_APPLICATION(app), argc, argv);
-    g_object_unref(app);
-    return status;
-}
+OCWS_APP_MAIN("org.ocws.settings", activate)

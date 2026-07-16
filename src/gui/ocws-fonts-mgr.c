@@ -21,7 +21,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <time.h>
-#include "utils.h"
+#include "../libocws/ocws_string.h"
 #include "ocws-theme-utils.h"
 #include "ocws-fonts.h"
 #include "../libocws/gtk.h"

@@ -39,7 +39,6 @@
 #include "dock.h"
 
 // Panel draw functions
-#include "panel_draw.h"
 
 // Utility
 int dock_create_shm_fd(size_t size);

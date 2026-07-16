@@ -1,7 +1,7 @@
 // panel_test.zig — Unit tests for panel.zig widget system
 const std = @import("std");
 const panel = @import("panel.zig");
-const toplevel = @import("toplevel.zig");
+const toplevel = @import("shellcore").toplevel;
 
 test "WidgetType enum has all expected variants" {
     const types = [_]panel.WidgetType{

@@ -1,4 +1,4 @@
-// panel_draw_test.zig — Unit tests for panel_draw.c via Zig wrappers
+// panel_draw_test.zig — Widget-style rendering tests via the Blend2D renderer.
 const std = @import("std");
 const render = @import("blend2d_render.zig");
 

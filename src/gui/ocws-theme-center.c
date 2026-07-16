@@ -11,6 +11,7 @@
 
 #include <gtk/gtk.h>
 #include "../libocws/gtk.h"
+#include "../libocws/ocws_string.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,20 +19,6 @@
 #include <sys/stat.h>
 #include <ctype.h>
 #include <errno.h>
-
-/* Shell-safe string: rejects shell metacharacters */
-static int is_shell_safe(const char *s) {
-    if (!s || !*s) return 0;
-    for (const char *p = s; *p; p++) {
-        char c = *p;
-        if (c == ';' || c == '|' || c == '&' || c == '$' ||
-            c == '(' || c == ')' || c == '{' || c == '}' ||
-            c == '`' || c == '"' || c == '\'' || c == '\\' ||
-            c == '\n' || c == '\r' || c == '<' || c == '>')
-            return 0;
-    }
-    return 1;
-}
 
 #define VERSION "1.0.0"
 #define OCWS_DIR ".config/ocws"

@@ -117,6 +117,8 @@ case "${launcher_choice:-1}" in
     *) LAUNCHER="fuzzel" ;;
 esac
 
+TERMINAL="foot"
+
 echo -e "  Terminal: ${GREEN}foot${NC}"
 
 echo -e "\n  ${CYAN}Extras:${NC}"
@@ -282,6 +284,16 @@ case "${dep_choice:-1}" in
                     esac
                 done
             fi
+        fi
+
+        # Compile C GTK GUI Utilities
+        info "Compiling OCWS GTK utilities..."
+        if command -v zig >/dev/null 2>&1; then
+            ( cd "$SCRIPT_DIR" && zig build ) \
+                && pass "GTK utilities compiled successfully" \
+                || warn "Failed to compile GTK utilities."
+        else
+            warn "zig compiler not found, cannot build GTK utilities."
         fi
         ;;
     *)

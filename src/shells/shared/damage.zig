@@ -1,10 +1,12 @@
-// damage.zig — Damage-region tracking helpers (shared by both shells)
+// shared/damage.zig — Damage-region tracking helpers (shared by both shells)
 //
 // Tracks the minimal bounding rectangle that changed since the last commit so
 // the compositor only re-reads the affected SHM pixels. Geometry logic is
 // unit-tested; the shells currently repaint whole surfaces, so the region is
 // set to the full surface rect on each repaint (behavior-preserving), but the
 // union/intersect math is ready for future partial repaints.
+
+const std = @import("std");
 
 pub const Region = struct {
     x: i32,
@@ -87,5 +89,3 @@ test "damage region contains/reset" {
     try std.testing.expect(!r.active);
     try std.testing.expect(!r.contains(10, 10));
 }
-
-const std = @import("std");

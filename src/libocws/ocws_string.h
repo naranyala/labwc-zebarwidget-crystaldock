@@ -75,4 +75,19 @@ static inline int ocws_is_safe_name(const char *s) {
     return 1;
 }
 
+/* Trim leading and trailing whitespace (spaces, tabs, newlines, carriage returns).
+ * Modifies the string in place and returns a pointer to the first non-whitespace char. */
+static inline char *ocws_str_trim(char *s) {
+    if (!s) return NULL;
+    while (*s == ' ' || *s == '\t' || *s == '\n' || *s == '\r') s++;
+    char *end = s + strlen(s);
+    while (end > s && (end[-1] == ' ' || end[-1] == '\t' || end[-1] == '\n' || end[-1] == '\r'))
+        end--;
+    *end = '\0';
+    return s;
+}
+
+/* Backward-compatible alias for callers that use the unprefixed name */
+#define is_shell_safe ocws_is_shell_safe
+
 #endif

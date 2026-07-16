@@ -3,12 +3,11 @@
 
 const std = @import("std");
 const c = @import("c.zig").c;
-const toplevel = @import("toplevel.zig");
+const toplevel = @import("shellcore").toplevel;
+const sysread = @import("shellcore").sysread;
 const icon = @import("icon.zig");
 const blend2d = @import("blend2d_render.zig");
 
-const PANEL_HEIGHT = 36;
-const MAX_TOPLEVELS = 64;
 const MAX_WIDGETS = 64;
 
 // ---- Widget System ----
@@ -37,7 +36,6 @@ pub const WidgetType = enum {
 
 pub const Widget = struct {
     wtype: WidgetType,
-    name: [64]u8,
     side: u8,
     cached_w: i32,
 
@@ -58,7 +56,6 @@ pub const Widget = struct {
     bat_lvl: i32 = -1,
     bat_charging: bool = false,
     bat_txt: [32]u8 = std.mem.zeroes([32]u8),
-    vol_pct: i32 = 0,
     vol_mute: bool = false,
     vol_txt: [32]u8 = std.mem.zeroes([32]u8),
     net_txt: [64]u8 = std.mem.zeroes([64]u8),
@@ -98,6 +95,7 @@ pub const PanelCtx = struct {
     toplevels: []toplevel.ToplevelInfo,
     count: *i32,
     seat: ?*c.wl_seat,
+    panel_height: i32 = 36,
 };
 
 // ---- Text Rendering Helpers ----
@@ -179,7 +177,7 @@ fn tlClick(w: *Widget, btn: u32, lx: i32, ly: i32) bool {
     _ = ly;
     if (w.priv == null) return false;
     const ctx: *PanelCtx = @ptrCast(@alignCast(w.priv.?));
-    const icon_size = 24;
+    const icon_size = ctx.panel_height - 12;
     const idx = @divTrunc(lx, icon_size + 4);
     if (idx >= 0 and idx < ctx.count.*) {
         const handle: ?*c.zwlr_foreign_toplevel_handle_v1 = @ptrCast(@alignCast(ctx.toplevels[@intCast(idx)].handle));
@@ -216,28 +214,11 @@ fn launcherClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
 }
 
 fn cpuUpdate(w: *Widget) void {
-    const f = c.fopen("/proc/stat", "r") orelse return;
-    defer _ = c.fclose(f);
-    var line: [128]u8 = std.mem.zeroes([128]u8);
-    if (c.fgets(&line, line.len, f) != null) {
-        var u: i32 = 0;
-        var n: i32 = 0;
-        var s: i32 = 0;
-        var io_i: i32 = 0;
-        var irq: i32 = 0;
-        var sirq: i32 = 0;
-        _ = c.sscanf(&line, "cpu %d %d %d %d %*d %d %d", &u, &n, &s, &io_i, &irq, &sirq);
-        const idle = io_i;
-        const total = u + n + s + io_i + irq + sirq;
-        const dtotal = total - w.cpu_prev_total;
-        const didle = idle - w.cpu_prev_idle;
-        if (dtotal > 0) {
-            const pct = @divTrunc(100 * (dtotal - didle), dtotal);
-            _ = std.fmt.bufPrintZ(&w.cpu_txt, "CPU {d}%", .{pct}) catch {};
-        }
-        w.cpu_prev_total = total;
-        w.cpu_prev_idle = idle;
-    }
+    var pt: i64 = w.cpu_prev_total;
+    var pi: i64 = w.cpu_prev_idle;
+    sysread.cpu(&w.cpu_txt, &pt, &pi);
+    w.cpu_prev_total = @intCast(pt);
+    w.cpu_prev_idle = @intCast(pi);
 }
 
 fn cpuMeasure(w: *Widget, h: i32) i32 {
@@ -280,21 +261,7 @@ fn cpuClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
 }
 
 fn memUpdate(w: *Widget) void {
-    const f = c.fopen("/proc/meminfo", "r") orelse return;
-    defer _ = c.fclose(f);
-    var total: i64 = 0;
-    var avail: i64 = 0;
-    var k: [32]u8 = std.mem.zeroes([32]u8);
-    var v: i64 = 0;
-    while (c.fscanf(f, "%31s %ld kB", &k, &v) == 2) {
-        if (std.mem.eql(u8, std.mem.sliceTo(&k, 0), "MemTotal:")) total = v
-        else if (std.mem.eql(u8, std.mem.sliceTo(&k, 0), "MemAvailable:")) avail = v;
-    }
-    if (total > 0) {
-        const used = total - avail;
-        const pct: i64 = @divTrunc(100 * used, total);
-        _ = std.fmt.bufPrintZ(&w.mem_txt, "MEM {d}%", .{pct}) catch {};
-    }
+    sysread.mem(&w.mem_txt);
 }
 
 fn memMeasure(w: *Widget, h: i32) i32 {
@@ -329,18 +296,7 @@ fn memClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
 }
 
 fn tempUpdate(w: *Widget) void {
-    const f = c.fopen("/sys/class/thermal/thermal_zone0/temp", "r") orelse {
-        _ = std.fmt.bufPrintZ(&w.temp_txt, "--\xc2\xb0C", .{}) catch {};
-        return;
-    };
-    defer _ = c.fclose(f);
-    var mt: i32 = -1;
-    _ = c.fscanf(f, "%d", &mt);
-    if (mt > 0) {
-        _ = std.fmt.bufPrintZ(&w.temp_txt, "{d}\xc2\xb0C", .{@divTrunc(mt, 1000)}) catch {};
-    } else {
-        _ = std.fmt.bufPrintZ(&w.temp_txt, "--\xc2\xb0C", .{}) catch {};
-    }
+    sysread.temp(&w.temp_txt);
 }
 
 fn tempMeasure(w: *Widget, h: i32) i32 {
@@ -417,36 +373,7 @@ fn batDraw(w: *Widget, renderer: *blend2d.BlendRenderer, x: i32, y: i32, h: i32)
 }
 
 fn batUpdate(w: *Widget) void {
-    const f = c.fopen("/sys/class/power_supply/BAT0/capacity", "r");
-    if (f == null) {
-        std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
-        return;
-    }
-    const cap_file = f.?;
-    defer _ = c.fclose(cap_file);
-    var cap_buf: [32]u8 = std.mem.zeroes([32]u8);
-    if (c.fgets(@ptrCast(&cap_buf), cap_buf.len, cap_file) != null) {
-        const cap_str = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(&cap_buf)), 0);
-        w.bat_lvl = std.fmt.parseInt(i32, std.mem.trimEnd(u8, cap_str, "\n\r"), 10) catch -1;
-    }
-
-    const st_file = c.fopen("/sys/class/power_supply/BAT0/status", "r");
-    if (st_file) |sf| {
-        defer _ = c.fclose(sf);
-        var st_buf: [32]u8 = std.mem.zeroes([32]u8);
-        if (c.fgets(@ptrCast(&st_buf), st_buf.len, sf) != null) {
-            const st_str = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(&st_buf)), 0);
-            w.bat_charging = std.mem.startsWith(u8, std.mem.trimEnd(u8, st_str, "\n\r"), "Charging");
-        }
-    }
-
-    if (w.bat_lvl < 0) {
-        std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
-    } else if (w.bat_charging) {
-        _ = std.fmt.bufPrintZ(&w.bat_txt, "+{d}%", .{w.bat_lvl}) catch std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
-    } else {
-        _ = std.fmt.bufPrintZ(&w.bat_txt, "{d}%", .{w.bat_lvl}) catch std.mem.copyForwards(u8, &w.bat_txt, "BAT ?");
-    }
+    sysread.battery(&w.bat_txt, &w.bat_lvl, &w.bat_charging);
 }
 
 fn batClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
@@ -490,78 +417,29 @@ fn netMeasure(w: *Widget, h: i32) i32 {
 
 fn netUpdate(w: *Widget) void {
     if (w.net_iface[0] == 0) {
-        var found: bool = false;
-        const f = c.fopen("/proc/net/dev", "r") orelse return;
-        defer _ = c.fclose(f);
-        var line: [256]u8 = std.mem.zeroes([256]u8);
-        _ = c.fgets(@ptrCast(&line), line.len, f);
-        _ = c.fgets(@ptrCast(&line), line.len, f);
-        while (c.fgets(@ptrCast(&line), line.len, f) != null) {
-            var i: usize = 0;
-            while (i < line.len and (line[i] == ' ' or line[i] == '\t')) : (i += 1) {}
-            var j = i;
-            while (j < line.len and line[j] != ':') : (j += 1) {}
-            if (j >= line.len) continue;
-            const name = line[i..j];
-            if (std.mem.eql(u8, name, "lo")) continue;
-            if (name.len > 0 and name.len < w.net_iface.len) {
-                @memcpy(w.net_iface[0..name.len], name);
-                w.net_iface[name.len] = 0;
-                found = true;
-                break;
-            }
-        }
-        if (!found) return;
+        if (!sysread.netPickInterface(&w.net_iface)) return;
     }
+    const sample = sysread.netSample(std.mem.sliceTo(&w.net_iface, 0));
+    if (!sample.found) return;
 
-    const f2 = c.fopen("/proc/net/dev", "r") orelse return;
-    defer _ = c.fclose(f2);
-    var line2: [256]u8 = std.mem.zeroes([256]u8);
-    _ = c.fgets(@ptrCast(&line2), line2.len, f2);
-    _ = c.fgets(@ptrCast(&line2), line2.len, f2);
-    while (c.fgets(@ptrCast(&line2), line2.len, f2) != null) {
-        var i: usize = 0;
-        while (i < line2.len and (line2[i] == ' ' or line2[i] == '\t')) : (i += 1) {}
-        var j = i;
-        while (j < line2.len and line2[j] != ':') : (j += 1) {}
-        if (j >= line2.len) continue;
-        const name = line2[i..j];
-        const want = std.mem.sliceTo(&w.net_iface, 0);
-        if (!std.mem.eql(u8, name, want)) continue;
-
-        var col: usize = j + 1;
-        var vals: [16]u64 = std.mem.zeroes([16]u64);
-        var nvals: usize = 0;
-        while (col < line2.len and nvals < vals.len) {
-            while (col < line2.len and (line2[col] == ' ' or line2[col] == '\t')) : (col += 1) {}
-            if (col >= line2.len) break;
-            var end = col;
-            while (end < line2.len and line2[end] != ' ' and line2[end] != '\t' and line2[end] != '\n') : (end += 1) {}
-            vals[nvals] = std.fmt.parseUnsigned(u64, line2[col..end], 10) catch 0;
-            nvals += 1;
-            col = end;
+    const rx = sample.rx_bytes;
+    const tx = sample.tx_bytes;
+    if (w.net_rx_prev != 0) {
+        const drx = rx -% w.net_rx_prev;
+        const dtx = tx -% w.net_tx_prev;
+        const rx_kb = @as(f64, @floatFromInt(drx)) / 1024.0;
+        const tx_kb = @as(f64, @floatFromInt(dtx)) / 1024.0;
+        var k: usize = 0;
+        while (k < 15) : (k += 1) {
+            w.net_hist_rx[k] = w.net_hist_rx[k + 1];
+            w.net_hist_tx[k] = w.net_hist_tx[k + 1];
         }
-        if (nvals < 10) break;
-        const rx = vals[0];
-        const tx = vals[8];
-        if (w.net_rx_prev != 0) {
-            const drx = rx -% w.net_rx_prev;
-            const dtx = tx -% w.net_tx_prev;
-            const rx_kb = @as(f64, @floatFromInt(drx)) / 1024.0;
-            const tx_kb = @as(f64, @floatFromInt(dtx)) / 1024.0;
-            var k: usize = 0;
-            while (k < 15) : (k += 1) {
-                w.net_hist_rx[k] = w.net_hist_rx[k + 1];
-                w.net_hist_tx[k] = w.net_hist_tx[k + 1];
-            }
-            w.net_hist_rx[15] = rx_kb;
-            w.net_hist_tx[15] = tx_kb;
-            _ = std.fmt.bufPrintZ(&w.net_txt, "{d:.0}/{d:.0} KB/s", .{ rx_kb, tx_kb }) catch {};
-        }
-        w.net_rx_prev = rx;
-        w.net_tx_prev = tx;
-        break;
+        w.net_hist_rx[15] = rx_kb;
+        w.net_hist_tx[15] = tx_kb;
+        _ = std.fmt.bufPrintZ(&w.net_txt, "{d:.0}/{d:.0} KB/s", .{ rx_kb, tx_kb }) catch {};
     }
+    w.net_rx_prev = rx;
+    w.net_tx_prev = tx;
 }
 
 fn netDraw(w: *Widget, renderer: *blend2d.BlendRenderer, x: i32, y: i32, h: i32) void {
@@ -726,7 +604,6 @@ fn kbClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
     for (w.kb_layouts) |ch| {
         if (ch == ',') count += 1;
     }
-    if (count <= 0) return false;
     w.kb_idx = @mod(w.kb_idx + 1, count);
     kbUpdate(w);
     var layout: [64]u8 = std.mem.zeroes([64]u8);
@@ -995,7 +872,6 @@ pub fn widgetCreateDefault() WidgetList {
 fn createWidget(wtype: WidgetType) Widget {
     var w: Widget = undefined;
     w.wtype = wtype;
-    w.name = std.mem.zeroes([64]u8);
     w.side = 0;
     w.cached_w = 0;
     w.priv = null;
@@ -1009,7 +885,6 @@ fn createWidget(wtype: WidgetType) Widget {
     w.bat_lvl = -1;
     w.bat_charging = false;
     w.bat_txt = std.mem.zeroes([32]u8);
-    w.vol_pct = 0;
     w.vol_mute = false;
     w.vol_txt = std.mem.zeroes([32]u8);
     w.net_txt = std.mem.zeroes([64]u8);
