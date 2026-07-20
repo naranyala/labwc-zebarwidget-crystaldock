@@ -100,10 +100,9 @@ static char* run_cmd(const char *fmt, ...) {
  * ================================================================ */
 
 static int parse_workspace_count(void) {
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
+    const char *config_dir = g_get_user_config_dir();
     char path[512];
-    snprintf(path, sizeof(path), "%s/%s", home, RC_FILE);
+    snprintf(path, sizeof(path), "%s/labwc/rc.xml", config_dir);
 
     char *content = run_cmd("grep -o '<number>[0-9]*</number>' '%s' 2>/dev/null | head -1 | grep -o '[0-9]*'", path);
     int count = atoi(content);
@@ -288,10 +287,9 @@ static void load_presets(void) {
         g_npresets = 0;
     }
 
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
+    const char *config_dir = g_get_user_config_dir();
     char path[512];
-    snprintf(path, sizeof(path), "%s/%s", home, PRESETS_FILE);
+    snprintf(path, sizeof(path), "%s/ocws/workspace-presets.ini", config_dir);
 
     GKeyFile *kf = g_key_file_new();
     if (!g_key_file_load_from_file(kf, path, G_KEY_FILE_NONE, NULL)) {

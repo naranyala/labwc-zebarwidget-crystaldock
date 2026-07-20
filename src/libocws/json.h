@@ -5,14 +5,30 @@
 #include <string.h>
 
 static inline void json_escape(char *dst, size_t dst_len, const char *src) {
+    if (dst_len == 0) return;
     size_t j = 0;
-    for (size_t i = 0; src[i] && j < dst_len - 2; i++) {
-        switch (src[i]) {
-            case '"':  dst[j++] = '\\'; dst[j++] = '"'; break;
-            case '\\': dst[j++] = '\\'; dst[j++] = '\\'; break;
-            case '\n': dst[j++] = '\\'; dst[j++] = 'n'; break;
-            case '\t': dst[j++] = '\\'; dst[j++] = 't'; break;
-            default:   dst[j++] = src[i]; break;
+    for (size_t i = 0; src[i] && j + 1 < dst_len; i++) {
+        int escape = 0;
+        char c = src[i];
+        switch (c) {
+            case '"': case '\\': case '\n': case '\t':
+                escape = 1;
+                break;
+            default:
+                break;
+        }
+        if (escape) {
+            if (j + 2 >= dst_len) break;
+            dst[j++] = '\\';
+            switch (c) {
+                case '"':  dst[j++] = '"'; break;
+                case '\\': dst[j++] = '\\'; break;
+                case '\n': dst[j++] = 'n'; break;
+                case '\t': dst[j++] = 't'; break;
+                default: break;
+            }
+        } else {
+            dst[j++] = c;
         }
     }
     dst[j] = '\0';

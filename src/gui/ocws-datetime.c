@@ -1,4 +1,6 @@
 #include <gtk/gtk.h>
+#include "../libocws/gtk.h"
+#include "../libocws/gtk-app.h"
 #include <cairo.h>
 #include <time.h>
 #include <math.h>
@@ -10,6 +12,8 @@ static int window_width = 300;
 static int window_height = 350;
 
 static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
+    (void)widget;
+    (void)data;
     time_t now = time(NULL);
     struct tm *t = localtime(&now);
 
@@ -90,14 +94,17 @@ static gboolean on_draw(GtkWidget *widget, cairo_t *cr, gpointer data) {
 }
 
 static gboolean update_clock(GtkWidget *widget) {
+    (void)widget;
     gtk_widget_queue_draw(widget);
     return TRUE;
 }
 
-int main(int argc, char *argv[]) {
-    gtk_init(&argc, &argv);
+static void activate(GtkApplication *app, gpointer user_data) {
+    (void)user_data;
+    ocws_gtk_enforce_premium_theme();
+    ocws_gtk_apply_dynamic_css(app, NULL);
 
-    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "OCWS Datetime");
     gtk_window_set_default_size(GTK_WINDOW(window), window_width, window_height);
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
@@ -106,13 +113,11 @@ int main(int argc, char *argv[]) {
     GtkWidget *drawing_area = gtk_drawing_area_new();
     gtk_container_add(GTK_CONTAINER(window), drawing_area);
 
-    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(G_OBJECT(drawing_area), "draw", G_CALLBACK(on_draw), NULL);
 
     g_timeout_add(1000, (GSourceFunc)update_clock, drawing_area);
 
     gtk_widget_show_all(window);
-    gtk_main();
-
-    return 0;
 }
+
+OCWS_APP_MAIN("org.ocws.datetime", activate)

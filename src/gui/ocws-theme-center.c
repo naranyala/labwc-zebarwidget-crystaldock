@@ -197,9 +197,8 @@ static const char* theme_color_hex(Theme *t, const char *name) {
  * ============================================================ */
 
 static void init_paths(void) {
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
-    snprintf(app.ocws_home, sizeof(app.ocws_home), "%s/%s", home, OCWS_DIR);
+    const char *config_dir = g_get_user_config_dir();
+    snprintf(app.ocws_home, sizeof(app.ocws_home), "%s/ocws", config_dir);
 
     const char *env_proj = getenv("LABWC_PROJECT");
     if (env_proj && env_proj[0]) {

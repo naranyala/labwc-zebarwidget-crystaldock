@@ -72,7 +72,7 @@ static void send_notification(const char *title, const char *body, const char *i
  * ================================================================ */
 
 #define DISABLE_FILE     "welcome-disabled"
-#define THEMES_SYSTEM    "/usr/share/ocws/themes"
+/* The system themes dir is obtained via g_get_system_data_dirs() at runtime */
 #define APP_ID           "org.ocws.welcome"
 
 /* ================================================================
@@ -96,8 +96,7 @@ static const char *PAGE_NAMES[] = {
  * ================================================================ */
 
 static void get_disable_path(char *buf, size_t len) {
-    char dir[512];
-    get_config_dir(dir, sizeof(dir));
+    const char *dir = g_get_user_config_dir();
     snprintf(buf, len, "%s/%s", dir, DISABLE_FILE);
 }
 
@@ -113,14 +112,13 @@ static gboolean is_welcome_disabled(void) {
 
 static void on_dont_show_toggled(GtkToggleButton *btn, gpointer data) {
     (void)data;
-    char dir[512], path[512];
-    get_config_dir(dir, sizeof(dir));
-    mkdir(dir, 0755);
-    get_disable_path(path, sizeof(path));
+    const char *dir = g_get_user_config_dir();
+    char path[512];
+    snprintf(path, sizeof(path), "%s/%s", dir, DISABLE_FILE);
 
     if (gtk_toggle_button_get_active(btn)) {
-        FILE *f = fopen(path, "w");
-        if (f) { fprintf(f, "1\n"); fclose(f); }
+        g_mkdir_with_parents(dir, 0755);
+        g_file_set_contents(path, "1\n", -1, NULL);
     } else {
         remove(path);
     }
@@ -158,7 +156,10 @@ static void on_prev(GtkWidget *w, gpointer data) {
 static void on_shell_select(GtkWidget *btn, gpointer data) {
     const char *mode = (const char *)data;
     char cmd[512];
-    snprintf(cmd, sizeof(cmd), "toggle-shell %s 2>/dev/null || ~/.local/bin/toggle-shell %s", mode, mode);
+    gchar *ts = g_find_program_in_path("toggle-shell");
+    if (!ts) ts = g_strdup("toggle-shell");
+    snprintf(cmd, sizeof(cmd), "%s %s 2>/dev/null", ts, mode);
+    g_free(ts);
 
     /* Run toggle-shell to completion (it kills the old shell and starts
      * the new one) BEFORE updating the UI, so the selection state always
@@ -598,9 +599,8 @@ static GtkWidget *build_shell_page(void) {
 
     /* Determine the active shell so we can pre-highlight the user's
      * current choice (written by install.sh / toggle-shell). */
-    char cfg_dir[512], mode_path[512], active_mode[64] = {0};
-    get_config_dir(cfg_dir, sizeof(cfg_dir));
-    snprintf(mode_path, sizeof(mode_path), "%s/mode", cfg_dir);
+    char mode_path[512], active_mode[64] = {0};
+    snprintf(mode_path, sizeof(mode_path), "%s/mode", g_get_user_config_dir());
     FILE *mf = fopen(mode_path, "r");
     if (mf) {
         if (fgets(active_mode, sizeof(active_mode), mf)) {
@@ -721,8 +721,8 @@ static GtkWidget *build_theme_page(void) {
 
     /* Also scan user themes dir */
     char user_dir[512];
-    snprintf(user_dir, sizeof(user_dir), "%s/.local/share/ocws/themes",
-             getenv("HOME") ? getenv("HOME") : "/tmp");
+    const char *data_dir = g_get_user_data_dir();
+    snprintf(user_dir, sizeof(user_dir), "%s/ocws/themes", data_dir);
     char **extra = NULL;
     int n_extra = scan_themes(user_dir, &extra, 20);
     if (n_extra > 0) {

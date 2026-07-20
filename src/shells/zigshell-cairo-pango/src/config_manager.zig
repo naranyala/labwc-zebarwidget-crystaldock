@@ -70,5 +70,5 @@ pub fn applyConfigToRuntime() void {
     if (pcfg.global.panel_height > 0 and pcfg.global.panel_height != main.panel_height) {
         main.setPanelHeight(pcfg.global.panel_height);
     }
-    main.wireWidgetPriv();
+    //main.wireWidgetPriv();
 }

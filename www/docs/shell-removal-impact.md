@@ -1,6 +1,6 @@
 # Shell Removal Impact Analysis
 
-> Impact assessment of removing DankMaterialShell, Noctalia, and Zigshell-cairo-pango from the OCWS dotfiles setup.
+Impact assessment of removing DankMaterialShell, Noctalia, and zigshell-cairo-pango from the OCWS dotfiles setup.
 
 ---
 
@@ -57,7 +57,7 @@ DMS generates themes for these applications:
 
 ### Noctalia Built-in Themes
 
-Ayu, Catppuccin, Dracula, Eldritch, Gruvbox, Kanagawa, Noctalia, Nord, Rosé Pine, Tokyo Night
+Ayu, Catppuccin, Dracula, Eldritch, Gruvbox, Kanagawa, Noctalia, Nord, Rose Pine, Tokyo Night
 
 ### Wallpaper Transition Effects
 
@@ -83,19 +83,19 @@ Ayu, Catppuccin, Dracula, Eldritch, Gruvbox, Kanagawa, Noctalia, Nord, Rosé Pin
 
 | Feature | Status | Notes |
 |---------|--------|-------|
-| 65+ widgets |  | CPU, memory, disk, network, battery, etc. |
-| Dual-panel layout |  | Top bar + bottom bar |
-| Dock widget |  | Basic (no magnification) |
-| Clipboard history |  | Via wl-paste/cliphist |
-| Media player controls |  | MPRIS integration |
-| System tray |  | StatusNotifierItem |
-| Workspace switcher |  | wlr-workspaces |
-| Calendar popup |  | clock.widget |
-| Quick settings |  | quick-settings.widget |
-| Control center |  | ocws-control-center.widget |
-| Notification center |  | notification-center.widget |
-| Weather widget |  | Open-Meteo |
-| Desktop widgets |  | Clock, sysmon, weather |
+| 65+ widgets | [x] | CPU, memory, disk, network, battery, etc. |
+| Dual-panel layout | [x] | Top bar + bottom bar |
+| Dock widget | [x] | Basic (no magnification) |
+| Clipboard history | [x] | Via wl-paste/cliphist |
+| Media player controls | [x] | MPRIS integration |
+| System tray | [x] | StatusNotifierItem |
+| Workspace switcher | [x] | wlr-workspaces |
+| Calendar popup | [x] | clock.widget |
+| Quick settings | [x] | quick-settings.widget |
+| Control center | [x] | ocws-control-center.widget |
+| Notification center | [x] | notification-center.widget |
+| Weather widget | [x] | Open-Meteo |
+| Desktop widgets | [x] | Clock, sysmon, weather |
 
 ---
 
@@ -118,25 +118,25 @@ If removing all three shells, these external tools would be needed:
 
 | Category | DMS | Noctalia | Zigshell-cairo-pango | OCWS Native |
 |----------|-----|----------|--------------|-------------|
-| Dynamic theming |  matugen |  wallpaper-based |  |  |
-| Lock screen |  full |  basic |  |  |
-| Notifications |  daemon |  daemon |  |  widget |
-| Wallpaper transitions |  |  6 effects |  |  |
-| Night light |  toggle |  built-in |  |  |
-| Idle management |  |  built-in |  |  |
-| Dock magnification |  |  |  zoom |  |
-| Bouncing icons |  |  |  |  |
-| Capsule bar mode |  |  |  |  |
-| Hooks system |  |  |  |  |
-| Control center |  |  |  |  |
-| System monitor |  |  |  |  |
-| Weather |  |  |  |  |
+| Dynamic theming | [x] matugen | [x] wallpaper-based | [ ] | [ ] |
+| Lock screen | [x] full | [x] basic | [ ] | [ ] |
+| Notifications | [x] daemon | [x] daemon | [ ] | [x] widget |
+| Wallpaper transitions | [ ] | [x] 6 effects | [ ] | [ ] |
+| Night light | [x] toggle | [x] built-in | [ ] | [ ] |
+| Idle management | [ ] | [x] built-in | [ ] | [ ] |
+| Dock magnification | [ ] | [ ] | [x] zoom | [ ] |
+| Bouncing icons | [ ] | [ ] | [x] | [ ] |
+| Capsule bar mode | [ ] | [x] | [ ] | [ ] |
+| Hooks system | [ ] | [x] | [ ] | [ ] |
+| Control center | [x] | [x] | [ ] | [x] |
+| System monitor | [x] | [x] | [ ] | [x] |
+| Weather | [ ] | [x] | [ ] | [x] |
 
 ---
 
 ## Recommendation
 
-**Keep OCWS Native (zigshell-cairo-pango) as the primary shell** — it has the most widgets and is self-contained.
+**Keep OCWS Native (zigshell-cairo-pango) as the primary shell** -- it has the most widgets and is self-contained.
 
 **Consider keeping Noctalia** as an alternative for users who want:
 - Built-in lock screen, notifications, night light, idle management
@@ -144,9 +144,9 @@ If removing all three shells, these external tools would be needed:
 - TOML-based configuration
 - Fewer external dependencies
 
-**DMS and Zigshell-cairo-pango are optional** for users who specifically want:
+**DMS and zigshell-cairo-pango are optional** for users who specifically want:
 - DMS: Material Design aesthetics, matugen dynamic theming
-- Zigshell-cairo-pango: macOS-style dock experience
+- zigshell-cairo-pango: macOS-style dock experience
 
 ---
 

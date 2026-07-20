@@ -80,12 +80,63 @@ test "damage region union" {
 
 test "damage region contains/reset" {
     var r = Region.init();
-    try std.testing.expect(!r.contains(0, 0));
-    r.add(0, 0, 100, 50);
-    try std.testing.expect(r.contains(10, 10));
-    try std.testing.expect(!r.contains(100, 10)); // exclusive upper bound
-    try std.testing.expect(!r.contains(10, 50));
+    r.add(10, 10, 10, 10);
+    try std.testing.expect(r.contains(15, 15));
+    try std.testing.expect(!r.contains(5, 5));
+
     r.reset();
     try std.testing.expect(!r.active);
-    try std.testing.expect(!r.contains(10, 10));
+    try std.testing.expect(!r.contains(15, 15));
+}
+
+test "damage region add negative/zero dimensions" {
+    var r = Region.init();
+    r.add(10, 10, 0, 10);
+    try std.testing.expect(!r.active);
+    r.add(10, 10, 10, 0);
+    try std.testing.expect(!r.active);
+    r.add(10, 10, -5, 10);
+    try std.testing.expect(!r.active);
+    r.add(10, 10, 10, -5);
+    try std.testing.expect(!r.active);
+    
+    // Now make it active and try adding invalid dimensions again
+    r.add(10, 10, 10, 10);
+    const before = r;
+    r.add(0, 0, -5, 5);
+    try std.testing.expectEqual(before.x, r.x);
+    try std.testing.expectEqual(before.y, r.y);
+    try std.testing.expectEqual(before.w, r.w);
+    try std.testing.expectEqual(before.h, r.h);
+}
+
+test "damage region expand top-left" {
+    var r = Region.init();
+    r.add(10, 10, 10, 10); // 10..20, 10..20
+    r.add(5, 5, 5, 5); // 5..10, 5..10
+    
+    try std.testing.expectEqual(@as(i32, 5), r.x);
+    try std.testing.expectEqual(@as(i32, 5), r.y);
+    try std.testing.expectEqual(@as(i32, 15), r.w); // 5..20
+    try std.testing.expectEqual(@as(i32, 15), r.h); // 5..20
+}
+
+test "damage region contains boundary cases" {
+    var r = Region.init();
+    // Contains is false when inactive
+    try std.testing.expect(!r.contains(0, 0));
+    
+    r.add(10, 10, 10, 10); // x:10..19, y:10..19
+    // Top-left is inside
+    try std.testing.expect(r.contains(10, 10));
+    // Inside
+    try std.testing.expect(r.contains(15, 15));
+    // Bottom-right is outside
+    try std.testing.expect(!r.contains(20, 20));
+    // Edges are outside
+    try std.testing.expect(!r.contains(10, 20));
+    try std.testing.expect(!r.contains(20, 10));
+    // Just outside top-left
+    try std.testing.expect(!r.contains(9, 10));
+    try std.testing.expect(!r.contains(10, 9));
 }

@@ -253,9 +253,13 @@ static void on_install_missing(GtkWidget *widget, gpointer data) {
     log_msg("Detected distro: %s", distro);
 
     char pkgs[2048] = {0};
-    gboolean is_arch = (strcmp(distro, "arch") == 0 || strcmp(distro, "manjaro") == 0 || strcmp(distro, "endeavouros") == 0 || access("/usr/bin/pacman", F_OK) == 0);
-    gboolean is_debian = (strcmp(distro, "debian") == 0 || strcmp(distro, "ubuntu") == 0 || strcmp(distro, "linuxmint") == 0 || access("/usr/bin/apt", F_OK) == 0);
-    gboolean is_fedora = (strcmp(distro, "fedora") == 0 || access("/usr/bin/dnf", F_OK) == 0);
+    gchar *pm = NULL;
+    gboolean is_arch = (strcmp(distro, "arch") == 0 || strcmp(distro, "manjaro") == 0 || strcmp(distro, "endeavouros") == 0);
+    if (!is_arch) { pm = g_find_program_in_path("pacman"); is_arch = (pm != NULL); g_free(pm); }
+    gboolean is_debian = (strcmp(distro, "debian") == 0 || strcmp(distro, "ubuntu") == 0 || strcmp(distro, "linuxmint") == 0);
+    if (!is_debian) { pm = g_find_program_in_path("apt"); is_debian = (pm != NULL); g_free(pm); }
+    gboolean is_fedora = (strcmp(distro, "fedora") == 0);
+    if (!is_fedora) { pm = g_find_program_in_path("dnf"); is_fedora = (pm != NULL); g_free(pm); }
 
     for (int i = 0; i < DEP_COUNT; i++) {
         if (check_installed(DEPS[i].check_cmd) == 0) {
@@ -284,6 +288,7 @@ static void on_install_missing(GtkWidget *widget, gpointer data) {
             snprintf(cmd, sizeof(cmd), "pkexec dnf install -y %s 2>&1", pkgs);
         } else {
             log_msg("Unsupported package manager.");
+            if (strcmp(distro, "unknown") != 0) free((char *)distro);
             return;
         }
         
@@ -291,6 +296,7 @@ static void on_install_missing(GtkWidget *widget, gpointer data) {
     } else {
         log_msg("No installable missing packages found.");
     }
+    if (strcmp(distro, "unknown") != 0) free((char *)distro);
 }
 
 /* ================================================================
@@ -384,18 +390,17 @@ static gpointer health_worker(gpointer user_data) {
     log_msg("=== Running Full Health Check ===");
 
     char script[512];
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
 
-    /* Check multiple locations for ocws-health.sh */
-    if (access("./scripts/ocws-health.sh", X_OK) == 0) {
-        snprintf(script, sizeof(script), "./scripts/ocws-health.sh");
-    } else if (access("/usr/local/bin/ocws-health.sh", X_OK) == 0) {
-        snprintf(script, sizeof(script), "/usr/local/bin/ocws-health.sh");
-    } else if (access("/usr/bin/ocws-health.sh", X_OK) == 0) {
-        snprintf(script, sizeof(script), "/usr/bin/ocws-health.sh");
+    /* Use PATH lookup (XDG-compliant) for ocws-health.sh */
+    gchar *found = g_find_program_in_path("ocws-health.sh");
+    if (found) {
+        strncpy(script, found, sizeof(script) - 1);
+        g_free(found);
+    } else if (access("./scripts/ocws-health.sh", X_OK) == 0) {
+        strncpy(script, "./scripts/ocws-health.sh", sizeof(script) - 1);
     } else {
-        snprintf(script, sizeof(script), "%s/.local/bin/ocws-health.sh", home);
+        const char *data_dir = g_get_user_data_dir();
+        snprintf(script, sizeof(script), "%s/ocws/ocws-health.sh", data_dir);
     }
 
     if (access(script, X_OK) == 0) {
@@ -466,18 +471,17 @@ static gpointer quick_health_worker(gpointer user_data) {
             log_msg("[%s] %s", running ? "PASS" : "WARN", svcs[i]);
         }
     } else if (strcmp(section, "config") == 0) {
-        const char *home = getenv("HOME");
-        if (!home) home = "/tmp";
+        const char *config_dir = g_get_user_config_dir();
         const char *files[] = {
-            ".config/labwc/rc.xml",
-            ".config/labwc/autostart",
-            ".config/labwc/menu.xml",
-            ".config/ocws/mode",
+            "labwc/rc.xml",
+            "labwc/autostart",
+            "labwc/menu.xml",
+            "ocws/mode",
             NULL
         };
         for (int i = 0; files[i]; i++) {
             char path[512];
-            snprintf(path, sizeof(path), "%s/%s", home, files[i]);
+            snprintf(path, sizeof(path), "%s/%s", config_dir, files[i]);
             log_msg("[%s] %s", access(path, R_OK) == 0 ? "PASS" : "FAIL", files[i]);
         }
     } else if (strcmp(section, "binaries") == 0) {

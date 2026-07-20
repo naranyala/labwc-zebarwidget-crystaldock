@@ -28,12 +28,15 @@ static void push_eq(double values[10]) {
     snprintf(cmd, sizeof(cmd), "ocws-eq-apply apply \"%s\"", csv);
     g_print("Applying EQ: %s\n", csv);
     GError *error = NULL;
+    GPid child_pid;
     gchar *argv[4] = {"/bin/sh", "-c", cmd, NULL};
-    g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_DO_NOT_REAP_CHILD,
-                  NULL, NULL, NULL, &error);
+    g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH,
+                  NULL, NULL, &child_pid, &error);
     if (error) {
         g_warning("spawn eq failed: %s", error->message);
         g_error_free(error);
+    } else {
+        g_spawn_close_pid(child_pid);
     }
 }
 
@@ -71,10 +74,10 @@ static void load_presets(void) {
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(preset_combo), "Acoustic");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(preset_combo), "Electronic");
     gtk_combo_box_text_append_text(GTK_COMBO_BOX_TEXT(preset_combo), "Spoken Word");
-    const char *homedir = getenv("HOME");
-    if (homedir) {
+    const char *config_dir = g_get_user_config_dir();
+    if (config_dir) {
         char path[512];
-        snprintf(path, sizeof(path), "%s/.config/easyeffects/output", homedir);
+        snprintf(path, sizeof(path), "%s/easyeffects/output", config_dir);
         DIR *dir = opendir(path);
         if (dir) {
             struct dirent *ent;

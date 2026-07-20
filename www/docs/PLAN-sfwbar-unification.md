@@ -1,29 +1,29 @@
-# Plan: Zigshell Unification — Replace Noctalia & Zigshell-cairo-pango
+# Plan: Zigshell Unification - Replace Noctalia and Zigshell-cairo-pango
 
 ## Executive Summary
 
-**Goal**: Deprecate `noctalia` and `zigshell-cairo-pango` external shells by achieving full feature parity with our custom `zigshell-cairo-pango`-based OCWS. Retain multi-shell switcher as fallback during transition, but eventually phase out external dependencies.
+**Goal:** Deprecate `noctalia` and `zigshell-cairo-pango` external shells by achieving full feature parity with the custom `zigshell-cairo-pango`-based OCWS. Retain multi-shell switcher as fallback during transition, but eventually phase out external dependencies.
 
-**Current State**: Shell modes exist:
-- `zigshell-cairo-pango` — labwc + zigshell-cairo-pango only (merged panel + dock)
-- `both` — labwc + zigshell-cairo-pango (doublepanel) + zigshell-cairo-pango (single binary, two instances)
-- `doublepanel` — labwc + double-panel zigshell-cairo-pango (top status bar + bottom dock/taskbar)
-- `minimal` — labwc + minimal zigshell-cairo-pango
-- `noctalia` — labwc + noctalia shell
-- `dms` — labwc + dankmaterialshell
-- `lxqt-*` — labwc + lxqt-panel variants with zigshell-cairo-pango
+**Current State:** Shell modes exist:
+- `zigshell-cairo-pango` -- labwc + zigshell-cairo-pango only (merged panel + dock)
+- `both` -- labwc + zigshell-cairo-pango (doublepanel) + zigshell-cairo-pango (single binary, two instances)
+- `doublepanel` -- labwc + double-panel zigshell-cairo-pango (top status bar + bottom dock/taskbar)
+- `minimal` -- labwc + minimal zigshell-cairo-pango
+- `noctalia` -- labwc + noctalia shell
+- `dms` -- labwc + dankmaterialshell
+- `lxqt-*` -- labwc + lxqt-panel variants with zigshell-cairo-pango
 
-> Note: the legacy `crystal` mode (crystal-dock) was removed; its role is covered by `zigshell-cairo-pango`.
+Note: the legacy `crystal` mode (crystal-dock) was removed; its role is covered by `zigshell-cairo-pango`.
 
-**Target State**: Single mode — `ocws` (labwc + zigshell-cairo-pango OCWS only)
+**Target State:** Single mode -- `ocws` (labwc + zigshell-cairo-pango OCWS only)
 
 ---
 
 ## Phase 0: Keep Current Modes (NOW)
 
-**Status**: Active — no changes to runtime behavior
+**Status:** Active -- no changes to runtime behavior
 
-All three modes remain functional. The shell switcher (`toggle-shell`) continues to work. This phase is about **planning only**.
+All three modes remain functional. The shell switcher (`toggle-shell`) continues to work. This phase is about planning only.
 
 ---
 
@@ -33,37 +33,37 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 
 | Feature | Zigshell-cairo-pango | OCWS Current | Gap |
 |---------|--------------|--------------|-----|
-| Dock-style launcher |  Pinned app icons |  `dock.widget` + `dock-apps.widget` | Done |
-| Magnification effect |  Mac-like zoom |  Not supported | **NEED** |
-| Running app indicators |  Dot indicators |  Taskbar has focused state | Partial |
-| Show desktop |  Click action |  `showdesktop.widget` | Done |
-| Icon rendering |  High-res icons |  Taskbar icons | Done |
+| Dock-style launcher | [x] Pinned app icons | [x] `dock.widget` + `dock-apps.widget` | Done |
+| Magnification effect | [x] Mac-like zoom | [ ] Not supported | **NEED** |
+| Running app indicators | [x] Dot indicators | [~] Taskbar has focused state | Partial |
+| Show desktop | [x] Click action | [x] `showdesktop.widget` | Done |
+| Icon rendering | [x] High-res icons | [x] Taskbar icons | Done |
 
 ### 1.2 What Noctalia Provides
 
 | Feature | Noctalia | OCWS Current | Gap |
 |---------|----------|--------------|-----|
-| Top bar |  Launcher, workspaces, clock, media, tray, system |  Same layout | Done |
-| Control center |  Toggle panel with WiFi, BT, volume, brightness |  `ocws-control-center.widget` | Done |
-| Notification daemon |  Built-in |  `ocws-notify` + `ocws-osd-notify` | Done |
-| OSD popups |  Volume, brightness, etc. |  `ocws-osd-notify` | Done |
-| Dock |  Optional bottom dock |  `dock.widget` | Done |
-| Desktop widgets |  Clock, weather, etc. |  `desktop-*.widget` | Done |
-| Lock screen |  Built-in blur |  `ocws-lock` (swaylock) | Done |
-| Weather |  API integration |  `weather.widget` | Done |
-| System monitor |  CPU, memory, disk graphs |  `ocws-sysmon` | Done |
-| Wallpaper management |  Transitions, automation |  `ocws-wallpaper` | Done |
-| Theme engine |  Builtin + community |  INI-based theme engine | Done |
-| Animations |  CSS transitions | ️ Basic GTK3 transitions | Partial |
-| Glassmorphism |  Blur, translucency | ️ CSS-only (no real blur) | Partial |
+| Top bar | [x] Launcher, workspaces, clock, media, tray, system | [x] Same layout | Done |
+| Control center | [x] Toggle panel with WiFi, BT, volume, brightness | [x] `ocws-control-center.widget` | Done |
+| Notification daemon | [x] Built-in | [x] `ocws-notify` + `ocws-osd-notify` | Done |
+| OSD popups | [x] Volume, brightness, etc. | [x] `ocws-osd-notify` | Done |
+| Dock | [x] Optional bottom dock | [x] `dock.widget` | Done |
+| Desktop widgets | [x] Clock, weather, etc. | [x] `desktop-*.widget` | Done |
+| Lock screen | [x] Built-in blur | [x] `ocws-lock` (swaylock) | Done |
+| Weather | [x] API integration | [x] `weather.widget` | Done |
+| System monitor | [x] CPU, memory, disk graphs | [x] `ocws-sysmon` | Done |
+| Wallpaper management | [x] Transitions, automation | [x] `ocws-wallpaper` | Done |
+| Theme engine | [x] Builtin + community | [x] INI-based theme engine | Done |
+| Animations | [x] CSS transitions | [~] Basic GTK3 transitions | Partial |
+| Glassmorphism | [x] Blur, translucency | [~] CSS-only (no real blur) | Partial |
 
 ### 1.3 Critical Gaps to Close
 
 **Must-have for parity:**
-1. **Dock widget** — Pinned apps with magnification effect (Completed)
-2. **Desktop widgets** — Floating clock, weather, system stats (Completed)
-3. **Animation polish** — Smooth hover states, transitions
-4. **Glassmorphism** — Real blur via gtk-layer-shell (if possible)
+1. Dock widget -- Pinned apps with magnification effect (Completed)
+2. Desktop widgets -- Floating clock, weather, system stats (Completed)
+3. Animation polish -- Smooth hover states, transitions
+4. Glassmorphism -- Real blur via gtk-layer-shell (if possible)
 
 **Nice-to-have:**
 - Live lyrics display
@@ -138,7 +138,7 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 
 ---
 
-## Phase 4: Animation & Glassmorphism Polish
+## Phase 4: Animation and Glassmorphism Polish
 
 ### 4.1 Animations
 
@@ -162,7 +162,7 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 
 **Approach**:
 - `gtk-layer-shell` supports `blur` region
-- zigshell-cairo-pango doesn't expose blur API directly
+- zigshell-cairo-pango does not expose blur API directly
 - **Option A**: Use `ocws-live-bg` for background blur
 - **Option B**: Patch zigshell-cairo-pango to support blur (complex)
 - **Option C**: Accept CSS-only translucency (simpler, less resource-intensive)
@@ -175,15 +175,15 @@ All three modes remain functional. The shell switcher (`toggle-shell`) continues
 
 ### 5.1 Current Switcher Scripts
 
-- `toggle-shell` — Simple switcher (zigshell-cairo-pango/doublepanel/minimal/both/noctalia/dms/lxqt-*)
-- `shell-switcher.sh` — Complex switcher (reads `~/.config/ocws/mode`, defaults to zigshell-cairo-pango)
-- `labwc-shell-wrapper` — Legacy wrapper
+- `toggle-shell` -- Simple switcher (zigshell-cairo-pango/doublepanel/minimal/both/noctalia/dms/lxqt-*)
+- `shell-switcher.sh` -- Complex switcher (reads `~/.config/ocws/mode`, defaults to zigshell-cairo-pango)
+- `labwc-shell-wrapper` -- Legacy wrapper
 
 ### 5.2 Target Switcher
 
 Single script: `ocws-shell` with modes:
-- `ocws` — labwc + zigshell-cairo-pango OCWS (default, recommended)
-- `legacy-noctalia` — labwc + noctalia (deprecated)
+- `ocws` -- labwc + zigshell-cairo-pango OCWS (default, recommended)
+- `legacy-noctalia` -- labwc + noctalia (deprecated)
 
 ### 5.3 Implementation Steps
 
@@ -194,7 +194,7 @@ Single script: `ocws-shell` with modes:
 
 ---
 
-## Phase 6: Deprecation & Removal
+## Phase 6: Deprecation and Removal
 
 ### 6.1 Deprecation Timeline
 
@@ -219,20 +219,20 @@ Single script: `ocws-shell` with modes:
 
 ---
 
-## Phase 7: Testing & Validation
+## Phase 7: Testing and Validation
 
 ### 7.1 Feature Parity Tests
 
 | Test | Zigshell-cairo-pango | Noctalia | OCWS |
 |------|--------------|----------|------|
-| Launch app from dock |  | N/A |  |
-| Magnification effect |  | N/A | ️ |
-| Running app indicator |  | N/A |  |
-| Control center toggle | N/A |  |  |
-| Notification display | N/A |  |  |
-| OSD popup | N/A |  |  |
-| Desktop widget | N/A |  |  |
-| Animation smoothness |  |  | ️ |
+| Launch app from dock | [x] | N/A | [x] |
+| Magnification effect | [x] | N/A | [~] |
+| Running app indicator | [x] | N/A | [x] |
+| Control center toggle | N/A | [x] | [x] |
+| Notification display | N/A | [x] | [x] |
+| OSD popup | N/A | [x] | [x] |
+| Desktop widget | N/A | [x] | [x] |
+| Animation smoothness | [x] | [x] | [~] |
 
 ### 7.2 Performance Benchmarks
 
@@ -247,11 +247,11 @@ Single script: `ocws-shell` with modes:
 
 ## Risk Mitigation
 
-1. **Keep fallback modes** — Don't remove zigshell-cairo-pango/noctalia until OCWS reaches parity
-2. **Incremental rollout** — Implement one feature at a time, test thoroughly
-3. **Performance monitoring** — Track memory/CPU usage during development
-4. **User feedback** — Get community input before deprecating popular features
-5. **Documentation** — Update README, TODOS.md, and user guides
+1. **Keep fallback modes** -- Do not remove zigshell-cairo-pango or noctalia until OCWS reaches parity.
+2. **Incremental rollout** -- Implement one feature at a time, test thoroughly.
+3. **Performance monitoring** -- Track memory and CPU usage during development.
+4. **User feedback** -- Get community input before deprecating popular features.
+5. **Documentation** -- Update README, TODOS.md, and user guides.
 
 ---
 
@@ -269,8 +269,7 @@ Single script: `ocws-shell` with modes:
 
 ## References
 
-- `TODOS.md` — Phase 1.5: ZIGSHELL-CAIRO-PANGO Unification
-- `dotfiles/noctalia/config.toml` — Noctalia configuration reference
-- `dotfiles/zigshell-cairo-pango/panel_1.conf` — Zigshell-cairo-pango configuration reference
-- `dotfiles/ocws/ocws.config` — Current OCWS configuration
-- `shell/OCWS.md` — OCWS design philosophy (if exists)
+- `TODOS.md` -- Phase 1.5: zigshell-cairo-pango Unification
+- `dotfiles/noctalia/config.toml` -- Noctalia configuration reference
+- `dotfiles/zigshell-cairo-pango/panel_1.conf` -- Zigshell-cairo-pango configuration reference
+- `dotfiles/ocws/ocws.config` -- Current OCWS configuration

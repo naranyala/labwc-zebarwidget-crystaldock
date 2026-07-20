@@ -1,23 +1,23 @@
-# OCWS Documentation
+# Documentation Overview
 
-OCWS is a native Wayland desktop shell built on C, GTK3, and labwc. This documentation covers installation, configuration, architecture, and development.
+The Open Compositor Widget Shell (OCWS) is a high-performance, native Wayland desktop environment engineered primarily with C, GTK3, and `labwc`. This documentation repository provides comprehensive guidance on system installation, advanced configuration, architectural design, and software development practices.
 
-## What is OCWS?
+## System Overview
 
-OCWS replaces the typical GNOME/KDE stack with a set of focused C binaries and shell scripts. It runs on labwc (a Wayland compositor), uses zigshell-cairo-pango for panels and widgets, and fuzzel as the application launcher.
+OCWS serves as an efficient alternative to conventional desktop environments such as GNOME or KDE. It achieves this by deploying a curated suite of specialized C binaries and shell scripts. The environment operates on `labwc` (a robust Wayland compositor), utilizes `zigshell-cairo-pango` for rendering panels and widgets, and employs `fuzzel` as its application launcher.
 
-The result is a complete desktop environment that runs under 200 MB of RAM with zero JavaScript, Electron, or Qt runtime overhead.
+This architecture delivers a fully featured desktop environment that operates efficiently with under 200 MB of RAM, entirely eliminating the overhead associated with JavaScript, Electron, or Qt runtimes.
 
-## Key Features
+## Primary Features
 
-- **Pure C and GTK3** -- All GUI utilities are native binaries. No web technologies.
-- **Modular architecture** -- Panels, widgets, daemons, and plugins are independent units.
-- **Theme engine** -- One INI file propagates colors to 14 configuration surfaces.
-- **Multiple shell modes** -- Double panel, Noctalia floating island, Zigshell-cairo-pango, minimal.
-- **Native settings GUI** -- Visual control for themes, appearance, keybindings, and system metrics.
-- **Security-hardened** -- ASan in CI, shell injection prevention, proper temp file handling.
+- **Native C and GTK3 Implementation**: All graphical utilities are compiled natively. The system strictly avoids reliance on web-based technologies.
+- **Modular Design**: Interface panels, widgets, background daemons, and plugins function as distinct, independent units.
+- **Centralized Theme Engine**: A singular INI configuration file dictates the aesthetic properties across 14 distinct interface surfaces.
+- **Versatile Shell Layouts**: Supports multiple user paradigms, including Dual Panel, Noctalia Floating Island, Zigshell-cairo-pango, and Minimal configurations.
+- **Native Configuration Interface**: Provides graphical controls for theme management, appearance parameters, keybinding assignments, and system metric analysis.
+- **Security Hardened Architecture**: Integrates AddressSanitizer (ASan) in Continuous Integration (CI) pipelines, enforces shell injection prevention mechanisms, and utilizes secure temporary file handling protocols.
 
-## Quick Start
+## Initialization
 
 ```bash
 git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango.git
@@ -25,21 +25,22 @@ cd labwc-fuzzel-zigshell-cairo-pango
 ./install.sh
 ```
 
-Then select the labwc session from your display manager, or run `labwc` from a TTY.
+Upon successful installation, initialize the `labwc` session via your configured Display Manager, or execute `labwc` directly from a TTY interface.
 
-## Architecture
+## System Architecture
 
-| Layer | Component | Role |
-|-------|-----------|------|
-| Compositor | labwc | Window management, input, keybindings |
-| Shell UI | zigshell-cairo-pango | Panels, widgets, taskbar, tray |
-| Launcher | fuzzel | App launcher and dmenu-mode runner |
-| Layer Shell | gtk-layer-shell | Anchors surfaces to Wayland outputs |
+| Architecture Layer | Component | Functionality |
+|--------------------|-----------|---------------|
+| Compositor | labwc | Manages window operations, input processing, and keybinding enforcement. |
+| User Interface | zigshell-cairo-pango | Renders interface panels, widgets, the system taskbar, and the notification tray. |
+| Application Launcher | fuzzel | Operates as the application launcher and `dmenu`-compatible command runner. |
+| Layer Shell | gtk-layer-shell | Secures interface surfaces to the designated Wayland outputs. |
 
-## Documentation Sections
+## Documentation Directory
 
-- **Getting Started** -- Installation, first-run, troubleshooting
-- **Configuration** -- Event bus API, plugin system, CSS customization
-- **Events API** -- Full IPC event contract with variable mappings
-- **Lessons Learned** -- 55+ implementation notes covering zigshell-cairo-pango internals, shell patterns, and security
-- **Planning** -- Architecture decisions, unification strategy, dependency analysis
+- **Getting Started**: Procedures for installation, initial configuration, and system troubleshooting.
+- **Configuration**: Specifications for the Event Bus API, plugin architecture, and CSS-based customization.
+- **Event API Specification**: Comprehensive documentation of the IPC event contract and associated variable mappings.
+- **Graphical Interface Managers**: Details regarding native GTK3 utility applications.
+- **Implementation Insights**: An extensive archive of technical notes detailing `zigshell-cairo-pango` internals, shell design patterns, and security considerations.
+- **Strategic Planning**: Records of architectural decisions, unification strategies, and comprehensive dependency analyses.

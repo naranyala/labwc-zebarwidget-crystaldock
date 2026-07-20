@@ -25,7 +25,7 @@ fn WEXITSTATUS(status: c_int) c_int {
     return (status >> 8) & 0xff;
 }
 
-const VERSION = "0.1.0";
+const VERSION = "0.2.0";
 
 const Subcommand = struct {
     name: [*:0]const u8,
@@ -34,6 +34,28 @@ const Subcommand = struct {
 };
 
 const subcommands = [_]Subcommand{
+    // GUI apps
+    .{ .name = "settings", .description = "GTK3 settings GUI", .builtin = false },
+    .{ .name = "theme-center", .description = "Theme browser with live preview", .builtin = false },
+    .{ .name = "fonts-mgr", .description = "Font manager with install/preview", .builtin = false },
+    .{ .name = "dock-mgr", .description = "Dock layout manager", .builtin = false },
+    .{ .name = "dotdesktop-mgr", .description = "Desktop entry manager", .builtin = false },
+    .{ .name = "pkgmgr", .description = "Package manager frontend", .builtin = false },
+    .{ .name = "welcome", .description = "First-run setup wizard", .builtin = false },
+    .{ .name = "workspace-mgr", .description = "Virtual desktop kanban", .builtin = false },
+    .{ .name = "llm-runner", .description = "Local LLM chat interface", .builtin = false },
+    .{ .name = "equalizer", .description = "10-band graphic EQ with FFT visualizer", .builtin = false },
+    .{ .name = "equalizer-gl", .description = "OpenGL-accelerated equalizer", .builtin = false },
+    .{ .name = "equalizer-qs", .description = "Quick-settings equalizer backend", .builtin = false },
+    .{ .name = "speaker-gl", .description = "OpenGL speaker visualization", .builtin = false },
+    .{ .name = "speaker-qs", .description = "Quick-settings speaker backend", .builtin = false },
+    .{ .name = "waveform-gl", .description = "OpenGL waveform viewer", .builtin = false },
+    .{ .name = "waveform-qs", .description = "Quick-settings waveform backend", .builtin = false },
+    .{ .name = "datetime", .description = "Floating date/time display", .builtin = false },
+    .{ .name = "snake-game", .description = "Classic snake game overlay", .builtin = false },
+    .{ .name = "todomvc", .description = "TODO MVC demo app", .builtin = false },
+    .{ .name = "wallpaper-picker", .description = "Wallpaper browser and picker", .builtin = false },
+    // CLI utils
     .{ .name = "shot", .description = "Screenshot tool (grim + slurp)", .builtin = false },
     .{ .name = "clip", .description = "Clipboard manager (cliphist + fuzzel)", .builtin = false },
     .{ .name = "lock", .description = "Screen lock wrapper (swaylock)", .builtin = false },
@@ -46,12 +68,20 @@ const subcommands = [_]Subcommand{
     .{ .name = "kv", .description = "Key-value persistent store", .builtin = false },
     .{ .name = "color", .description = "Wallpaper palette extraction", .builtin = false },
     .{ .name = "ocr", .description = "Screen OCR (Tesseract)", .builtin = false },
+    .{ .name = "validate", .description = "System configuration validator", .builtin = false },
+    .{ .name = "fonts", .description = "Font management CLI", .builtin = false },
+    .{ .name = "tooltip", .description = "Tooltip utility", .builtin = false },
+    .{ .name = "tray", .description = "System tray", .builtin = false },
+    .{ .name = "network-bandwidth", .description = "Network bandwidth monitor", .builtin = false },
+    // Daemons
     .{ .name = "notify", .description = "Native D-Bus notification daemon", .builtin = false },
     .{ .name = "wallpaper", .description = "Time-of-day wallpaper transitions", .builtin = false },
     .{ .name = "live-bg", .description = "Animated live background", .builtin = false },
     .{ .name = "osd-notify", .description = "Glassmorphic notification popup", .builtin = false },
     .{ .name = "hypertile", .description = "Dynamic tiling for labwc", .builtin = false },
-    .{ .name = "settings", .description = "GTK3 settings GUI", .builtin = false },
+    .{ .name = "brokerd", .description = "C-native event bus daemon", .builtin = false },
+    .{ .name = "gestured", .description = "Gesture daemon", .builtin = false },
+    // Built-in
     .{ .name = "help", .description = "Show this help message", .builtin = true },
 };
 
@@ -65,15 +95,14 @@ fn bufPrintZ(buf: []u8, comptime fmt: []const u8, args: anytype) [*:0]const u8 {
 
 fn printHelp() void {
     _ = printf(
-        \\ocws — Our C-Written Shell (unified harness)
+        \\ocws — Our C-Written Shell (unified harness) v0.2.0
         \\
         \\Usage: ocws <subcommand> [args...]
         \\
-        \\Subcommands:
-        \\
     );
     for (subcommands) |sc| {
-        _ = printf("  %-16s %s\n", sc.name, sc.description);
+        if (sc.builtin) continue;
+        _ = printf("  %-20s %s\n", sc.name, sc.description);
     }
     _ = printf(
         \\
@@ -85,11 +114,6 @@ fn printHelp() void {
         \\  ocws version           Show version info
         \\  ocws help              Show this help message
         \\
-        \\Examples:
-        \\  ocws shot              Take a screenshot
-        \\  ocws brightness +10    Increase brightness by 10%
-        \\  ocws kv set foo bar    Set key-value pair
-        \\
     );
 }
 
@@ -98,13 +122,9 @@ fn printVersion() void {
 }
 
 fn execExternal(name: [*:0]const u8, argc: c_int, argv: [*c][*:0]const u8) void {
-    var buf: [256]u8 = undefined;
-    const path = bufPrintZ(&buf, "zig-out/bin/ocws-{s}", .{name});
-
     const pid = fork();
     if (pid == 0) {
         var new_argv_buf: [65]?[*:0]const u8 = undefined;
-        new_argv_buf[0] = path;
         var i: usize = 1;
         var j: usize = 2;
         while (j < @as(usize, @intCast(argc))) : (j += 1) {
@@ -114,7 +134,31 @@ fn execExternal(name: [*:0]const u8, argc: c_int, argv: [*c][*:0]const u8) void 
         }
         new_argv_buf[i] = null;
         const new_argv: [*:null]const ?[*:0]const u8 = @ptrCast(&new_argv_buf);
-        _ = execvp(path, new_argv);
+
+        var buf_local: [256]u8 = undefined;
+        var buf_zig: [256]u8 = undefined;
+        var buf_cmd: [256]u8 = undefined;
+
+        const cmd = bufPrintZ(&buf_cmd, "ocws-{s}", .{name});
+        new_argv_buf[0] = cmd;
+
+        const path_zig = bufPrintZ(&buf_zig, "zig-out/bin/ocws-{s}", .{name});
+        if (access(path_zig, F_OK) == 0) {
+            _ = execvp(path_zig, new_argv);
+        }
+
+        const home = getenv("HOME");
+        if (home != null) {
+            const home_span = std.mem.span(home.?);
+            const path_local = bufPrintZ(&buf_local, "{s}/.local/bin/ocws-{s}", .{home_span, name});
+            if (access(path_local, F_OK) == 0) {
+                _ = execvp(path_local, new_argv);
+            }
+        }
+
+        // Fallback to searching PATH
+        _ = execvp(cmd, new_argv);
+
         _ = fprintf(stderr, "ocws: command not found: %s\n", name);
         _exit(1);
     } else if (pid > 0) {
@@ -130,35 +174,28 @@ fn execExternal(name: [*:0]const u8, argc: c_int, argv: [*c][*:0]const u8) void 
     }
 }
 
-fn printGodHelp() void {
-    _ = printf(
-        \\ocws — Built-in admin operations
-        \\
-        \\Usage: ocws <command> [args...]
-        \\
-        \\Commands:
-        \\  status      Show system status (binaries, configs, health)
-        \\  rebuild     Rebuild all C utilities with zig build
-        \\  install     Build and install to ~/.local/bin/
-        \\  list        List all available binaries
-        \\  help        Show this help message
-        \\
-    );
-}
-
 fn printGodStatus() void {
     _ = printf("ocws: system status\n");
     _ = printf("  Version: %s\n", VERSION);
     _ = printf("  Binaries:\n");
 
+    const home = getenv("HOME");
+    const home_span = if (home != null) std.mem.span(home.?) else "";
+
     for (subcommands) |sc| {
         if (!sc.builtin) {
-            var buf: [128]u8 = undefined;
-            const path = bufPrintZ(&buf, "zig-out/bin/ocws-{s}", .{sc.name});
-            if (access(path, F_OK) == 0) {
-                _ = printf("    \x1b[32m✓\x1b[0m ocws-%s\n", sc.name);
+            var buf_zig: [256]u8 = undefined;
+            const path_zig = bufPrintZ(&buf_zig, "zig-out/bin/ocws-{s}", .{sc.name});
+            
+            var buf_local: [512]u8 = undefined;
+            const path_local = if (home != null) bufPrintZ(&buf_local, "{s}/.local/bin/ocws-{s}", .{home_span, sc.name}) else "";
+
+            if (access(path_zig, F_OK) == 0) {
+                _ = printf("    \x1b[32m✓\x1b[0m ocws-%s (zig-out)\n", sc.name);
+            } else if (home != null and access(path_local, F_OK) == 0) {
+                _ = printf("    \x1b[32m✓\x1b[0m ocws-%s (~/.local/bin)\n", sc.name);
             } else {
-                _ = printf("    \x1b[31m✗\x1b[0m ocws-%s (not built)\n", sc.name);
+                _ = printf("    \x1b[31m✗\x1b[0m ocws-%s (not built in default paths)\n", sc.name);
             }
         }
     }
@@ -213,7 +250,7 @@ fn runGodInstall() void {
             var src_buf: [128]u8 = undefined;
             const src = bufPrintZ(&src_buf, "zig-out/bin/ocws-{s}", .{sc.name});
             var dst_buf: [128]u8 = undefined;
-            const dst = bufPrintZ(&dst_buf, "{s}/ocws-{s}", .{ home_span, sc.name });
+            const dst = bufPrintZ(&dst_buf, "{s}/.local/bin/ocws-{s}", .{ home_span, sc.name });
             const cp_pid = fork();
             if (cp_pid == 0) {
                 _ = execlp("cp", "cp", src, dst, @as(?[*:0]const u8, null));
@@ -225,11 +262,9 @@ fn runGodInstall() void {
         }
     }
 
-    var unified_dst: [128]u8 = undefined;
-    const dst_path = bufPrintZ(&unified_dst, "{s}/ocws", .{home_span});
     const cp_pid = fork();
     if (cp_pid == 0) {
-        _ = execlp("cp", "cp", "zig-out/bin/ocws", dst_path, @as(?[*:0]const u8, null));
+        _ = execlp("cp", "cp", "zig-out/bin/ocws", bin_dir_path, @as(?[*:0]const u8, null));
         _exit(1);
     } else if (cp_pid > 0) {
         var st: c_int = 0;

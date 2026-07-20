@@ -1,15 +1,24 @@
 #include <gtk/gtk.h>
+#include "../libocws/gtk.h"
+#include "../libocws/gtk-app.h"
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
 
-#define MAX_TODOS 256
 #define MAX_LEN 256
 
 typedef struct { char text[MAX_LEN]; int done; } Todo;
 
-static Todo todos[MAX_TODOS];
+static Todo *todos = NULL;
 static int todo_count = 0;
+static int todo_capacity = 0;
+
+static void ensure_capacity(int count) {
+    if (count > todo_capacity) {
+        todo_capacity = count < 256 ? 256 : count * 2;
+        todos = realloc(todos, todo_capacity * sizeof(Todo));
+    }
+}
 static int filter = 0; /* 0 all, 1 active, 2 completed */
 
 static GtkWidget *entry;
@@ -24,15 +33,19 @@ static void on_edit(GtkWidget *row, gpointer d);
 
 static const char *store_path(void) {
     static char path[512];
-    const char *home = getenv("HOME");
-    snprintf(path, sizeof(path), "%s/.local/share/ocws/todos.txt", home ? home : ".");
+    const char *data_dir = g_get_user_data_dir();
+    char dir[512];
+    snprintf(dir, sizeof(dir), "%s/ocws", data_dir);
+    g_mkdir_with_parents(dir, 0700);
+    snprintf(path, sizeof(path), "%s/todos.txt", dir);
     return path;
 }
 
 static void load_todos(void) {
     FILE *f = fopen(store_path(), "r");
     if (!f) return;
-    while (todo_count < MAX_TODOS && fgets(todos[todo_count].text, MAX_LEN, f)) {
+    ensure_capacity(todo_count + 1);
+    while (fgets(todos[todo_count].text, MAX_LEN, f)) {
         size_t n = strlen(todos[todo_count].text);
         while (n > 0 && (todos[todo_count].text[n-1] == '\n' || todos[todo_count].text[n-1] == '\r'))
             todos[todo_count].text[--n] = 0;
@@ -40,6 +53,7 @@ static void load_todos(void) {
         todos[todo_count].done = (n > 1 && todos[todo_count].text[0] == 'x' && todos[todo_count].text[1] == ' ');
         if (todos[todo_count].done) memmove(todos[todo_count].text, todos[todo_count].text + 2, n - 1);
         todo_count++;
+        ensure_capacity(todo_count + 1);
     }
     fclose(f);
 }
@@ -113,6 +127,7 @@ static void rebuild_list(void) {
 }
 
 static void on_toggle(GtkWidget *chk, gpointer d) {
+    (void)d;
     int idx = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(chk), "idx"));
     if (idx >= 0 && idx < todo_count) {
         todos[idx].done = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(chk));
@@ -122,6 +137,7 @@ static void on_toggle(GtkWidget *chk, gpointer d) {
 }
 
 static void on_edit(GtkWidget *row, gpointer d) {
+    (void)d;
     int idx = GPOINTER_TO_INT(g_object_get_data(G_OBJECT(row), "idx"));
     if (idx < 0 || idx >= todo_count) return;
     GtkWidget *dialog = gtk_dialog_new_with_buttons("Edit",
@@ -144,9 +160,10 @@ static void on_edit(GtkWidget *row, gpointer d) {
 }
 
 static void on_activate_entry(GtkWidget *e, gpointer d) {
+    (void)d;
     const char *t = gtk_entry_get_text(GTK_ENTRY(e));
     if (!t || !*t) return;
-    if (todo_count >= MAX_TODOS) return;
+    ensure_capacity(todo_count + 1);
     strncpy(todos[todo_count].text, t, MAX_LEN - 1);
     todos[todo_count].text[MAX_LEN - 1] = 0;
     todos[todo_count].done = 0;
@@ -157,6 +174,7 @@ static void on_activate_entry(GtkWidget *e, gpointer d) {
 }
 
 static void on_toggle_all(GtkWidget *btn, gpointer d) {
+    (void)d;
     int state = gtk_toggle_button_get_active(GTK_TOGGLE_BUTTON(btn));
     for (int i = 0; i < todo_count; i++) todos[i].done = state;
     save_todos();
@@ -164,11 +182,14 @@ static void on_toggle_all(GtkWidget *btn, gpointer d) {
 }
 
 static void on_filter(GtkWidget *btn, gpointer d) {
+    (void)btn;
     filter = GPOINTER_TO_INT(d);
     rebuild_list();
 }
 
 static void on_clear(GtkWidget *btn, gpointer d) {
+    (void)btn;
+    (void)d;
     int w = 0;
     for (int i = 0; i < todo_count; i++)
         if (!todos[i].done) todos[w++] = todos[i];
@@ -177,10 +198,12 @@ static void on_clear(GtkWidget *btn, gpointer d) {
     rebuild_list();
 }
 
-int main(int argc, char *argv[]) {
-    gtk_init(&argc, &argv);
+static void activate(GtkApplication *app, gpointer user_data) {
+    (void)user_data;
+    ocws_gtk_enforce_premium_theme();
+    ocws_gtk_apply_dynamic_css(app, NULL);
 
-    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "OCWS TodoMVC");
     gtk_window_set_default_size(GTK_WINDOW(window), 380, 460);
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
@@ -225,7 +248,6 @@ int main(int argc, char *argv[]) {
 
     gtk_container_add(GTK_CONTAINER(window), vbox);
 
-    g_signal_connect(window, "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(entry, "activate", G_CALLBACK(on_activate_entry), NULL);
     g_signal_connect(toggle_all, "toggled", G_CALLBACK(on_toggle_all), NULL);
     g_signal_connect(clear_btn, "clicked", G_CALLBACK(on_clear), NULL);
@@ -236,6 +258,6 @@ int main(int argc, char *argv[]) {
     load_todos();
     rebuild_list();
     gtk_widget_show_all(window);
-    gtk_main();
-    return 0;
 }
+
+OCWS_APP_MAIN("org.ocws.todomvc", activate)

@@ -848,6 +848,9 @@ fn keyboardKeymap(data: ?*anyopaque, kb: ?*c.wl_keyboard, format: u32, fd: c_int
         const mapped = c.mmap(null, size, c.PROT_READ, c.MAP_PRIVATE, fd, 0);
         if (mapped != c.MAP_FAILED) {
             keyboard_keymap_mapped = @ptrCast(@alignCast(mapped));
+        } else {
+            _ = c.close(fd);
+            keyboard_keymap_fd = -1;
         }
     }
 }
@@ -1235,6 +1238,14 @@ fn ensureBuffer(ss: *SurfaceState) void {
     }
 }
 
+fn findSettingsWidget() i32 {
+    for (0..@intCast(@max(0, widget_count))) |i| {
+        if (widgets[i].hidden) continue;
+        if (widgets[i].wtype == .settings) return @intCast(i);
+    }
+    return -1;
+}
+
 fn renderPanel() void {
     ensureBuffer(&panel_surface);
     const cr = panel_surface.cairo_cr orelse return;
@@ -1276,13 +1287,17 @@ fn renderPanel() void {
     if (left_w > 0) left_w -= pad;
     if (right_w > 0) right_w -= pad;
 
-    // Reserve space for settings button
-    var x: i32 = x0;
+    // Left widget positioning: reserve 28px on the far left for settings gear (#51)
+    const settings_idx = findSettingsWidget();
+    const settings_width: i32 = if (settings_idx >= 0) 28 else 0;
+    var x: i32 = x0 + settings_width;
     for (0..@intCast(@max(0, widget_count))) |i| {
         if (widgets[i].hidden or widgets[i].side == 1) continue;
+        if (i == settings_idx) continue;
         widget_x[i] = x;
         x += widgets[i].cached_w + pad;
     }
+    if (settings_idx >= 0) widget_x[@intCast(settings_idx)] = x0;
 
     // Clamp rx to 0 to prevent signed underflow when right-side widgets +
     // settings button exceed panel width (C3).
@@ -1290,6 +1305,7 @@ fn renderPanel() void {
     if (rx < x) rx = x;
     for (0..@intCast(@max(0, widget_count))) |i| {
         if (widgets[i].hidden or widgets[i].side != 1) continue;
+        if (i == settings_idx) continue;
         widget_x[i] = rx;
         rx += widgets[i].cached_w + pad;
     }
@@ -1483,13 +1499,9 @@ fn modalClose() void {
         c.wl_callback_destroy(cb);
         modal_surface.frame_cb = null;
     }
-    if (modal_surface.layer_surface) |ls| {
-        c.zwlr_layer_surface_v1_destroy(ls);
-        modal_surface.layer_surface = null;
-    }
     if (modal_surface.surface) |s| {
-        c.wl_surface_destroy(s);
-        modal_surface.surface = null;
+        c.wl_surface_attach(s, null, 0, 0);
+        c.wl_surface_commit(s);
     }
     markDirty();
 }
@@ -1745,7 +1757,7 @@ fn drawDockTooltip(cr: *c.cairo_t, surf_w: i32, surf_h: i32) void {
     if (title.len == 0) return;
 
     const pad: i32 = 8;
-    const tw: i32 = @as(i32, @intCast(title.len)) * 7 + pad * 2;
+    const tw: i32 = @as(i32, @intCast(title.len)) * 8 + pad * 2;
     const th: i32 = 22;
     var bx: i32 = pointer_x -| @divTrunc(tw, 2);
     if (bx < 0) bx = 0;
@@ -1978,17 +1990,20 @@ pub fn main() !void {
             reload_config = false;
             reloadWidgets();
         }
-        // Animation step
+        // Animation step: only iterate toplevels when a valid hover is active
+        const anim_active = (dock_hover_idx >= 0 and dock_hover_idx < toplevel_count);
         var any_animating = false;
-        for (0..@intCast(@max(0, toplevel_count))) |i| {
-            const target: f64 = if (dock_hover_idx == @as(i32, @intCast(i))) 1.0 else 0.0;
-            const diff = target - toplevels[i].hover_anim;
-            if (@abs(diff) > 0.01) {
-                toplevels[i].hover_anim += diff * 0.2; // Lerp factor
-                any_animating = true;
-                markDirty();
-            } else {
-                toplevels[i].hover_anim = target;
+        if (anim_active) {
+            for (0..@intCast(@max(0, toplevel_count))) |i| {
+                const target: f64 = if (dock_hover_idx == @as(i32, @intCast(i))) 1.0 else 0.0;
+                const diff = target - toplevels[i].hover_anim;
+                if (@abs(diff) > 0.01) {
+                    toplevels[i].hover_anim += diff * 0.2;
+                    any_animating = true;
+                    markDirty();
+                } else {
+                    toplevels[i].hover_anim = target;
+                }
             }
         }
 

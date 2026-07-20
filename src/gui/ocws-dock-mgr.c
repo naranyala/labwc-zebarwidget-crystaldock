@@ -54,33 +54,33 @@ static void remove_app(GtkWidget *widget, gpointer data);
  * ============================================================ */
 
 static void detect_shell(void) {
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
     char path[512];
+    const char *state_dir = g_get_user_state_dir();
+    const char *config_dir = g_get_user_config_dir();
 
     /* DMS */
-    snprintf(path, sizeof(path), "%s/.local/state/DankMaterialShell/session.json", home);
+    snprintf(path, sizeof(path), "%s/DankMaterialShell/session.json", state_dir);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
         snprintf(current_config.shell, sizeof(current_config.shell), "%s", "dms");
         snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
     /* Noctalia */
-    snprintf(path, sizeof(path), "%s/.config/noctalia/config.toml", home);
+    snprintf(path, sizeof(path), "%s/noctalia/config.toml", config_dir);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
         snprintf(current_config.shell, sizeof(current_config.shell), "%s", "noctalia");
         snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
     /* Zigshell-cairo-pango */
-    snprintf(path, sizeof(path), "%s/.config/zigshell-cairo-pango/panel_1.conf", home);
+    snprintf(path, sizeof(path), "%s/zigshell-cairo-pango/panel_1.conf", config_dir);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
         snprintf(current_config.shell, sizeof(current_config.shell), "%s", "zigshell-cairo-pango");
         snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
         return;
     }
     /* OCWS dock config (zigshell-cairo-pango OCWS format) */
-    snprintf(path, sizeof(path), "%s/.config/ocws/zigshell-cairo-pango-dock.config", home);
+    snprintf(path, sizeof(path), "%s/ocws/zigshell-cairo-pango-dock.config", config_dir);
     if (g_file_test(path, G_FILE_TEST_EXISTS)) {
         snprintf(current_config.shell, sizeof(current_config.shell), "%s", "ocws-dock");
         snprintf(current_config.config_path, sizeof(current_config.config_path), "%s", path);
@@ -147,7 +147,7 @@ static void parse_noctalia_pinned(void) {
     fclose(f);
 }
 
-static void parse_zigshell-cairo-pango_pinned(void) {
+static void parse_zigshell_cairo_pango_pinned(void) {
     FILE *f = fopen(current_config.config_path, "r");
     if (!f) return;
     current_config.app_count = 0;
@@ -176,9 +176,9 @@ static void parse_zigshell-cairo-pango_pinned(void) {
 
 static void parse_ocws_dock_pinned(void) {
     current_config.app_count = 0;
-    const char *home = getenv("HOME");
+    const char *config_dir = g_get_user_config_dir();
     char path[512];
-    snprintf(path, sizeof(path), "%s/.config/ocws/zigshell-cairo-pango-dock.json", home ? home : "/tmp");
+    snprintf(path, sizeof(path), "%s/ocws/zigshell-cairo-pango-dock.json", config_dir);
     FILE *f = fopen(path, "r");
     if (!f) {
         /* Defaults */
@@ -218,7 +218,7 @@ static void parse_ocws_dock_pinned(void) {
 static void load_pinned_apps(void) {
     if (strcmp(current_config.shell, "dms") == 0) parse_dms_pinned();
     else if (strcmp(current_config.shell, "noctalia") == 0) parse_noctalia_pinned();
-    else if (strcmp(current_config.shell, "zigshell-cairo-pango") == 0) parse_zigshell-cairo-pango_pinned();
+    else if (strcmp(current_config.shell, "zigshell-cairo-pango") == 0) parse_zigshell_cairo_pango_pinned();
     else if (strcmp(current_config.shell, "ocws-dock") == 0) parse_ocws_dock_pinned();
 }
 
@@ -258,13 +258,11 @@ static void save_dms_pinned(void) {
 }
 
 static void save_noctalia_pinned(void) {
-    FILE *f = fopen(current_config.config_path, "r");
-    if (!f) return;
-    char content[8192] = {0};
-    fread(content, 1, sizeof(content) - 1, f);
-    fclose(f);
+    char *content = NULL;
+    gsize length = 0;
+    if (!g_file_get_contents(current_config.config_path, &content, &length, NULL)) return;
 
-    char pinned_str[2048] = "pinned = [";
+    char pinned_str[4096] = "pinned = [";
     size_t pos = strlen(pinned_str);
     for (int i = 0; i < current_config.app_count && pos < sizeof(pinned_str) - 12; i++) {
         if (i > 0) pos += snprintf(pinned_str + pos, sizeof(pinned_str) - pos, ", ");
@@ -276,26 +274,22 @@ static void save_noctalia_pinned(void) {
     if (start) {
         char *end = strchr(start, '\n');
         if (end) {
-            size_t new_len = (start - content) + strlen(pinned_str) + strlen(end);
-            if (new_len < sizeof(content)) {
-                memmove(start + strlen(pinned_str), end, strlen(end) + 1);
-                memcpy(start, pinned_str, strlen(pinned_str));
-            }
+            GString *new_content = g_string_new_len(content, start - content);
+            g_string_append(new_content, pinned_str);
+            g_string_append(new_content, end);
+            g_file_set_contents(current_config.config_path, new_content->str, new_content->len, NULL);
+            g_string_free(new_content, TRUE);
         }
     }
-
-    f = fopen(current_config.config_path, "w");
-    if (f) { fwrite(content, 1, strlen(content), f); fclose(f); }
+    g_free(content);
 }
 
-static void save_zigshell-cairo-pango_pinned(void) {
-    FILE *f = fopen(current_config.config_path, "r");
-    if (!f) return;
-    char content[4096] = {0};
-    fread(content, 1, sizeof(content) - 1, f);
-    fclose(f);
+static void save_zigshell_cairo_pango_pinned(void) {
+    char *content = NULL;
+    gsize length = 0;
+    if (!g_file_get_contents(current_config.config_path, &content, &length, NULL)) return;
 
-    char launchers_str[2048] = "launchers=\"show-desktop;";
+    char launchers_str[4096] = "launchers=\"show-desktop;";
     size_t pos = strlen(launchers_str);
     for (int i = 0; i < current_config.app_count && pos < sizeof(launchers_str) - 60; i++) {
         pos += snprintf(launchers_str + pos, sizeof(launchers_str) - pos, "%s;", current_config.apps[i].name);
@@ -306,24 +300,21 @@ static void save_zigshell-cairo-pango_pinned(void) {
     if (start) {
         char *end = strchr(start, '\n');
         if (end) {
-            size_t new_len = (start - content) + strlen(launchers_str) + strlen(end);
-            if (new_len < sizeof(content)) {
-                memmove(start + strlen(launchers_str), end, strlen(end) + 1);
-                memcpy(start, launchers_str, strlen(launchers_str));
-            }
+            GString *new_content = g_string_new_len(content, start - content);
+            g_string_append(new_content, launchers_str);
+            g_string_append(new_content, end);
+            g_file_set_contents(current_config.config_path, new_content->str, new_content->len, NULL);
+            g_string_free(new_content, TRUE);
         }
     }
-
-    f = fopen(current_config.config_path, "w");
-    if (f) { fwrite(content, 1, strlen(content), f); fclose(f); }
+    g_free(content);
 }
 
 static void save_ocws_dock_pinned(void) {
-    const char *home = getenv("HOME");
-    if (!home) return;
+    const char *config_dir = g_get_user_config_dir();
     
     char json_path[512];
-    snprintf(json_path, sizeof(json_path), "%s/.config/ocws/zigshell-cairo-pango-dock.json", home);
+    snprintf(json_path, sizeof(json_path), "%s/ocws/zigshell-cairo-pango-dock.json", config_dir);
     
     json_object *json = json_object_new_object();
     json_object *apps_arr = json_object_new_array();
@@ -341,7 +332,7 @@ static void save_ocws_dock_pinned(void) {
 
     /* Generate dock-apps.widget */
     char widget_path[512];
-    snprintf(widget_path, sizeof(widget_path), "%s/.config/ocws/dock-apps.widget", home);
+    snprintf(widget_path, sizeof(widget_path), "%s/ocws/dock-apps.widget", config_dir);
     FILE *f_widget = fopen(widget_path, "w");
     if (f_widget) {
         fprintf(f_widget, "#Api2\n# Auto-generated by ocws-dock-mgr\n\n");
@@ -368,14 +359,16 @@ static void save_ocws_dock_pinned(void) {
         fclose(f_widget);
         
         /* Tell zigshell-cairo-pango to reload */
-        system("killall -SIGUSR1 zigshell-cairo-pango 2>/dev/null");
+        gchar *kill_argv[] = {"killall", "-SIGUSR1", "zigshell-cairo-pango", NULL};
+        g_spawn_async(NULL, kill_argv, NULL, G_SPAWN_SEARCH_PATH,
+                      NULL, NULL, NULL, NULL);
     }
 }
 
 static void save_pinned_apps(void) {
     if (strcmp(current_config.shell, "dms") == 0) save_dms_pinned();
     else if (strcmp(current_config.shell, "noctalia") == 0) save_noctalia_pinned();
-    else if (strcmp(current_config.shell, "zigshell-cairo-pango") == 0) save_zigshell-cairo-pango_pinned();
+    else if (strcmp(current_config.shell, "zigshell-cairo-pango") == 0) save_zigshell_cairo_pango_pinned();
     else if (strcmp(current_config.shell, "ocws-dock") == 0) save_ocws_dock_pinned();
 }
 
@@ -532,13 +525,12 @@ static void backup_dock(GtkWidget *widget, gpointer data) {
     (void)widget;
     const char *name = gtk_entry_get_text(GTK_ENTRY(data));
     if (!name || !name[0]) { gtk_label_set_text(GTK_LABEL(status_label), "Enter a backup name"); return; }
-    const char *home = getenv("HOME");
-    if (!home) return;
+    const char *data_dir = g_get_user_data_dir();
 
     char path[512];
-    snprintf(path, sizeof(path), "%s/.local/share/ocws/dock-backups", home);
+    snprintf(path, sizeof(path), "%s/ocws/dock-backups", data_dir);
     g_mkdir_with_parents(path, 0755);
-    snprintf(path, sizeof(path), "%s/.local/share/ocws/dock-backups/%s.json", home, name);
+    snprintf(path, sizeof(path), "%s/ocws/dock-backups/%s.json", data_dir, name);
 
     json_object *json = json_object_new_object();
     json_object_object_add(json, "name", json_object_new_string(name));
@@ -558,11 +550,10 @@ static void restore_dock(GtkWidget *widget, gpointer data) {
     (void)widget;
     const char *name = gtk_entry_get_text(GTK_ENTRY(data));
     if (!name || !name[0]) { gtk_label_set_text(GTK_LABEL(status_label), "Enter a backup name"); return; }
-    const char *home = getenv("HOME");
-    if (!home) return;
+    const char *data_dir = g_get_user_data_dir();
 
     char path[512];
-    snprintf(path, sizeof(path), "%s/.local/share/ocws/dock-backups/%s.json", home, name);
+    snprintf(path, sizeof(path), "%s/ocws/dock-backups/%s.json", data_dir, name);
     FILE *f = fopen(path, "r");
     if (!f) { gtk_label_set_text(GTK_LABEL(status_label), "Backup not found"); return; }
 

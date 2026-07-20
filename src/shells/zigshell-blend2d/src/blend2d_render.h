@@ -9,6 +9,9 @@
 // Opaque renderer handle (wraps BLImageCore + BLContextCore + fonts)
 typedef struct BlendRenderer BlendRenderer;
 
+// Blend2D image type (defined in blend2d/blend2d.h, forward-declared here).
+typedef struct BLImageCore BLImageCore;
+
 // Text metrics returned by measureText
 typedef struct {
     double width;
@@ -66,5 +69,12 @@ bool blend_renderer_font_loaded(BlendRenderer* r);
 
 // Write the rendered image to a PNG file.
 void blend_renderer_write_to_png(BlendRenderer* r, const char* path);
+
+// Bake a solid-color square icon of `size`x`size` into a newly allocated
+// BLImageCore (caller owns it; free with blend_renderer_free_icon).
+BLImageCore* blend_renderer_make_icon(uint8_t r, uint8_t g, uint8_t b, uint8_t a, int size);
+
+// Free an icon created by blend_renderer_make_icon.
+void blend_renderer_free_icon(BLImageCore* img);
 
 #endif // BLEND2D_RENDER_H

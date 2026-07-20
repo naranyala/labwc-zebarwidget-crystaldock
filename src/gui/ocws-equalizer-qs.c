@@ -1,9 +1,9 @@
-// ocws-waveform-qs: C audio backend for the Quickshell waveform widget.
+// ocws-equalizer-qs: C audio backend for the Quickshell equalizer widget.
 //
 // Captures the system's active audio, downsamples it to 128 points,
-// and rapidly serializes it into a JSON array at $XDG_RUNTIME_DIR/ocws-waveform-qs.json
+// and rapidly serializes it into a JSON array at $XDG_RUNTIME_DIR/ocws-equalizer-qs.json
 //
-// Build: see build.zig (ocws-waveform-qs target). Run: ocws-waveform-qs
+// Build: see build.zig (ocws-equalizer-qs target). Run: ocws-equalizer-qs
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -67,11 +67,11 @@ int main(int argc, char **argv) {
     attr.fragsize = sizeof(float) * NUM_SAMPLES; // Low latency
 
     int error;
-    pa_simple *s = pa_simple_new(NULL, "ocws-waveform-qs", PA_STREAM_RECORD, 
+    pa_simple *s = pa_simple_new(NULL, "ocws-equalizer-qs", PA_STREAM_RECORD, 
                                  source_name[0] ? source_name : NULL, 
                                  "Record", &ss, NULL, &attr, &error);
     if (!s) {
-        fprintf(stderr, "ocws-waveform-qs: Audio capture failed: %s\n", pa_strerror(error));
+        fprintf(stderr, "ocws-equalizer-qs: Audio capture failed: %s\n", pa_strerror(error));
         return 1;
     }
 

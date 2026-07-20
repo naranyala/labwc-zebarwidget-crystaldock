@@ -85,28 +85,33 @@ test "dock iconAt: far-left and far-right are misses" {
     try testing.expectEqual(@as(i32, -1), dock.iconAt(W, H, infos[0..@as(usize, @intCast(count))], count, W - 1));
 }
 
-test "dock iconAt: settings toggle sentinel present, launcher removed" {
+test "dock iconAt: settings and app-grid launcher toggles present" {
     const W: i32 = 1920;
     const H: i32 = 48;
     var infos: [toplevel.MAX_TOPLEVELS]toplevel.ToplevelInfo = undefined;
     const count = makeToplevels(&infos, 3);
 
-    // The settings toggle is to the right of the running apps. Scan the right
-    // half and confirm the -2 (settings) sentinel appears, the launcher -3
-    // sentinel no longer exists, and no sentinel collides with a running-app
-    // index.
+    // The settings (-2) toggle and a fixed launcher/app-grid toggle (which
+    // opens the full .desktop app menu) sit to the right of the running apps.
+    // The launcher sentinel differs per renderer (blend2d: -3; cairo-pango:
+    // -4 / -5 home), so we assert *presence* of the settings toggle and of at
+    // least one distinct negative launcher sentinel, without hardcoding its
+    // number. Neither may collide with a running-app slot index (0..count-1).
     var saw_settings = false;
+    var saw_launcher = false;
     var x: i32 = W / 2;
     while (x < W) : (x += 1) {
         const r = dock.iconAt(W, H, infos[0..@as(usize, @intCast(count))], count, x);
         if (r == -2) saw_settings = true;
-        // The floating launcher toggle (-3) was removed.
-        try testing.expect(r != -3);
-        if (r == -2) {
-            try testing.expect(r < 0);
+        if (r < 0 and r != -1 and r != -2) saw_launcher = true;
+        if (r < 0 and r != -1) {
+            // Any negative sentinel other than a plain miss (-1) must be a
+            // documented toggle, so it never collides with a running-app slot.
+            try testing.expect(r == -2 or r == -3 or r == -4 or r == -5);
         }
     }
     try testing.expect(saw_settings);
+    try testing.expect(saw_launcher);
 }
 
 test "dock groupAt: pinned slot centers map to group indices" {

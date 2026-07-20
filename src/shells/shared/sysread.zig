@@ -118,18 +118,61 @@ pub fn temp(out: []u8) void {
 
 // ---- Battery ---------------------------------------------------------------
 
-/// Reads BAT0 capacity/status. Sets `*lvl` (-1 if unknown) and `*charging`,
+var cached_bat_name: [64]u8 = std.mem.zeroes([64]u8);
+var bat_name_inited: bool = false;
+
+fn getBatteryName() []const u8 {
+    if (bat_name_inited) return std.mem.sliceTo(&cached_bat_name, 0);
+    bat_name_inited = true;
+
+    const rc = linux.open("/sys/class/power_supply", linux.O{ .DIRECTORY = true }, 0);
+    if (@as(isize, @bitCast(rc)) < 0) return "";
+    const fd: linux.fd_t = @intCast(rc);
+    defer _ = linux.close(fd);
+
+    var buf: [1024]u8 = undefined;
+    while (true) {
+        const n = linux.getdents64(fd, &buf, buf.len);
+        if (@as(isize, @bitCast(n)) <= 0) break;
+        var off: usize = 0;
+        while (off < n) {
+            const ent: *linux.dirent64 = @ptrCast(@alignCast(&buf[off]));
+            const name = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(&ent.name)), 0);
+            if (std.mem.startsWith(u8, name, "BAT")) {
+                const len = @min(name.len, 63);
+                @memcpy(cached_bat_name[0..len], name[0..len]);
+                cached_bat_name[len] = 0;
+                return cached_bat_name[0..len];
+            }
+            off += ent.reclen;
+        }
+    }
+    return "";
+}
+
+/// Reads dynamically discovered battery capacity/status. Sets `*lvl` (-1 if unknown) and `*charging`,
 /// and writes a short label into `out` ("BAT ?", "+87%", or "87%").
 pub fn battery(out: []u8, lvl: *i32, charging: *bool) void {
+    const bat_name = getBatteryName();
+    if (bat_name.len == 0) {
+        lvl.* = -1;
+        writeZ(out, "BAT ?");
+        return;
+    }
+    
+    var path_buf: [128]u8 = undefined;
+    const cap_path = std.fmt.bufPrintZ(&path_buf, "/sys/class/power_supply/{s}/capacity", .{bat_name}) catch return;
+
     var raw: [32]u8 = undefined;
-    if (readFileInto("/sys/class/power_supply/BAT0/capacity", &raw)) |data| {
+    if (readFileInto(cap_path, &raw)) |data| {
         lvl.* = std.fmt.parseInt(i32, trimLine(data), 10) catch -1;
     } else {
         lvl.* = -1;
     }
 
+    const stat_path = std.fmt.bufPrintZ(&path_buf, "/sys/class/power_supply/{s}/status", .{bat_name}) catch return;
     var sraw: [32]u8 = undefined;
-    if (readFileInto("/sys/class/power_supply/BAT0/status", &sraw)) |sdata| {
+    if (readFileInto(stat_path, &sraw)) |sdata| {
         charging.* = std.mem.startsWith(u8, trimLine(sdata), "Charging");
     }
 
@@ -230,13 +273,41 @@ test "parseKb extracts middle column" {
     try std.testing.expectEqual(@as(i64, 0), parseKb("Bad:"));
 }
 
+test "parseKb returns 0 on missing column" {
+    try std.testing.expectEqual(@as(i64, 0), parseKb("MemTotal:"));
+}
+
+test "parseKb returns 0 on invalid number" {
+    try std.testing.expectEqual(@as(i64, 0), parseKb("MemTotal:  abc kB"));
+}
+
 test "trimLine strips whitespace and newlines" {
     try std.testing.expectEqualStrings("42000", trimLine("  42000\n"));
+}
+
+test "trimLine returns empty on all whitespace" {
+    try std.testing.expectEqualStrings("", trimLine("   \t\n\r  "));
+}
+
+test "trimLine handles empty string" {
+    try std.testing.expectEqualStrings("", trimLine(""));
 }
 
 test "writeZ truncates and NUL-terminates" {
     var buf: [4]u8 = undefined;
     writeZ(&buf, "hello");
+    try std.testing.expectEqualStrings("hel", std.mem.sliceTo(&buf, 0));
+}
+
+test "writeZ handles empty buffer" {
+    var buf: [0]u8 = undefined;
+    writeZ(&buf, "hello");
+    // Should not panic
+}
+
+test "writeZ exact fit" {
+    var buf: [4]u8 = undefined;
+    writeZ(&buf, "hel");
     try std.testing.expectEqualStrings("hel", std.mem.sliceTo(&buf, 0));
 }
 

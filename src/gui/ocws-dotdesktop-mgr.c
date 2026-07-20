@@ -21,10 +21,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <time.h>
 
 #define APP_ID "org.ocws.dotdesktop-mgr"
-#define BACKUP_DIR "/.local/share/ocws/dotdesktop-backups"
 
 /* Common .desktop categories */
 static const char *COMMON_CATEGORIES[] = {
@@ -67,10 +67,9 @@ static char current_file_path[512] = {0};
  * ============================================================ */
 
 static void ensure_backup_dir(void) {
-    const char *home = getenv("HOME");
-    if (!home) return;
+    const char *data_dir = g_get_user_data_dir();
     char path[512];
-    snprintf(path, sizeof(path), "%s%s", home, BACKUP_DIR);
+    snprintf(path, sizeof(path), "%s/ocws/dotdesktop-backups", data_dir);
     g_mkdir_with_parents(path, 0755);
 }
 
@@ -120,13 +119,16 @@ static void load_desktop_files_from_dir(const char *dir_path) {
 
 static void load_all_desktop_files(void) {
     gtk_list_store_clear(store);
-    load_desktop_files_from_dir("/usr/share/applications");
-    const char *home = getenv("HOME");
-    if (home) {
+    const gchar * const * sys_dirs = g_get_system_data_dirs();
+    for (int i = 0; sys_dirs && sys_dirs[i]; i++) {
         char path[512];
-        snprintf(path, sizeof(path), "%s/.local/share/applications", home);
+        snprintf(path, sizeof(path), "%s/applications", sys_dirs[i]);
         load_desktop_files_from_dir(path);
     }
+    const char *data_dir = g_get_user_data_dir();
+    char path[512];
+    snprintf(path, sizeof(path), "%s/applications", data_dir);
+    load_desktop_files_from_dir(path);
 }
 
 static void clear_editor(void) {
@@ -207,14 +209,18 @@ static void on_browse_icon_clicked(GtkWidget *widget, gpointer data) {
     gtk_file_chooser_add_filter(GTK_FILE_CHOOSER(dialog), all_filter);
 
     /* Start in common icon directories */
-    const char *home = getenv("HOME");
-    if (home) {
-        char icon_dir[512];
-        snprintf(icon_dir, sizeof(icon_dir), "%s/.local/share/icons", home);
-        if (g_file_test(icon_dir, G_FILE_TEST_IS_DIR))
-            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), icon_dir);
-        else
-            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), "/usr/share/icons");
+    const char *data_dir = g_get_user_data_dir();
+    char icon_dir[512];
+    snprintf(icon_dir, sizeof(icon_dir), "%s/icons", data_dir);
+    if (g_file_test(icon_dir, G_FILE_TEST_IS_DIR))
+        gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), icon_dir);
+    else {
+        const gchar * const * sys_dirs = g_get_system_data_dirs();
+        if (sys_dirs && sys_dirs[0]) {
+            char sys_icon_dir[512];
+            snprintf(sys_icon_dir, sizeof(sys_icon_dir), "%s/icons", sys_dirs[0]);
+            gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(dialog), sys_icon_dir);
+        }
     }
 
     if (gtk_dialog_run(GTK_DIALOG(dialog)) == GTK_RESPONSE_ACCEPT) {
@@ -297,14 +303,21 @@ static gboolean validate_entry(void) {
     if (cmd_name[0] != '\0') {
         char which_cmd[280];
         snprintf(which_cmd, sizeof(which_cmd), "command -v %s >/dev/null 2>&1", cmd_name);
-        if (system(which_cmd) != 0) {
+        pid_t pid = fork();
+        if (pid == 0) {
+            execl("/bin/sh", "sh", "-c", which_cmd, NULL);
+            exit(1);
+        }
+        int status = 0;
+        waitpid(pid, &status, 0);
+        if (WIFEXITED(status) && WEXITSTATUS(status) != 0) {
             char msg[512];
             snprintf(msg, sizeof(msg), "Validation warning: '%s' not found in PATH", cmd_name);
             gtk_label_set_text(GTK_LABEL(status_label), msg);
             return TRUE; /* Warning, not error */
         }
     }
-
+    
     gtk_label_set_text(GTK_LABEL(status_label), "Validation passed");
     return TRUE;
 }
@@ -351,12 +364,11 @@ static void on_toggle_enabled(GtkCellRendererToggle *renderer, gchar *path_str, 
         gtk_list_store_set(store, &iter, COL_ENABLED, !enabled, COL_PATH, new_path, -1);
 
         /* If this was the currently loaded file, update current_file_path */
-        if (strcmp(file_path, current_file_path) == 0)
+        if (strcmp(file_path, current_file_path) == 0) {
             strncpy(current_file_path, new_path, sizeof(current_file_path) - 1);
-
+        }
+        
         char msg[256];
-        snprintf(msg, sizeof(msg), "%s: %s", !enabled ? "Enabled" : "Disabled",
-                 g_path_get_basename(new_path));
         char *basename = g_path_get_basename(new_path);
         snprintf(msg, sizeof(msg), "%s: %s", !enabled ? "Enabled" : "Disabled", basename);
         g_free(basename);
@@ -467,17 +479,16 @@ static void on_save_clicked(GtkWidget *widget, gpointer data) {
     char save_path[1024];
     strncpy(save_path, current_file_path, sizeof(save_path));
 
-    /* If saving a system file, save to ~/.local/share/applications */
-    if (g_str_has_prefix(current_file_path, "/usr/")) {
-        const char *home = getenv("HOME");
-        if (home) {
-            char *basename = g_path_get_basename(current_file_path);
-            snprintf(save_path, sizeof(save_path), "%s/.local/share/applications/%s", home, basename);
-            g_free(basename);
-            char *dir = g_path_get_dirname(save_path);
-            g_mkdir_with_parents(dir, 0755);
-            g_free(dir);
-        }
+    /* If saving a system file, save to user data dir */
+    const char *data_dir = g_get_user_data_dir();
+    char user_app_dir[512];
+    snprintf(user_app_dir, sizeof(user_app_dir), "%s/applications", data_dir);
+    
+    if (!g_str_has_prefix(current_file_path, user_app_dir)) {
+        char *basename = g_path_get_basename(current_file_path);
+        snprintf(save_path, sizeof(save_path), "%s/%s", user_app_dir, basename);
+        g_free(basename);
+        g_mkdir_with_parents(user_app_dir, 0755);
     }
 
     GKeyFile *key_file = g_key_file_new();
@@ -523,11 +534,10 @@ static void on_backup_clicked(GtkWidget *widget, gpointer data) {
     ensure_backup_dir();
 
     char *basename = g_path_get_basename(current_file_path);
-    const char *home = getenv("HOME");
-    if (!home) { g_free(basename); return; }
+    const char *data_dir = g_get_user_data_dir();
 
     char backup_path[1024];
-    snprintf(backup_path, sizeof(backup_path), "%s%s/%s", home, BACKUP_DIR, basename);
+    snprintf(backup_path, sizeof(backup_path), "%s/ocws/dotdesktop-backups/%s", data_dir, basename);
 
     gchar *content;
     gsize length;
@@ -552,15 +562,14 @@ static void on_restore_clicked(GtkWidget *widget, gpointer data) {
     }
 
     char *basename = g_path_get_basename(current_file_path);
-    const char *home = getenv("HOME");
-    if (!home) { g_free(basename); return; }
+    const char *data_dir = g_get_user_data_dir();
 
     char backup_path[1024];
-    snprintf(backup_path, sizeof(backup_path), "%s%s/%s", home, BACKUP_DIR, basename);
+    snprintf(backup_path, sizeof(backup_path), "%s/ocws/dotdesktop-backups/%s", data_dir, basename);
 
     if (g_file_test(backup_path, G_FILE_TEST_EXISTS)) {
         char dest_path[1024];
-        snprintf(dest_path, sizeof(dest_path), "%s/.local/share/applications/%s", home, basename);
+        snprintf(dest_path, sizeof(dest_path), "%s/applications/%s", data_dir, basename);
 
         gchar *content;
         gsize length;
@@ -586,10 +595,8 @@ static void on_new_clicked(GtkWidget *widget, gpointer data) {
     (void)data;
     clear_editor();
 
-    const char *home = getenv("HOME");
-    if (home) {
-        snprintf(current_file_path, sizeof(current_file_path), "%s/.local/share/applications/new_app.desktop", home);
-    }
+    const char *data_dir = g_get_user_data_dir();
+    snprintf(current_file_path, sizeof(current_file_path), "%s/applications/new_app.desktop", data_dir);
     gtk_label_set_text(GTK_LABEL(status_label), "New template. Fill details and save.");
 }
 

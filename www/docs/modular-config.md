@@ -1,6 +1,6 @@
 # Modular Configuration System
 
-OCWS uses a composable configuration architecture for ZIGSHELL-CAIRO-PANGO modes.
+OCWS uses a composable configuration architecture for zigshell-cairo-pango modes.
 
 ---
 

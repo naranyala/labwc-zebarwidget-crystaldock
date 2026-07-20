@@ -486,8 +486,8 @@ GtkWidget* fonts_mgr_build_font_config_tab(void) {
 
     /* Show fontconfig status */
     char fc_path[512];
-    const char *home = getenv("HOME");
-    snprintf(fc_path, sizeof(fc_path), "%s/.config/fontconfig/fonts.conf", home ? home : "/tmp");
+    const char *config_dir = g_get_user_config_dir();
+    snprintf(fc_path, sizeof(fc_path), "%s/fontconfig/fonts.conf", config_dir);
 
     GtkWidget *fc_status = gtk_label_new(NULL);
     char *fc_markup;
@@ -510,14 +510,18 @@ GtkWidget* fonts_mgr_build_font_config_tab(void) {
     gtk_container_set_border_width(GTK_CONTAINER(df_box), 10);
     gtk_container_add(GTK_CONTAINER(df_frame), df_box);
 
-    GtkWidget *df_desc = gtk_label_new(
+    const char *data_dir = g_get_user_data_dir();
+    char *df_text = g_strdup_printf(
         "OCWS manages fonts as part of its dotfiles system:\n\n"
-        "  User fonts: ~/.local/share/fonts/\n"
-        "  Managed metadata: ~/.local/share/fonts/ocws-managed/\n"
-        "  Fontconfig: ~/.config/fontconfig/fonts.conf\n"
-        "  Cursor themes: ~/.local/share/icons/\n\n"
+        "  User fonts: %s\n"
+        "  Managed metadata: %s\n"
+        "  Fontconfig: %s/fontconfig/fonts.conf\n"
+        "  Cursor themes: %s\n\n"
         "Run 'install-fonts.sh' from the dotfiles root to install all base fonts.\n"
-        "Run 'install-fonts-cursors.sh' to install Nerd Fonts and cursor themes.");
+        "Run 'install-fonts-cursors.sh' to install Nerd Fonts and cursor themes.",
+        data_dir, FONTS_DIR, config_dir, CURSORS_DIR);
+    GtkWidget *df_desc = gtk_label_new(df_text);
+    g_free(df_text);
     gtk_label_set_line_wrap(GTK_LABEL(df_desc), TRUE);
     gtk_label_set_xalign(GTK_LABEL(df_desc), 0.0);
     gtk_box_pack_start(GTK_BOX(df_box), df_desc, FALSE, FALSE, 0);

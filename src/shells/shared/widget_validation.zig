@@ -63,19 +63,31 @@ fn createCompact(widgets: *[panel.MAX_WIDGETS]panel.Widget) i32 {
 
 // ---- WidgetType enum parity ----
 
-test "widget type: all expected variants exist" {
-    const expected = [_][]const u8{
-        "workspaces",       "toplevel_task",    "launcher",
-        "cpu",              "mem",              "temp",
-        "disk",             "battery",          "volume",
-        "network",          "media",            "clock",
-        "power",            "spacer",           "kbindicator",
-        "customcommand",    "showdesktop",      "worldclock",
-        "backlight",        "session",
-        "versions",
-    };
+// The canonical widget set every shell must implement. The cairo-pango and
+// blend2d shells share these; shell-specific extensions live in
+// `shell_specific_extras` below.
+const canonical_variants = [_][]const u8{
+    "workspaces",       "launcher",
+    "cpu",              "mem",              "temp",
+    "disk",             "battery",          "volume",
+    "network",          "media",            "clock",
+    "power",            "wallpaper",        "spacer",
+    "kbindicator",      "customcommand",    "showdesktop",
+    "worldclock",       "backlight",        "session",
+    "versions",         "settings",
+};
+
+// The two shells legitimately diverge on how toplevel windows are tracked:
+// cairo-pango handles them outside the WidgetType enum, while blend2d keeps
+// a `toplevel_task` widget. This allowlist lists shell-specific extras that
+// the cross-shell contract does NOT require both shells to share.
+const shell_specific_extras = [_][]const u8{
+    "toplevel_task",
+};
+
+test "widget type: all canonical variants exist in both shells" {
     const fields = @typeInfo(panel.WidgetType).@"enum".fields;
-    inline for (expected) |name| {
+    inline for (canonical_variants) |name| {
         comptime {
             var found = false;
             for (fields) |f| {
@@ -84,10 +96,27 @@ test "widget type: all expected variants exist" {
                     break;
                 }
             }
-            if (!found) @compileError("WidgetType missing: " ++ name);
+            if (!found) @compileError("WidgetType missing canonical variant: " ++ name);
         }
     }
-    try testing.expectEqual(@as(usize, expected.len), fields.len);
+}
+
+test "widget type: no undeclared divergent variants" {
+    const fields = @typeInfo(panel.WidgetType).@"enum".fields;
+    inline for (fields) |f| {
+        comptime {
+            var known = false;
+            for (canonical_variants) |n| {
+                if (std.mem.eql(u8, f.name, n)) { known = true; break; }
+            }
+            if (!known) {
+                for (shell_specific_extras) |n| {
+                    if (std.mem.eql(u8, f.name, n)) { known = true; break; }
+                }
+            }
+            if (!known) @compileError("WidgetType has undeclared divergent variant: " ++ f.name);
+        }
+    }
 }
 
 // ---- Default widget creation parity ----
@@ -156,7 +185,6 @@ test "parseWidgetType: canonical names map correctly" {
     if (!@hasDecl(panel, "parseWidgetType")) return;
     // Test each name individually to avoid array-init syntax issues.
     try testing.expectEqual(panel.WidgetType.workspaces, panel.parseWidgetType("workspaces").?);
-    try testing.expectEqual(panel.WidgetType.toplevel_task, panel.parseWidgetType("toplevel").?);
     try testing.expectEqual(panel.WidgetType.launcher, panel.parseWidgetType("launcher").?);
     try testing.expectEqual(panel.WidgetType.cpu, panel.parseWidgetType("cpu").?);
     try testing.expectEqual(panel.WidgetType.mem, panel.parseWidgetType("mem").?);

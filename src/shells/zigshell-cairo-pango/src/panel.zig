@@ -3,6 +3,9 @@ const c = @import("c.zig").c;
 const sysread = @import("shellcore").sysread;
 const theme = @import("theme.zig");
 
+extern "c" fn waitpid(pid: c_int, status: ?*c_int, options: c_int) c_int;
+extern "c" fn usleep(useconds: c_uint) c_int;
+
 pub const MAX_WIDGETS = 64;
 
 /// Every widget type, used to populate the "Add Widget" menu in settings.
@@ -37,15 +40,20 @@ const spawn_log = std.log.scoped(.spawn);
 /// fire-and-forget (most append '&'), so we only surface failures — we never
 /// block or propagate. Returns true when the command was launched cleanly.
 fn spawn(cmd: [*c]const u8) bool {
-    const rc = c.system(cmd);
-    if (rc == -1) {
-        spawn_log.err("failed to start shell for command: {s}", .{std.mem.sliceTo(cmd, 0)});
+    const pid = c.fork();
+    if (pid < 0) {
+        spawn_log.err("failed to fork for command: {s}", .{std.mem.sliceTo(cmd, 0)});
         return false;
     }
-    if (rc != 0) {
-        spawn_log.warn("command exited with status {d}: {s}", .{ rc, std.mem.sliceTo(cmd, 0) });
-        return false;
+    if (pid == 0) {
+        const child = c.fork();
+        if (child == 0) {
+            _ = c.execl("/bin/sh", "sh", "-c", cmd, @as([*c]const u8, null));
+            c.exit(1);
+        }
+        c.exit(0);
     }
+    _ = waitpid(pid, null, 0);
     return true;
 }
 
@@ -143,6 +151,7 @@ pub const Widget = struct {
 
     // Launcher/Power
     cmd: [128]u8 = std.mem.zeroes([128]u8),
+    label: [64]u8 = std.mem.zeroes([64]u8),
 
     // Spacer
     spacer_w: i32 = 20,
@@ -220,7 +229,7 @@ fn wsMeasure(w: *Widget, h: i32, cr: *c.cairo_t) i32 {
     const wpx = widgetTextWidth(cr, labels, "Sans 10");
     if (wpx > 0) return wpx + 8;
     const len = std.mem.indexOfScalar(u8, &w.ws_labels, 0) orelse w.ws_labels.len;
-    return @intCast(len * 7 + 8);
+    return @intCast(len * 8 + 8);
 }
 
 fn wsDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
@@ -237,9 +246,9 @@ fn wsClick(w: *Widget, btn: u32, lx: i32, _: i32) bool {
     }
     if (ws_count == 0) return false;
 
-    // Estimate workspace width from label string (Sans 10 ≈ 7px/char)
+    // Estimate workspace width from label string (Sans 10 ≈ 8px/char)
     const label_len = std.mem.indexOfScalar(u8, &w.ws_labels, 0) orelse w.ws_labels.len;
-    const total_w = @as(i32, @intCast(label_len)) * 7 + 8;
+    const total_w = @as(i32, @intCast(label_len)) * 8 + 8;
     const ws_w = @divTrunc(total_w, ws_count);
     const ws_idx = @divTrunc(lx, ws_w);
     const target = @max(1, @min(ws_idx + 1, ws_count));
@@ -253,16 +262,16 @@ fn wsClick(w: *Widget, btn: u32, lx: i32, _: i32) bool {
 
 fn launcherMeasure(w: *Widget, h: i32, cr: *c.cairo_t) i32 {
     _ = h;
-    _ = w;
-    const wpx = widgetTextWidth(cr, "zigshell-cairo-pango", "Sans Bold 11");
+    const txt: [*c]const u8 = if (w.label[0] == 0) @as([*c]const u8, @ptrCast("zigshell-cairo-pango")) else @ptrCast(&w.label);
+    const wpx = widgetTextWidth(cr, txt, "Sans Bold 11");
     if (wpx > 0) return wpx + 8;
     return 150;
 }
 
 fn launcherDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
-    _ = w;
     _ = y;
-    _ = widgetText(cr, "zigshell-cairo-pango", x + 4, h, "Sans Bold 11", theme.current.text_color[0], theme.current.text_color[1], theme.current.text_color[2]);
+    const txt: [*c]const u8 = if (w.label[0] == 0) @as([*c]const u8, @ptrCast("zigshell-cairo-pango")) else @ptrCast(&w.label);
+    _ = widgetText(cr, txt, x + 4, h, "Sans Bold 11", theme.current.text_color[0], theme.current.text_color[1], theme.current.text_color[2]);
 }
 
 fn launcherClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
@@ -316,11 +325,14 @@ fn cpuDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
 }
 
 fn cpuClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
-    _ = w;
     _ = x;
     _ = y;
     if (btn != 272) return false;
-    _ = spawn("foot btop &");
+    if (w.cmd[0] != 0) {
+        _ = spawn(@ptrCast(&w.cmd));
+    } else {
+        _ = spawn("foot btop &");
+    }
     return true;
 }
 
@@ -357,11 +369,14 @@ fn memDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
 }
 
 fn memClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
-    _ = w;
     _ = x;
     _ = y;
     if (btn != 272) return false;
-    _ = spawn("foot htop &");
+    if (w.cmd[0] != 0) {
+        _ = spawn(@ptrCast(&w.cmd));
+    } else {
+        _ = spawn("foot htop &");
+    }
     return true;
 }
 
@@ -384,11 +399,14 @@ fn tempDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
 }
 
 fn tempClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
-    _ = w;
     _ = x;
     _ = y;
     if (btn != 272) return false;
-    _ = spawn("foot sensors &");
+    if (w.cmd[0] != 0) {
+        _ = spawn(@ptrCast(&w.cmd));
+    } else {
+        _ = spawn("foot sensors &");
+    }
     return true;
 }
 
@@ -467,12 +485,38 @@ fn batUpdate(w: *Widget) void {
 }
 
 fn batClick(w: *Widget, btn: u32, x: i32, y: i32) bool {
-    _ = w;
     _ = x;
     _ = y;
     if (btn != 272) return false;
-    _ = spawn("foot upower -i /org/freedesktop/UPower/devices/battery_BAT0 &");
+    if (w.cmd[0] != 0) {
+        _ = spawn(@ptrCast(&w.cmd));
+        return true;
+    }
+    var bat_device: [64]u8 = undefined;
+    const bat_name = findBatteryDevice(&bat_device);
+    if (bat_name.len > 0) {
+        var cmd: [256]u8 = undefined;
+        _ = std.fmt.bufPrintZ(&cmd, "foot upower -i /org/freedesktop/UPower/devices/battery_{s} &", .{bat_name}) catch {};
+        _ = spawn(@ptrCast(&cmd));
+    }
     return true;
+}
+
+fn findBatteryDevice(buf: *[64]u8) []u8 {
+    const dir = c.opendir("/sys/class/power_supply") orelse return buf[0..0];
+    defer _ = c.closedir(dir);
+    while (true) {
+        const ent = @as(*c.dirent, @ptrCast(c.readdir(dir) orelse break));
+        const dname = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(&ent.d_name)), 0);
+        if (dname.len == 0 or dname[0] == '.') continue;
+        if (std.mem.startsWith(u8, dname, "BAT")) {
+            const n = @min(dname.len, buf.len - 1);
+            @memcpy(buf[0..n], dname[0..n]);
+            buf[n] = 0;
+            return buf[0..n];
+        }
+    }
+    return buf[0..0];
 }
 
 fn volMeasure(w: *Widget, h: i32, cr: *c.cairo_t) i32 {
@@ -530,7 +574,7 @@ fn volUpdate(w: *Widget) void {
                 var fit = std.mem.tokenizeScalar(u8, v, ' ');
                 while (fit.next()) |tok| {
                     if (std.fmt.parseFloat(f64, tok)) |frac| {
-                        if (frac > 0 and frac <= 1.0) {
+                        if (frac >= 0.0 and frac <= 2.0) {
                             found = @intFromFloat(frac * 100.0);
                             break;
                         }
@@ -538,7 +582,7 @@ fn volUpdate(w: *Widget) void {
                 }
             }
         }
-        if (found > 0 and found <= 150) {
+        if (found <= 150) {
             _ = std.fmt.bufPrintZ(&w.vol_txt, "{d}%", .{found}) catch {};
         }
     }
@@ -546,12 +590,12 @@ fn volUpdate(w: *Widget) void {
 
 fn volScroll(w: *Widget, dir: i32) bool {
     _ = w;
-    if (dir > 0) {
-        _ = spawn("pactl set-sink-volume @DEFAULT_SINK@ +5% &");
-    } else if (dir < 0) {
-        _ = spawn("pactl set-sink-volume @DEFAULT_SINK@ -5% &");
-    }
-    return true;
+    return if (dir > 0)
+        spawn("pactl set-sink-volume @DEFAULT_SINK@ +5% &")
+    else if (dir < 0)
+        spawn("pactl set-sink-volume @DEFAULT_SINK@ -5% &")
+    else
+        false;
 }
 
 fn netMeasure(w: *Widget, h: i32, cr: *c.cairo_t) i32 {
@@ -579,7 +623,7 @@ fn netUpdate(w: *Widget) void {
     const t = c.time(null);
     var tm: c.struct_tm = std.mem.zeroes(c.struct_tm);
     _ = c.localtime_r(&t, &tm);
-    const day_idx = @as(i64, tm.tm_year) * 366 + @as(i64, tm.tm_yday);
+    const day_idx = @divTrunc(@as(i64, @intCast(t + tm.tm_gmtoff)), 86400);
 
     if (w.net_day_idx == -1) {
         loadNetBandwidth(w);
@@ -588,12 +632,15 @@ fn netUpdate(w: *Widget) void {
             if (days_gap >= 7) {
                 w.net_hist_day_rx = .{0} ** 7;
                 w.net_hist_day_tx = .{0} ** 7;
-            } else if (w.net_day_idx != -1) {
+            } else {
                 var si: u64 = 0;
                 while (si < 7 - days_gap) : (si += 1) {
                     w.net_hist_day_rx[si] = w.net_hist_day_rx[si + days_gap];
                     w.net_hist_day_tx[si] = w.net_hist_day_tx[si + days_gap];
                 }
+                w.net_hist_day_rx[7 - days_gap] = w.net_day_rx;
+                w.net_hist_day_tx[7 - days_gap] = w.net_day_tx;
+                si = 7 - days_gap + 1;
                 while (si < 7) : (si += 1) {
                     w.net_hist_day_rx[si] = 0;
                     w.net_hist_day_tx[si] = 0;
@@ -604,13 +651,24 @@ fn netUpdate(w: *Widget) void {
         }
         w.net_day_idx = day_idx;
     } else if (day_idx != w.net_day_idx) {
-        var si: usize = 0;
-        while (si < 6) : (si += 1) {
-            w.net_hist_day_rx[si] = w.net_hist_day_rx[si + 1];
-            w.net_hist_day_tx[si] = w.net_hist_day_tx[si + 1];
+        const days_gap = @as(u64, @intCast(day_idx - w.net_day_idx));
+        if (days_gap >= 7) {
+            w.net_hist_day_rx = .{0} ** 7;
+            w.net_hist_day_tx = .{0} ** 7;
+        } else {
+            var si: u64 = 0;
+            while (si < 7 - days_gap) : (si += 1) {
+                w.net_hist_day_rx[si] = w.net_hist_day_rx[si + days_gap];
+                w.net_hist_day_tx[si] = w.net_hist_day_tx[si + days_gap];
+            }
+            w.net_hist_day_rx[7 - days_gap] = w.net_day_rx;
+            w.net_hist_day_tx[7 - days_gap] = w.net_day_tx;
+            si = 7 - days_gap + 1;
+            while (si < 7) : (si += 1) {
+                w.net_hist_day_rx[si] = 0;
+                w.net_hist_day_tx[si] = 0;
+            }
         }
-        w.net_hist_day_rx[6] = w.net_day_rx;
-        w.net_hist_day_tx[6] = w.net_day_tx;
         w.net_day_rx = 0;
         w.net_day_tx = 0;
         w.net_day_idx = day_idx;
@@ -641,6 +699,11 @@ fn netUpdate(w: *Widget) void {
     w.net_save_tick +%= 1;
     if (w.net_save_tick % 60 == 0) saveNetBandwidth(w);
 
+    // Update baseline before any format that might fail, preventing
+    // cascading spikes when bufPrintZ errors out (#41).
+    w.net_rx_prev = rx;
+    w.net_tx_prev = tx;
+
     // Build net_txt: rate + daily Dn/Up + weekly total.
     _ = std.fmt.bufPrintZ(&w.net_txt, "{d:.0}/{d:.0}  ", .{ rx_kb, tx_kb }) catch |err| {
         std.log.err("net text format error: {}", .{err});
@@ -660,9 +723,6 @@ fn netUpdate(w: *Widget) void {
 
     @memset(w.net_txt[pos..], 0);
     _ = std.fmt.bufPrint(w.net_txt[pos..], "D:{s}\u{2193}{s}\u{2191} W:{s}", .{ drx_str, dtx_str, wk_str }) catch {};
-
-    w.net_rx_prev = rx;
-    w.net_tx_prev = tx;
 }
 
 fn formatBytes(bytes: u64, buf: []u8) []u8 {
@@ -825,13 +885,16 @@ fn mediaUpdate(w: *Widget) void {
 // Run a command, capture its stdout first line into `out` (NUL-terminated).
 // Reuses the temp-file pattern from ccUpdate (issue #19 hardening). Returns the
 // number of bytes written (excluding NUL), or 0 on failure.
+const WNOHANG = 1;
+
 fn captureCmd(cmd: []const u8, out: []u8) usize {
     var tmpl: [32]u8 = std.mem.zeroes([32]u8);
     _ = std.fmt.bufPrintZ(&tmpl, "/tmp/.zigshell-cap-XXXXXX", .{}) catch return 0;
     const fd = c.mkstemp(@ptrCast(&tmpl));
     if (fd < 0) return 0;
     _ = c.fchmod(fd, 0o600);
-    _ = c.close(fd);
+    _ = c.unlink(@ptrCast(&tmpl));
+
     var escaped_cmd: [256]u8 = undefined;
     var e_idx: usize = 0;
     for (cmd) |ch| {
@@ -844,29 +907,56 @@ fn captureCmd(cmd: []const u8, out: []u8) usize {
             e_idx += 1;
         }
     }
-    const escaped_slice = escaped_cmd[0..e_idx];
+    escaped_cmd[e_idx] = 0;
 
-    var full: [384]u8 = std.mem.zeroes([384]u8);
-    const full_slice = std.fmt.bufPrintZ(&full, "sh -c '{s}' > '{s}' 2>/dev/null", .{ escaped_slice, std.mem.sliceTo(&tmpl, 0) }) catch {
-        _ = c.unlink(@ptrCast(&tmpl));
+    const pid = c.fork();
+    if (pid < 0) {
+        _ = c.close(fd);
         return 0;
-    };
-    _ = spawn(@ptrCast(&full_slice));
-    const f = c.fopen(@ptrCast(&tmpl), "r") orelse {
-        _ = c.unlink(@ptrCast(&tmpl));
-        return 0;
-    };
-    defer {
-        _ = c.fclose(f);
-        _ = c.unlink(@ptrCast(&tmpl));
     }
+    if (pid == 0) {
+        _ = c.dup2(fd, 1);
+        _ = c.close(fd);
+        const dev_null = c.open("/dev/null", c.O_WRONLY);
+        if (dev_null >= 0) {
+            _ = c.dup2(dev_null, 2);
+            _ = c.close(dev_null);
+        }
+        _ = c.execl("/bin/sh", "sh", "-c", @as([*c]const u8, @ptrCast(&escaped_cmd)), @as([*c]const u8, null));
+        c.exit(1);
+    }
+
+    // Poll with WNOHANG to avoid blocking forever if the child hangs.
+    var status: c_int = 0;
+    const timeout_ms = 5000;
+    var elapsed_ms: usize = 0;
+    while (elapsed_ms < timeout_ms) {
+        const ret = waitpid(pid, &status, WNOHANG);
+        if (ret == pid) break;
+        if (ret < 0) {
+            _ = c.close(fd);
+            return 0;
+        }
+        _ = usleep(50_000); // 50ms in microseconds
+        elapsed_ms += 50;
+    }
+    if (elapsed_ms >= timeout_ms) {
+        _ = c.kill(pid, c.SIGKILL);
+        _ = waitpid(pid, &status, 0);
+        _ = c.close(fd);
+        return 0;
+    }
+
+    _ = c.lseek(fd, 0, 0);
     var buf: [256]u8 = std.mem.zeroes([256]u8);
-    if (c.fgets(@ptrCast(&buf), buf.len, f)) |line| {
-        const raw = std.mem.sliceTo(line, 0);
-        var end = raw.len;
-        while (end > 0 and (raw[end - 1] == '\n' or raw[end - 1] == '\r')) : (end -= 1) {}
+    const bytes = c.read(fd, &buf, buf.len);
+    _ = c.close(fd);
+
+    if (bytes > 0) {
+        var end: usize = std.mem.indexOfScalar(u8, buf[0..@intCast(bytes)], '\n') orelse @intCast(bytes);
+        while (end > 0 and (buf[end - 1] == '\n' or buf[end - 1] == '\r')) : (end -= 1) {}
         const n = @min(end, out.len - 1);
-        @memcpy(out[0..n], raw[0..n]);
+        @memcpy(out[0..n], buf[0..n]);
         out[n] = 0;
         return n;
     }
@@ -878,7 +968,7 @@ fn clkMeasure(w: *Widget, h: i32, cr: *c.cairo_t) i32 {
     const wpx = widgetTextWidth(cr, @ptrCast(&w.clock_txt), "Sans 10");
     if (wpx > 0) return wpx + 16;
     const len = std.mem.indexOfScalar(u8, &w.clock_txt, 0) orelse w.clock_txt.len;
-    return @intCast(len * 7 + 16);
+    return @intCast(len * 8 + 16);
 }
 
 fn clkDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
@@ -1211,7 +1301,7 @@ fn ccMeasure(w: *Widget, h: i32, cr: *c.cairo_t) i32 {
     _ = cr;
     _ = h;
     const len = std.mem.indexOfScalar(u8, &w.cc_out, 0) orelse w.cc_out.len;
-    return @intCast(len * 7 + 12);
+    return @intCast(len * 8 + 12);
 }
 
 fn ccUpdate(w: *Widget) void {
@@ -1273,32 +1363,23 @@ fn wcMeasure(w: *Widget, h: i32, cr: *c.cairo_t) i32 {
     const clk_w = widgetTextWidth(cr, @ptrCast(&w.clock_txt), "Sans 10");
     if (lbl_w > 0 and clk_w > 0) return lbl_w + clk_w + 28;
     const lbl_len = std.mem.indexOfScalar(u8, &w.wc_label, 0) orelse w.wc_label.len;
-    return @intCast(lbl_len * 7 + 56);
+    return @intCast(lbl_len * 8 + 56);
 }
 
 fn wcUpdate(w: *Widget) void {
-    const old = c.getenv("TZ");
-    var old_buf: [64]u8 = std.mem.zeroes([64]u8);
-    var had_old = false;
-    if (old) |o| {
-        const os = std.mem.sliceTo(o, 0);
-        const n = @min(os.len, old_buf.len - 1);
-        @memcpy(old_buf[0..n], os[0..n]);
-        old_buf[n] = 0;
-        had_old = true;
+    var cmd: [128]u8 = std.mem.zeroes([128]u8);
+    const tz_str = std.mem.sliceTo(&w.wc_tz, 0);
+    _ = std.fmt.bufPrintZ(&cmd, "TZ='{s}' date +%H:%M", .{tz_str}) catch return;
+    
+    var buf: [64]u8 = std.mem.zeroes([64]u8);
+    if (captureCmd(std.mem.sliceTo(&cmd, 0), &buf) > 0) {
+        const out_len = std.mem.indexOfScalar(u8, &buf, 0) orelse 0;
+        if (out_len > 0) {
+            const n = @min(out_len, w.clock_txt.len - 1);
+            @memcpy(w.clock_txt[0..n], buf[0..n]);
+            w.clock_txt[n] = 0;
+        }
     }
-    _ = c.setenv("TZ", @ptrCast(&w.wc_tz), 1);
-    c.tzset();
-    const now = c.time(null);
-    var tm: c.struct_tm = std.mem.zeroes(c.struct_tm);
-    _ = c.localtime_r(&now, &tm);
-    _ = c.strftime(&w.clock_txt, w.clock_txt.len, "%H:%M", &tm);
-    if (had_old) {
-        _ = c.setenv("TZ", @ptrCast(&old_buf), 1);
-    } else {
-        _ = c.unsetenv("TZ");
-    }
-    c.tzset();
 }
 
 fn wcDraw(w: *Widget, cr: *c.cairo_t, x: i32, y: i32, h: i32) void {
@@ -1322,13 +1403,11 @@ fn blUpdate(w: *Widget) void {
         return;
     };
     defer _ = c.closedir(dir);
-    var ent: ?*c.struct_dirent = null;
     var chosen: [256]u8 = std.mem.zeroes([256]u8);
     var chosen_len: usize = 0;
     while (true) {
-        ent = c.readdir(dir);
-        if (ent == null) break;
-        const dname = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(@alignCast(&ent.?.d_name[0]))), 0);
+        const ent = @as(*c.dirent, @ptrCast(c.readdir(dir) orelse break));
+        const dname = std.mem.sliceTo(@as([*:0]const u8, @ptrCast(&ent.d_name)), 0);
         if (dname.len == 0 or std.mem.eql(u8, dname, ".") or std.mem.eql(u8, dname, "..")) continue;
         const n = @min(dname.len, chosen.len - 32);
         @memcpy(chosen[0..n], dname[0..n]);
@@ -1739,71 +1818,6 @@ pub const LoadedWidgets = struct {
     count: i32,
 };
 
-pub fn configLoadWidgets(allocator: std.mem.Allocator, path: []const u8) ?LoadedWidgets {
-    const path_z = allocator.dupeZ(u8, path) catch |err| {
-        std.log.err("allocator dupeZ error: {}", .{err});
-        return null;
-    };
-    defer allocator.free(path_z);
-    const f = c.fopen(path_z, "r") orelse return null;
-    defer _ = c.fclose(f);
-
-    var result: LoadedWidgets = .{
-        .widgets = std.mem.zeroes([MAX_WIDGETS]Widget),
-        .count = 0,
-    };
-
-    var cur_type: [64]u8 = std.mem.zeroes([64]u8);
-    var opts_buf: [1024]u8 = std.mem.zeroes([1024]u8);
-    var opts_len: usize = 0;
-
-    var line_buf: [1024]u8 = std.mem.zeroes([1024]u8);
-    while (c.fgets(&line_buf, line_buf.len, f) != null) {
-        const trimmed = std.mem.trimStart(u8, std.mem.sliceTo(&line_buf, 0), " \t\r");
-        if (trimmed.len == 0 or trimmed[0] == '#') continue;
-
-        if (trimmed[0] == '[') {
-            // Finalize previous section
-            if (cur_type[0] != 0) {
-                if (result.count < MAX_WIDGETS) {
-                    const wtype = parseWidgetType(std.mem.sliceTo(&cur_type, 0));
-                    if (wtype) |wt| {
-                        result.widgets[@intCast(result.count)] = createWidget(wt);
-                        result.count += 1;
-                    }
-                }
-            }
-            // Start new section
-            const end = std.mem.indexOfScalar(u8, trimmed, ']') orelse continue;
-            opts_len = 0;
-            const type_name = trimmed[1..end];
-            @memcpy(cur_type[0..@min(type_name.len, 63)], type_name[0..@min(type_name.len, 63)]);
-            cur_type[@min(type_name.len, 63)] = 0;
-        } else {
-            // Accumulate options
-            if (opts_len > 0 and opts_len < opts_buf.len - 1) {
-                opts_buf[opts_len] = '\n';
-                opts_len += 1;
-            }
-            const copy_len = @min(trimmed.len, opts_buf.len - opts_len - 1);
-            @memcpy(opts_buf[opts_len .. opts_len + copy_len], trimmed[0..copy_len]);
-            opts_len += copy_len;
-            opts_buf[opts_len] = 0;
-        }
-    }
-
-    // Finalize last section
-    if (cur_type[0] != 0 and result.count < MAX_WIDGETS) {
-        const wtype = parseWidgetType(std.mem.sliceTo(&cur_type, 0));
-        if (wtype) |wt| {
-            result.widgets[@intCast(result.count)] = createWidget(wt);
-            result.count += 1;
-        }
-    }
-
-    return result;
-}
-
 pub fn parseWidgetType(name: []const u8) ?WidgetType {
     const map = [_]struct { n: []const u8, t: WidgetType }{
         .{ .n = "workspaces", .t = .workspaces },
@@ -1839,6 +1853,31 @@ test "panel parseWidgetType" {
     try std.testing.expectEqual(WidgetType.clock, parseWidgetType("clock").?);
     try std.testing.expectEqual(WidgetType.cpu, parseWidgetType("cpu").?);
     try std.testing.expectEqual(@as(?WidgetType, null), parseWidgetType("unknown"));
+}
+
+test "panel parseWidgetType: niche / edge cases" {
+    // Empty and whitespace-only input is not a valid widget.
+    try std.testing.expectEqual(@as(?WidgetType, null), parseWidgetType(""));
+    try std.testing.expectEqual(@as(?WidgetType, null), parseWidgetType("   "));
+
+    // Numeric / garbage is rejected, not coerced.
+    try std.testing.expectEqual(@as(?WidgetType, null), parseWidgetType("123"));
+    try std.testing.expectEqual(@as(?WidgetType, null), parseWidgetType("cpu;rm -rf /"));
+
+    // Trailing whitespace must not match a valid name.
+    try std.testing.expectEqual(@as(?WidgetType, null), parseWidgetType("clock "));
+    try std.testing.expectEqual(@as(?WidgetType, null), parseWidgetType(" clock"));
+
+    // Every declared variant round-trips through its own name.
+    inline for (@typeInfo(WidgetType).@"enum".fields) |f| {
+        const parsed = comptime parseWidgetType(f.name) orelse continue;
+        try std.testing.expectEqual(@field(WidgetType, f.name), parsed);
+    }
+
+    // All names are lowercase identifiers (safe for config files).
+    inline for (@typeInfo(WidgetType).@"enum".fields) |f| {
+        for (f.name) |char| try std.testing.expect(char >= 'a' and char <= 'z');
+    }
 }
 
 test "widgetListToggleHidden flips visibility" {
@@ -1880,21 +1919,6 @@ test "widgetListWidth skips hidden widgets" {
     try std.testing.expectEqual(@as(i32, 96), full); // 2 * (40 + 8)
 }
 
-test "configLoadWidgets parses sections" {
-    const path = "/tmp/zigshell_test_config.ini";
-    const f = c.fopen(path, "w") orelse return;
-    defer {
-        _ = c.fclose(f);
-        _ = c.remove(path);
-    }
-    _ = c.fputs("[cpu]\n[clock]\n[spacer]\n[unknown_skip]\n", f);
-    _ = c.fflush(f);
-    const res = configLoadWidgets(std.testing.allocator, path) orelse return;
-    // Unknown sections are skipped; valid ones are created.
-    try std.testing.expect(res.count >= 3);
-    try std.testing.expectEqual(WidgetType.cpu, res.widgets[0].wtype);
-    try std.testing.expectEqual(WidgetType.clock, res.widgets[1].wtype);
-    try std.testing.expectEqual(WidgetType.spacer, res.widgets[2].wtype);
-}
+
 
 

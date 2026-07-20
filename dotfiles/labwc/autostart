@@ -158,6 +158,17 @@ else
         nohup zigshell-cairo-pango > /dev/null 2>&1 &
       fi
       ;;
+    zigshell-cairo-pango-clay)
+      if command -v zigshell-cairo-pango-clay >/dev/null 2>&1; then
+        nohup zigshell-cairo-pango-clay > /dev/null 2>&1 &
+      fi
+      ;;
+    zigshell-blend2d)
+      if command -v zigshell-blend2d >/dev/null 2>&1; then
+        LD_LIBRARY_PATH="${HOME}/.local/lib:${LD_LIBRARY_PATH:-}" \
+          nohup zigshell-blend2d > /dev/null 2>&1 &
+      fi
+      ;;
     *)
       if command -v zigshell-cairo-pango >/dev/null 2>&1; then
         nohup zigshell-cairo-pango > /dev/null 2>&1 &

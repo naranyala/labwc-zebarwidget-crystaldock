@@ -519,7 +519,7 @@ Set OCWS_FEATURE_DESKTOP_WIDGETS = "true"
 OCWS includes validators to catch config errors before deployment:
 
 ```bash
-# Validate ZIGSHELL-CAIRO-PANGO configs
+# Validate zigshell-cairo-pango configs
 scripts/validate-zigshell-cairo-pango.sh
 
 # Validate widget files
@@ -529,7 +529,7 @@ scripts/validate-widgets.sh
 scripts/validate-contract.sh
 ```
 
-### ZIGSHELL-CAIRO-PANGO Config Validator
+### zigshell-cairo-pango Config Validator
 
 Checks for:
 - `#Api2` header presence

@@ -33,7 +33,7 @@ What each component provides and what breaks if removed.
 
 ## noctalia
 
-### ️ Currently live on this system
+### Currently Live on This System
 `/home/naranyala/.config/labwc-widgets/shell-mode` contains `noctalia`. Removing it breaks the current session.
 
 ### Runtime — what breaks immediately
@@ -54,8 +54,8 @@ What each component provides and what breaks if removed.
 ### Config shipped
 - `dotfiles/noctalia/config.toml` (473 lines) — full noctalia config
 - `/home/naranyala/.config/noctalia/config.toml` — live active config
-- `/home/naranyala/.config/zigshell-cairo-pango/noctalia.css` (433 lines) — **ZIGSHELL-CAIRO-PANGO theme only, no binary dependency**
-- `/home/naranyala/.config/zigshell-cairo-pango/zigshell-cairo-pango-noctalia.config` — **ZIGSHELL-CAIRO-PANGO layout only, no binary dependency**
+- `/home/naranyala/.config/zigshell-cairo-pango/noctalia.css` (433 lines) — **zigshell-cairo-pango theme only, no binary dependency**
+- `/home/naranyala/.config/zigshell-cairo-pango/zigshell-cairo-pango-noctalia.config` — **zigshell-cairo-pango layout only, no binary dependency**
 - `/home/naranyala/build/noctalia-src/` — source tree (already compiled)
 
 ### Desktop entry
@@ -88,7 +88,7 @@ What each component provides and what breaks if removed.
 
 ### Runtime — what breaks immediately
 - Shell mode `both` (labwc-shell-wrapper) — starts two zigshell-cairo-pango instances; keep or repoint
-- `shell-mode-picker.sh` loses the "ZIGSHELL-CAIRO-PANGO + Zigshell-cairo-pango" option
+- `shell-mode-picker.sh` loses the "zigshell-cairo-pango + Zigshell-cairo-pango" option
 - `/home/naranyala/.config/autostart/zigshell-cairo-pango.desktop` launches missing binary
 - `scripts/actions/maintenance.sh` tries to restart zigshell-cairo-pango
 - `compose-fixes.sh` fails — tries to fix zigshell-cairo-pango `appearance.conf`

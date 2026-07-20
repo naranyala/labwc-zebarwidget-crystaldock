@@ -5,12 +5,19 @@ result-*
 .zig-cache/
 zig-out/
 zig-cache/
+CMakeFiles/
+
+# Recursively ignore any build/ output dirs (per-shell Zig builds, deps, etc.)
+**/build/
+**/.zig-cache/
+**/zig-out/
+
+# Nested build caches
+src/shells/zigshell-cairo-pango/.zig-cache/
+src/shells/zigshell-cairo-pango/zig-out/
 
 # Source clones (upstream repos, not tracked)
 sources/
-
-# Learning materials are tracked — do not ignore sources-learn/
-
 
 # Debian packages
 *.deb
@@ -20,7 +27,7 @@ sources/
 *.tar.xz
 *.zip
 
-# Compiled objects
+# Compiled objects and binaries
 *.o
 *.so
 *.dylib
@@ -68,9 +75,6 @@ current-theme
 
 # Downloaded theme resources (use download-themes.sh)
 themes/download-cache/
-*.tar.gz
-*.tar.xz
-*.zip
 
 # AI Models and Python Environments
 *.gguf
@@ -81,16 +85,6 @@ models/
 venv/
 *.egg-info/
 dist/
-build/
-
-# ocws-llm-runner
-src/ocws-llm-runner/__pycache__/
-src/ocws-llm-runner/server/__pycache__/
-src/ocws-llm-runner/gui/__pycache__/
-src/ocws-llm-runner/utils/__pycache__/
-
-# Local LLM runner data (sessions, downloaded models)
-.local/share/ocws/llm-runner/
 
 # MkDocs build output
 www/site/

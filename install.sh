@@ -75,15 +75,16 @@ echo -e "    4)  OCWS Minimal          10)  LXQt Dual Panels"
 echo -e "    5)  LXQt Tworow           11)  LXQt Vertical"
 echo -e "    6)  LXQt Bottom           12)  zigshell-cairo-pango (merged panel + dock)"
 echo -e "                               13)  zigshell-blend2d (merged panel + dock, Blend2D)"
+echo -e "                               14)  zigshell-cairo-pango-clay (Clay layout + Cairo rendering)"
 
-echo -n "  Choice [1-13] (default: 13): "
+echo -n "  Choice [1-14] (default: 14): "
 if [ "${NONINTERACTIVE:-0}" = "1" ]; then
-    echo "13 (auto)"
-    mode_choice="13"
+    echo "14 (auto)"
+    mode_choice="14"
 else
     read -r mode_choice
 fi
-case "${mode_choice:-13}" in
+case "${mode_choice:-14}" in
     1)  MODE="doublepanel";      MODE_DESC="OCWS Double Panel" ;;
     2)  MODE="dms";              MODE_DESC="DankMaterialShell" ;;
     3)  MODE="noctalia";         MODE_DESC="Noctalia Shell" ;;
@@ -97,8 +98,7 @@ case "${mode_choice:-13}" in
     11) MODE="lxqt-vertical";    MODE_DESC="LXQt Vertical" ;;
     12) MODE="zigshell-cairo-pango";   MODE_DESC="zigshell-cairo-pango (merged panel + dock)" ;;
     13) MODE="zigshell-blend2d";       MODE_DESC="zigshell-blend2d (merged panel + dock, Blend2D)" ;;
-    *)  MODE="zigshell-blend2d";       MODE_DESC="zigshell-blend2d (merged panel + dock, Blend2D)" ;;
-    *)  MODE="zigshell-cairo-pango";   MODE_DESC="zigshell-cairo-pango (merged panel + dock)" ;;
+    14|*) MODE="zigshell-cairo-pango-clay"; MODE_DESC="zigshell-cairo-pango-clay (Clay layout + Cairo)" ;;
 esac
 
 echo -e "  Selected: ${GREEN}${MODE_DESC}${NC}"
@@ -170,10 +170,14 @@ case "$MODE" in
         # Custom panel/dock; needs no external shell engine.
         SHELL_ENGINE=""
         ;;
+    zigshell-cairo-pango-clay)
+        # Clay layout + Cairo rendering; needs no external shell engine.
+        SHELL_ENGINE=""
+        ;;
 esac
 
 # Self-contained shells — drop from the core engine list.
-if [[ "$MODE" == zigshell-cairo-pango || "$MODE" == zigshell-blend2d ]]; then
+if [[ "$MODE" == zigshell-cairo-pango || "$MODE" == zigshell-blend2d || "$MODE" == zigshell-cairo-pango-clay ]]; then
     CORE_ENGINES="labwc $LAUNCHER"
 fi
 
@@ -189,7 +193,12 @@ fi
 
 echo -e "\n  ${CYAN}Install:${NC}  1) auto-setup (packages + build)  2) configs only"
 echo -n "  Choice [1-2]: "
-read -r dep_choice
+if [ "${NONINTERACTIVE:-0}" = "1" ]; then
+    echo "2 (auto)"
+    dep_choice="2"
+else
+    read -r dep_choice
+fi
 
 case "${dep_choice:-1}" in
     1)
@@ -215,12 +224,20 @@ case "${dep_choice:-1}" in
         elif [ "$MODE" = "zigshell-blend2d" ]; then
             ! command -v zig >/dev/null 2>&1 && need_build="$need_build zig"
             ! command -v zigshell-blend2d >/dev/null 2>&1 && need_build="$need_build zigshell-blend2d"
+        elif [ "$MODE" = "zigshell-cairo-pango-clay" ]; then
+            ! command -v zig >/dev/null 2>&1 && need_build="$need_build zig"
+            ! command -v zigshell-cairo-pango-clay >/dev/null 2>&1 && need_build="$need_build zigshell-cairo-pango-clay"
         fi
 
         if [ -n "$need_build" ]; then
             echo -e "\n${YELLOW}⚠${NC} Unfound engines:${need_build}"
             echo -n "  Build them from source now? [y/N]: "
-            read -r build_now
+            if [ "${NONINTERACTIVE:-0}" = "1" ]; then
+                echo "y (auto)"
+                build_now="y"
+            else
+                read -r build_now
+            fi
             if [[ "$build_now" =~ ^[Yy]$ ]]; then
                 for engine in $need_build; do
                     case "$engine" in
@@ -254,8 +271,33 @@ case "${dep_choice:-1}" in
                                 ( cd "$ZIG_BLEND_DIR" && zig build ) \
                                     && pass "Zig build complete" \
                                     || warn "Zig build failed — run: cd src/shells/zigshell-blend2d && zig build"
+                                # Deploy: copy the freshly built binary onto PATH so the
+                                # updated dock/panel implementation actually runs.
+                                if [ -f "$ZIG_BLEND_DIR/zig-out/bin/zigshell-blend2d" ]; then
+                                    mkdir -p "$HOME/.local/bin"
+                                    cp "$ZIG_BLEND_DIR/zig-out/bin/zigshell-blend2d" "$HOME/.local/bin/zigshell-blend2d" \
+                                        && pass "Deployed zigshell-blend2d → ~/.local/bin/zigshell-blend2d" \
+                                        || warn "Deploy failed — copy manually: cp $ZIG_BLEND_DIR/zig-out/bin/zigshell-blend2d ~/.local/bin/"
+                                fi
                             else
                                 echo -e "  zigshell-blend2d: source not found at src/shells/zigshell-blend2d/"
+                            fi
+                            ;;
+                        zigshell-cairo-pango-clay)
+                            ZIG_CLAY_DIR="${SCRIPT_DIR}/src/shells/zigshell-cairo-pango-clay"
+                            if [ -f "$ZIG_CLAY_DIR/build.zig" ]; then
+                                info "Building zigshell-cairo-pango-clay..."
+                                ( cd "$ZIG_CLAY_DIR" && zig build ) \
+                                    && pass "Zig build complete" \
+                                    || warn "Zig build failed — run: cd src/shells/zigshell-cairo-pango-clay && zig build"
+                                if [ -f "$ZIG_CLAY_DIR/zig-out/bin/zigshell-cairo-pango-clay" ]; then
+                                    mkdir -p "$HOME/.local/bin"
+                                    cp "$ZIG_CLAY_DIR/zig-out/bin/zigshell-cairo-pango-clay" "$HOME/.local/bin/zigshell-cairo-pango-clay" \
+                                        && pass "Deployed zigshell-cairo-pango-clay → ~/.local/bin/zigshell-cairo-pango-clay" \
+                                        || warn "Deploy failed — copy manually: cp $ZIG_CLAY_DIR/zig-out/bin/zigshell-cairo-pango-clay ~/.local/bin/"
+                                fi
+                            else
+                                echo -e "  zigshell-cairo-pango-clay: source not found at src/shells/zigshell-cairo-pango-clay/"
                             fi
                             ;;
                             zig)
@@ -531,7 +573,12 @@ echo -e "  ${CYAN}Extras:${NC} tmux=$USE_TMUX nvim=$USE_NVIM posh=$USE_POSH mcp=
 echo -e "  ${YELLOW}Target: ~/.config/ ~/.local/bin/${NC}"
 
 echo -n "  Deploy? [y/N]: "
-read -r confirm
+if [ "${NONINTERACTIVE:-0}" = "1" ]; then
+    echo "y (auto)"
+    confirm="y"
+else
+    read -r confirm
+fi
 if [[ ! "$confirm" =~ ^[Yy]$ ]]; then
     echo -e "\n  Aborted."
     exit 0
@@ -717,6 +764,22 @@ case "$MODE" in
         fi
         pass "zigshell-blend2d installed; launched by labwc autostart when mode=zigshell-blend2d."
         ;;
+    zigshell-cairo-pango-clay)
+        info "Deploying zigshell-cairo-pango-clay..."
+        ZIG_CLAY_DIR="$SCRIPT_DIR/src/shells/zigshell-cairo-pango-clay"
+        # Build with zig and install the merged binary to ~/.local/bin
+        if [ -f "$ZIG_CLAY_DIR/build.zig" ]; then
+            ( cd "$ZIG_CLAY_DIR" && zig build ) \
+                || warn "Zig build failed — run: cd src/shells/zigshell-cairo-pango-clay && zig build"
+            if [ -f "$ZIG_CLAY_DIR/zig-out/bin/zigshell-cairo-pango-clay" ]; then
+                install -Dm755 "$ZIG_CLAY_DIR/zig-out/bin/zigshell-cairo-pango-clay" ~/.local/bin/zigshell-cairo-pango-clay
+                pass "zigshell-cairo-pango-clay installed."
+            fi
+        else
+            warn "Zig source not found at src/shells/zigshell-cairo-pango-clay/"
+        fi
+        pass "zigshell-cairo-pango-clay installed; launched by labwc autostart when mode=zigshell-cairo-pango-clay."
+        ;;
 esac
 
 # 6. Deploy Application Launcher
@@ -814,9 +877,28 @@ if [ -d "$SCRIPT_DIR/zig-out/bin" ]; then
     # Ensure they are executable
     chmod +x ~/.local/bin/ocws-* 2>/dev/null || true
     
+    # Install Python LLM backend
+    if [ -f "$SCRIPT_DIR/src/daemons/ocws-llm-server.py" ]; then
+        cp "$SCRIPT_DIR/src/daemons/ocws-llm-server.py" ~/.local/bin/ocws-llm-server
+        chmod +x ~/.local/bin/ocws-llm-server
+    fi
+
     pass "Compiled C binaries installed to ~/.local/bin/."
 else
     warn "zig-out/bin not found. Run 'zig build' first if you want C utilities installed."
+fi
+
+# 9. Deploy .desktop files (find all .desktop files across the repo)
+info "Deploying .desktop files..."
+mkdir -p ~/.local/share/applications
+count=0
+while IFS= read -r -d '' f; do
+    cp "$f" ~/.local/share/applications/ 2>/dev/null && count=$((count + 1)) || true
+done < <(find "$SCRIPT_DIR" -name '*.desktop' -print0 2>/dev/null)
+if [ "$count" -gt 0 ]; then
+    pass "$count .desktop files installed to ~/.local/share/applications/."
+else
+    warn "No .desktop files found in repo."
 fi
 
 echo -e "\n${GREEN}OCWS Installation Complete!${NC}"

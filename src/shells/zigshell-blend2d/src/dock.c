@@ -42,11 +42,11 @@ void dock_draw(struct BlendRenderer* renderer, int w, int h,
     for (int i = 0; i < top_count; i++) {
         int x = icon_x(i, start_x);
 
-        // Hover highlight
-        if (i == hover_idx) {
-            blend_renderer_fill_rect(renderer, (double)(x - 4), (double)(cy - 4),
-                (double)(dock_icon_size + 8), (double)(dock_icon_size + 8), 0x1FFFFFFF);
-        }
+        // Rounded backdrop tile so icons read clearly against the gradient.
+        // Hover gets a brighter tile; non-hover a subtle one.
+        uint32_t tile = (i == hover_idx) ? 0x33FFFFFF : 0x14FFFFFF;
+        blend_renderer_fill_round_rect(renderer, (double)(x - 4), (double)(cy - 4),
+            (double)(dock_icon_size + 8), (double)(dock_icon_size + 8), 8.0, tile);
 
         // Load or fallback icon
         struct BLImageCore* icon_img = NULL;
@@ -69,8 +69,8 @@ void dock_draw(struct BlendRenderer* renderer, int w, int h,
 
         // Focus bar (below the icon)
         if (focused && focused[i]) {
-            blend_renderer_fill_rect(renderer, (double)(x + 2), (double)(cy + dock_icon_size),
-                (double)(dock_icon_size - 4), (double)FOCUS_BAR_H, 0xFF4C7FBF);
+            blend_renderer_fill_round_rect(renderer, (double)(x + 2), (double)(cy + dock_icon_size + 2),
+                (double)(dock_icon_size - 4), (double)FOCUS_BAR_H, (double)FOCUS_BAR_H / 2.0, 0xFF4C7FBF);
         }
     }
 
@@ -83,6 +83,9 @@ void dock_draw(struct BlendRenderer* renderer, int w, int h,
     blend_renderer_fill_rect(renderer, (double)divider_x, 6, 1, h - 12, 0xFF404045);
 
     // Settings toggle
+    int settings_tile = toggle_start - 4;
+    blend_renderer_fill_round_rect(renderer, (double)settings_tile, (double)(cy - 4),
+        (double)(dock_icon_size + 8), (double)(dock_icon_size + 8), 8.0, 0x14FFFFFF);
     struct BLImageCore settings_img = {0};
     if (icon_load("preferences-system", dock_icon_size, &settings_img)) {
         blend_renderer_draw_image_scaled(renderer, &settings_img, (double)toggle_start, (double)cy,
@@ -91,6 +94,9 @@ void dock_draw(struct BlendRenderer* renderer, int w, int h,
 
     // App launcher toggle
     int launcher_toggle_x = toggle_start + dock_icon_size + DOCK_PAD;
+    int launcher_tile = launcher_toggle_x - 4;
+    blend_renderer_fill_round_rect(renderer, (double)launcher_tile, (double)(cy - 4),
+        (double)(dock_icon_size + 8), (double)(dock_icon_size + 8), 8.0, 0x14FFFFFF);
     struct BLImageCore launcher_img = {0};
     if (icon_load("system-search", dock_icon_size, &launcher_img)) {
         blend_renderer_draw_image_scaled(renderer, &launcher_img, (double)launcher_toggle_x, (double)cy,
@@ -105,16 +111,18 @@ int dock_icon_at(int w, int h, int top_count, int mouse_x) {
     int start_x = (w - total_w) / 2;
     if (start_x < 0) start_x = 0;
 
-    // Separated-bar toggles (settings + launcher), to the right of the apps.
+    // Separated-bar toggles (settings + app launcher), to the right of the
+    // apps. These mirror the icons drawn in dock_draw(): settings first, then
+    // the launcher toggle which opens the full .desktop app grid.
     int icon_right = start_x + total_w;
     int toggle_start = icon_right + DOCK_PAD;
     int settings_x = toggle_start;
-    int launcher_x = settings_x + slot;
-    if (mouse_x >= launcher_x && mouse_x < launcher_x + dock_icon_size + DOCK_PAD) {
-        return -3; // launcher toggle
-    }
+    int launcher_toggle_x = toggle_start + dock_icon_size + DOCK_PAD;
     if (mouse_x >= settings_x && mouse_x < settings_x + dock_icon_size + DOCK_PAD) {
         return -2; // settings toggle
+    }
+    if (mouse_x >= launcher_toggle_x && mouse_x < launcher_toggle_x + dock_icon_size + DOCK_PAD) {
+        return -3; // app-launcher toggle: opens the full .desktop app grid
     }
 
     // Check app icons

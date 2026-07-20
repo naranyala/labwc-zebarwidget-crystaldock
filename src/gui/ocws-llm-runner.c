@@ -180,11 +180,11 @@ static void on_clear_clicked(GtkButton *button, gpointer user_data) {
 }
 
 static void scan_models(GtkComboBoxText *combo) {
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
+    const char *home = g_get_home_dir();
+    const char *data_dir = g_get_user_data_dir();
     char paths[2][512];
     snprintf(paths[0], sizeof(paths[0]), "%s/Models", home);
-    snprintf(paths[1], sizeof(paths[1]), "%s/.local/share/ocws/models", home);
+    snprintf(paths[1], sizeof(paths[1]), "%s/ocws/models", data_dir);
     
     int count = 0;
     for (int i = 0; i < 2; i++) {
@@ -285,16 +285,12 @@ static void activate(GtkApplication *app, gpointer user_data) {
     
     /* Spawn server */
     int server_stdout_fd = -1;
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
-    char server_path[512];
-    snprintf(server_path, sizeof(server_path), "%s/.local/bin/ocws-llm-server", home);
-    
-    if (access(server_path, X_OK) != 0) {
-        snprintf(server_path, sizeof(server_path), "ocws-llm-server");
+    gchar *server_path = g_find_program_in_path("ocws-llm-server");
+    if (!server_path) {
+        server_path = g_strdup("ocws-llm-server");
     }
     
-    char *argv[] = { (char*)server_path, NULL };
+    char *argv[] = { server_path, NULL };
     GError *error = NULL;
     
     if (g_spawn_async_with_pipes(NULL, argv, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
@@ -304,21 +300,35 @@ static void activate(GtkApplication *app, gpointer user_data) {
         g_io_channel_unref(stdout_channel);
         append_to_chat("System", "Starting LLM server...", "italic");
     } else {
-        char python_path[512];
-        snprintf(python_path, sizeof(python_path), "/media/naranyala/Data/projects-remote/labwc-fuzzel-zigshell-cairo-pango/src/daemons/ocws-llm-server.py");
-        char *argv2[] = { "python3", python_path, NULL };
         g_error_free(error);
         error = NULL;
-        if (g_spawn_async_with_pipes(NULL, argv2, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
-                                     &server_pid, &server_stdin_fd, &server_stdout_fd, NULL, &error)) {
-            GIOChannel *stdout_channel = g_io_channel_unix_new(server_stdout_fd);
-            g_io_add_watch(stdout_channel, G_IO_IN | G_IO_HUP, on_server_stdout, NULL);
-            g_io_channel_unref(stdout_channel);
-            append_to_chat("System", "Starting LLM server (dev mode)...", "italic");
+
+        char *server_py = g_find_program_in_path("ocws-llm-server.py");
+        if (!server_py) {
+            char *config_dir = g_get_user_config_dir();
+            char config_path[512];
+            snprintf(config_path, sizeof(config_path), "%s/ocws/ocws-llm-server.py", config_dir);
+            if (g_file_test(config_path, G_FILE_TEST_EXISTS))
+                server_py = g_strdup(config_path);
+        }
+
+        if (server_py) {
+            char *argv2[] = { "python3", server_py, NULL };
+            if (g_spawn_async_with_pipes(NULL, argv2, NULL, G_SPAWN_SEARCH_PATH, NULL, NULL,
+                                         &server_pid, &server_stdin_fd, &server_stdout_fd, NULL, &error)) {
+                GIOChannel *stdout_channel = g_io_channel_unix_new(server_stdout_fd);
+                g_io_add_watch(stdout_channel, G_IO_IN | G_IO_HUP, on_server_stdout, NULL);
+                g_io_channel_unref(stdout_channel);
+                append_to_chat("System", "Starting LLM server (dev mode)...", "italic");
+            } else {
+                append_to_chat("System", "Failed to start LLM server. Is ocws-llm-server installed?", "error");
+            }
+            g_free(server_py);
         } else {
-            append_to_chat("System", "Failed to start LLM server. Is ocws-llm-server installed?", "error");
+            append_to_chat("System", "LLM server not found. Install ocws-llm-server.py in ~/.config/ocws/", "error");
         }
     }
+    g_free(server_path);
     
     gtk_widget_show_all(window);
 }

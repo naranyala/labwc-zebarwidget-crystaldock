@@ -1,3 +1,6 @@
+#include <gtk/gtk.h>
+#include <stdio.h>
+
 static GtkWidget* make_tooltip_row(const char *title, const char *subtitle, const char *tooltip) {
     GtkWidget *row = gtk_box_new(GTK_ORIENTATION_HORIZONTAL, 8);
     gtk_widget_set_margin_bottom(row, 8);

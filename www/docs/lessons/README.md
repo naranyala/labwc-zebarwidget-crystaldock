@@ -70,13 +70,12 @@ Post-mortems and lessons learned from real bugs found in the OCWS codebase. Each
 |------|-------|
 | ipc-variable-mapping.md | Event Bus variable mapping mismatches |
 | event-driven-ipc.md | Event-driven vs polling IPC patterns |
-| ipc-command-injection.md | IPC command injection vectors |
 
 ## zigshell-cairo-pango Widget DSL
 
 | File | Topic |
 |------|-------|
-| zigshell-cairo-pango-config-syntax.md | zigshell-cairo-pango config file syntax pitfalls |
+| zigshell-cairo-pango-config-syntax.md | Config file syntax pitfalls |
 | zigshell-cairo-pango-css-include-inside-css.md | CSS include inside CSS block |
 | zigshell-cairo-pango-css-section-vs-include.md | CSS section vs include differences |
 | zigshell-cairo-pango-css-selectors.md | CSS selector compatibility |

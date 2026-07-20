@@ -50,18 +50,27 @@ static inline int ini_load(IniFile *ini, const char *path) {
                 *end = '\0';
                 cur = &ini->sections[ini->section_count++];
                 strncpy(cur->name, line + 1, INI_KEY_LEN - 1);
+                ini_trim(cur->name);
                 cur->key_count = 0;
             }
             continue;
         }
 
         char *eq = strchr(line, '=');
-        if (eq && cur && cur->key_count < INI_MAX_KEYS) {
+        if (eq && cur) {
             *eq = '\0';
-            IniKV *kv = &cur->keys[cur->key_count++];
-            strncpy(kv->name, line, INI_KEY_LEN - 1);
+            ini_trim(line);
+            /* Last-writer-wins: overwrite an existing key if present. */
+            int idx = -1;
+            for (int k = 0; k < cur->key_count; k++) {
+                if (strcmp(cur->keys[k].key, line) == 0) { idx = k; break; }
+            }
+            if (idx < 0 && cur->key_count < INI_MAX_KEYS) idx = cur->key_count++;
+            if (idx < 0) continue;
+            IniKV *kv = &cur->keys[idx];
+            strncpy(kv->key, line, INI_KEY_LEN - 1);
             strncpy(kv->value, eq + 1, INI_VAL_LEN - 1);
-            ini_trim(kv->name);
+            ini_trim(kv->key);
             ini_trim(kv->value);
         }
     }
@@ -73,7 +82,7 @@ static inline const char* ini_get(IniFile *ini, const char *section, const char 
     for (int i = 0; i < ini->section_count; i++) {
         if (strcmp(ini->sections[i].name, section) == 0) {
             for (int j = 0; j < ini->sections[i].key_count; j++) {
-                if (strcmp(ini->sections[i].keys[j].name, key) == 0)
+                if (strcmp(ini->sections[i].keys[j].key, key) == 0)
                     return ini->sections[i].keys[j].value;
             }
         }

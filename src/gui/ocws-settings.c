@@ -58,6 +58,7 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_stack_add_titled(GTK_STACK(stack), build_widgets_tab(),         "widgets",         "Widgets");
     gtk_stack_add_titled(GTK_STACK(stack), build_workspaces_tab(),      "workspaces",      "Workspaces");
     gtk_stack_add_titled(GTK_STACK(stack), build_notifications_tab(),   "notifications",   "Notifications");
+    gtk_stack_add_titled(GTK_STACK(stack), build_apps_tab(),            "apps",            "GUI Apps");
     gtk_stack_add_titled(GTK_STACK(stack), build_diagnostics_tab(),     "diagnostics",     "System Health");
     gtk_stack_add_titled(GTK_STACK(stack), build_quick_settings_tab(),  "quick_settings",  "Quick Settings");
     gtk_stack_add_titled(GTK_STACK(stack), build_keybinds_tab(),        "keybinds",        "Keybinds");

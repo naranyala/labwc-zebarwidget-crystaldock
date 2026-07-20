@@ -9,6 +9,9 @@
 #include "../../core/ocws-theme-utils.h"
 #include <stdlib.h>
 #include <string.h>
+#include <libxml/parser.h>
+#include <libxml/xpath.h>
+#include <libxml/tree.h>
 
 // ============================================================
 // Tab: Shell Modes
@@ -35,6 +38,78 @@ GtkWidget* build_shell_tab(void) {
 
     gtk_box_pack_start(GTK_BOX(vbox), flowbox, TRUE, TRUE, 0);
     return vbox;
+}
+
+// ============================================================
+// libxml2 rc.xml helpers
+// ============================================================
+
+typedef struct {
+    char xpath[128];
+    char attr[32];
+    GtkWidget *val_label;
+    const char *unit;
+} RcXmlData;
+
+static void rc_xml_data_free(gpointer data, GClosure *closure) {
+    (void)closure;
+    g_free(data);
+}
+
+static void on_rc_xml_changed(GtkRange *range, gpointer user_data) {
+    RcXmlData *d = (RcXmlData *)user_data;
+    int val = (int)gtk_range_get_value(range);
+
+    char val_text[32];
+    snprintf(val_text, sizeof(val_text), "%d%s", val, d->unit ? d->unit : "");
+    gtk_label_set_text(GTK_LABEL(d->val_label), val_text);
+
+    const char *config_dir = g_get_user_config_dir();
+    char rc_path[512];
+    snprintf(rc_path, sizeof(rc_path), "%s/labwc/rc.xml", config_dir);
+
+    xmlDoc *doc = xmlReadFile(rc_path, NULL, 0);
+    if (!doc) return;
+
+    xmlXPathContext *ctx = xmlXPathNewContext(doc);
+    xmlXPathObject *obj = xmlXPathEvalExpression((const xmlChar *)d->xpath, ctx);
+
+    if (obj && obj->nodesetval && obj->nodesetval->nodeNr > 0) {
+        xmlNode *node = obj->nodesetval->nodeTab[0];
+        char val_str[32];
+        snprintf(val_str, sizeof(val_str), "%d", val);
+
+        if (d->attr[0])
+            xmlSetProp(node, (const xmlChar *)d->attr, (const xmlChar *)val_str);
+        else
+            xmlNodeSetContent(node, (const xmlChar *)val_str);
+
+        xmlSaveFormatFileEnc(rc_path, doc, "UTF-8", 1);
+    }
+
+    xmlXPathFreeObject(obj);
+    xmlXPathFreeContext(ctx);
+    xmlFreeDoc(doc);
+
+    system("labwc -r &");
+}
+
+static GtkWidget* create_rc_xml_slider(const char *label, int value, int min, int max, const char *unit, const char *xpath, const char *attr) {
+    GtkWidget *row = create_slider_row(label, value, min, max, unit);
+    GList *children = gtk_container_get_children(GTK_CONTAINER(row));
+    GtkWidget *scale = children && children->next ? GTK_WIDGET(children->next->data) : NULL;
+    GtkWidget *val_lbl = children && children->next && children->next->next ? GTK_WIDGET(children->next->next->data) : NULL;
+    g_list_free(children);
+
+    if (scale && val_lbl) {
+        RcXmlData *d = g_new(RcXmlData, 1);
+        g_strlcpy(d->xpath, xpath, sizeof(d->xpath));
+        if (attr) g_strlcpy(d->attr, attr, sizeof(d->attr));
+        d->val_label = val_lbl;
+        d->unit = unit;
+        g_signal_connect_data(scale, "value-changed", G_CALLBACK(on_rc_xml_changed), d, rc_xml_data_free, 0);
+    }
+    return row;
 }
 
 // ============================================================
@@ -162,12 +237,11 @@ GtkWidget* build_appearance_tab(void) {
     int corner_radius = 8;
     int margin_top = 0, margin_bottom = 4, margin_left = 4, margin_right = 4;
     {
-        const char *home = getenv("HOME");
-        if (home && *home) {
-            char rc_path[512];
-            snprintf(rc_path, sizeof(rc_path), "%s/.config/labwc/rc.xml", home);
-            FILE *f = fopen(rc_path, "r");
-            if (f) {
+        const char *config_dir = g_get_user_config_dir();
+        char rc_path[512];
+        snprintf(rc_path, sizeof(rc_path), "%s/labwc/rc.xml", config_dir);
+        FILE *f = fopen(rc_path, "r");
+        if (f) {
                 char line[256];
                 while (fgets(line, sizeof(line), f)) {
                     char *p;
@@ -182,12 +256,13 @@ GtkWidget* build_appearance_tab(void) {
                     }
                 }
                 fclose(f);
-            }
         }
     }
 
-    gtk_box_pack_start(GTK_BOX(content), create_live_slider_row("Corner Radius", corner_radius, 0, 30, "px",
-        "sed -i 's|<cornerRadius>[^<]*</cornerRadius>|<cornerRadius>%d</cornerRadius>|' ~/.config/labwc/rc.xml; labwc -r &"), FALSE, FALSE, 0);
+    const char *config_dir = g_get_user_config_dir();
+    (void)config_dir;
+
+    gtk_box_pack_start(GTK_BOX(content), create_rc_xml_slider("Corner Radius", corner_radius, 0, 30, "px", "//cornerRadius", NULL), FALSE, FALSE, 0);
 
     // Window Margins
     GtkWidget *margin_label = gtk_label_new(NULL);
@@ -196,14 +271,10 @@ GtkWidget* build_appearance_tab(void) {
     gtk_widget_set_margin_top(margin_label, 8);
     gtk_box_pack_start(GTK_BOX(content), margin_label, FALSE, FALSE, 0);
 
-    gtk_box_pack_start(GTK_BOX(content), create_live_slider_row("Margin Top", margin_top, 0, 80, "px",
-        "sed -i 's|<margin top=\"[^\"]*\"|<margin top=\"%d\"|' ~/.config/labwc/rc.xml; labwc -r &"), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(content), create_live_slider_row("Margin Bottom", margin_bottom, 0, 80, "px",
-        "sed -i 's|bottom=\"[^\"]*\"|bottom=\"%d\"|' ~/.config/labwc/rc.xml; labwc -r &"), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(content), create_live_slider_row("Margin Left", margin_left, 0, 80, "px",
-        "sed -i 's|left=\"[^\"]*\"|left=\"%d\"|' ~/.config/labwc/rc.xml; labwc -r &"), FALSE, FALSE, 0);
-    gtk_box_pack_start(GTK_BOX(content), create_live_slider_row("Margin Right", margin_right, 0, 80, "px",
-        "sed -i 's|right=\"[^\"]*\"|right=\"%d\"|' ~/.config/labwc/rc.xml; labwc -r &"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_rc_xml_slider("Margin Top", margin_top, 0, 80, "px", "//margin", "top"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_rc_xml_slider("Margin Bottom", margin_bottom, 0, 80, "px", "//margin", "bottom"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_rc_xml_slider("Margin Left", margin_left, 0, 80, "px", "//margin", "left"), FALSE, FALSE, 0);
+    gtk_box_pack_start(GTK_BOX(content), create_rc_xml_slider("Margin Right", margin_right, 0, 80, "px", "//margin", "right"), FALSE, FALSE, 0);
 
     gtk_box_pack_start(GTK_BOX(content), create_live_toggle_row("Window Blur", "Enable background blur for transparent windows", TRUE, "ocws-kv set theme window_blur 1; labwc -r &", "ocws-kv set theme window_blur 0; labwc -r &"), FALSE, FALSE, 0);
 
@@ -519,10 +590,9 @@ GtkWidget* build_keybinds_tab(void) {
     gtk_box_pack_start(GTK_BOX(list_card), listbox, TRUE, TRUE, 0);
 
     // Populate with keybindings from rc.xml
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
+    const char *config_dir_keys = g_get_user_config_dir();
     char rc_path[512];
-    snprintf(rc_path, sizeof(rc_path), "%s/.config/labwc/rc.xml", home);
+    snprintf(rc_path, sizeof(rc_path), "%s/labwc/rc.xml", config_dir_keys);
 
     FILE *fp = fopen(rc_path, "r");
     if (fp) {
@@ -641,6 +711,64 @@ GtkWidget* build_keybinds_tab(void) {
     gtk_box_pack_start(GTK_BOX(vbox), btn_box, FALSE, FALSE, 0);
 
     return scroll;
+}
+
+// ============================================================
+// Tab: Apps
+// ============================================================
+
+static void on_app_launch(GtkWidget *widget, gpointer data) {
+    (void)widget;
+    const char *cmd = (const char*)data;
+    char buffer[256];
+    snprintf(buffer, sizeof(buffer), "%s &", cmd);
+    system(buffer);
+}
+
+GtkWidget* build_apps_tab(void) {
+    GtkWidget *vbox = gtk_box_new(GTK_ORIENTATION_VERTICAL, 20);
+    gtk_container_set_border_width(GTK_CONTAINER(vbox), 30);
+
+    GtkWidget *title = gtk_label_new(NULL);
+    gtk_label_set_markup(GTK_LABEL(title), "<span size='x-large' weight='bold'>GUI Applications</span>");
+    gtk_label_set_xalign(GTK_LABEL(title), 0.0);
+    gtk_box_pack_start(GTK_BOX(vbox), title, FALSE, FALSE, 0);
+
+    GtkWidget *grid = gtk_grid_new();
+    gtk_grid_set_column_spacing(GTK_GRID(grid), 20);
+    gtk_grid_set_row_spacing(GTK_GRID(grid), 10);
+    gtk_box_pack_start(GTK_BOX(vbox), grid, FALSE, FALSE, 0);
+
+    struct { const char *name; const char *desc; const char *cmd; } apps[] = {
+        {"Dock Manager", "Configure desktop dock options", "ocws-dock-mgr"},
+        {".desktop Manager", "Validate and edit app shortcuts", "ocws-dotdesktop-mgr"},
+        {"Fonts Manager", "Preview and install fonts", "ocws-fonts-mgr"},
+        {"Package Manager", "Install and remove software", "ocws-pkgmgr"},
+        {"LLM Runner", "Manage local AI instances", "ocws-llm-runner"},
+        {"Theme Center", "Manage global system themes", "ocws-theme-center"},
+        {"Welcome", "First-time setup and onboarding", "ocws-welcome"},
+        {"Workspace Manager", "Configure window management", "ocws-workspace-mgr"},
+    };
+
+    for (int i = 0; i < (int)(sizeof(apps) / sizeof(apps[0])); i++) {
+        GtkWidget *name_lbl = gtk_label_new(NULL);
+        char *markup = g_strdup_printf("<b>%s</b>", apps[i].name);
+        gtk_label_set_markup(GTK_LABEL(name_lbl), markup);
+        g_free(markup);
+        gtk_label_set_xalign(GTK_LABEL(name_lbl), 0.0);
+        gtk_grid_attach(GTK_GRID(grid), name_lbl, 0, i, 1, 1);
+
+        GtkWidget *desc_lbl = gtk_label_new(apps[i].desc);
+        gtk_style_context_add_class(gtk_widget_get_style_context(desc_lbl), "dim-label");
+        gtk_label_set_xalign(GTK_LABEL(desc_lbl), 0.0);
+        gtk_grid_attach(GTK_GRID(grid), desc_lbl, 1, i, 1, 1);
+
+        GtkWidget *launch_btn = gtk_button_new_with_label("Launch");
+        g_signal_connect(launch_btn, "clicked", G_CALLBACK(on_app_launch), (gpointer)apps[i].cmd);
+        gtk_grid_attach(GTK_GRID(grid), launch_btn, 2, i, 1, 1);
+    }
+
+    return vbox;
 }
 
 // ============================================================

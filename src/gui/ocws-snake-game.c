@@ -1,4 +1,6 @@
 #include <gtk/gtk.h>
+#include "../libocws/gtk.h"
+#include "../libocws/gtk-app.h"
 #include <cairo.h>
 #include <stdlib.h>
 #include <time.h>
@@ -23,6 +25,8 @@ static int game_over = 0;
 static GtkWidget *draw_area;
 
 static gboolean on_draw(GtkWidget *w, cairo_t *cr, gpointer d) {
+    (void)w;
+    (void)d;
     // Background
     cairo_set_source_rgb(cr, 0.06, 0.06, 0.10);
     cairo_paint(cr);
@@ -77,6 +81,7 @@ static void reset_game(void) {
 }
 
 static gboolean tick(gpointer d) {
+    (void)d;
     if (!game_over) {
         next_dir = dir;
         Pt head = snake[0];
@@ -109,6 +114,8 @@ static gboolean tick(gpointer d) {
 }
 
 static gboolean on_key(GtkWidget *w, GdkEventKey *e, gpointer d) {
+    (void)w;
+    (void)d;
     switch (e->keyval) {
         case GDK_KEY_Up:    if (dir != DOWN)  next_dir = UP;    break;
         case GDK_KEY_Down:  if (dir != UP)    next_dir = DOWN;  break;
@@ -122,11 +129,14 @@ static gboolean on_key(GtkWidget *w, GdkEventKey *e, gpointer d) {
     return TRUE;
 }
 
-int main(int argc, char *argv[]) {
-    gtk_init(&argc, &argv);
+static void activate(GtkApplication *app, gpointer user_data) {
+    (void)user_data;
+    ocws_gtk_enforce_premium_theme();
+    ocws_gtk_apply_dynamic_css(app, NULL);
+
     srand((unsigned)time(NULL));
 
-    GtkWidget *window = gtk_window_new(GTK_WINDOW_TOPLEVEL);
+    GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "OCWS Snake");
     gtk_window_set_default_size(GTK_WINDOW(window), WIN_W, WIN_H);
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
@@ -138,7 +148,6 @@ int main(int argc, char *argv[]) {
     gtk_widget_set_can_focus(draw_area, TRUE);
     gtk_widget_grab_focus(draw_area);
 
-    g_signal_connect(G_OBJECT(window), "destroy", G_CALLBACK(gtk_main_quit), NULL);
     g_signal_connect(G_OBJECT(draw_area), "draw", G_CALLBACK(on_draw), NULL);
     g_signal_connect(G_OBJECT(window), "key_press_event", G_CALLBACK(on_key), NULL);
 
@@ -146,6 +155,6 @@ int main(int argc, char *argv[]) {
     g_timeout_add(120, tick, draw_area);
 
     gtk_widget_show_all(window);
-    gtk_main();
-    return 0;
 }
+
+OCWS_APP_MAIN("org.ocws.snake_game", activate)

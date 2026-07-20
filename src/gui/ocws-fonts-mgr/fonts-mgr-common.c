@@ -47,16 +47,15 @@ const char *CURSORS_DIR = NULL;
  * ============================================================ */
 
 void fonts_mgr_init_paths(void) {
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
+    const char *data_dir = g_get_user_data_dir();
 
     static char fonts_buf[512];
     static char managed_buf[512];
     static char cursors_buf[512];
 
-    snprintf(fonts_buf, sizeof(fonts_buf), "%s/.local/share/fonts", home);
-    snprintf(managed_buf, sizeof(managed_buf), "%s/.local/share/fonts/ocws-managed", home);
-    snprintf(cursors_buf, sizeof(cursors_buf), "%s/.local/share/icons", home);
+    snprintf(fonts_buf, sizeof(fonts_buf), "%s/fonts", data_dir);
+    snprintf(managed_buf, sizeof(managed_buf), "%s/fonts/ocws-managed", data_dir);
+    snprintf(cursors_buf, sizeof(cursors_buf), "%s/icons", data_dir);
 
     FONTS_DIR = fonts_buf;
     MANAGED_DIR = managed_buf;

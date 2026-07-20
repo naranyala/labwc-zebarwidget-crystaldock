@@ -338,6 +338,24 @@ test "stripFieldCode keeps literal percent" {
     try std.testing.expectEqualStrings("100% cpu", stripFieldCode("100%% cpu", &buf));
 }
 
+
+
+test "stripFieldCode dangling percent at end of string" {
+    var out: [128]u8 = undefined;
+    try std.testing.expectEqualStrings("foo %", stripFieldCode("foo %", &out));
+}
+
+test "stripFieldCode consecutive field codes" {
+    var out: [128]u8 = undefined;
+    try std.testing.expectEqualStrings("foo", stripFieldCode("foo %U %F %i", &out));
+}
+
+test "stripFieldCode field code attached to word" {
+    var out: [128]u8 = undefined;
+    // Will skip %f and anything after it until a space.
+    try std.testing.expectEqualStrings("foo", stripFieldCode("foo%f", &out));
+}
+
 test "stripFieldCode leaves plain commands intact" {
     var buf: [256]u8 = std.mem.zeroes([256]u8);
     try std.testing.expectEqualStrings("gimp", stripFieldCode("gimp", &buf));

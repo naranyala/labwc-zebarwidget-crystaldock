@@ -2,40 +2,33 @@
 
 Local-first LLM chat and OCR assistant for the OCWS desktop shell.
 
----
-
 ## Overview
 
 `ocws-llm-runner` combines:
 
-- **Local LLM Chat**: Chat with local GGUF models via `llama-cpp-python`
-- **OCR Integration**: Capture screen regions or OCR image files
-- **Model Management**: Load, eject, switch, download models
-- **Session Manager**: Multiple conversations with persistence
-- **GTK3 GUI**: Glassmorphic interface matching OCWS theme
-- **REST API**: Full API for headless/scripted usage
-
----
+- **Local LLM Chat** -- Chat with local GGUF models via `llama-cpp-python`
+- **OCR Integration** -- Capture screen regions or OCR image files
+- **Model Management** -- Load, eject, switch, download models
+- **Session Manager** -- Multiple conversations with persistence
+- **GTK3 GUI** -- Glassmorphic interface matching OCWS theme
+- **REST API** -- Full API for headless/scripted usage
 
 ## Architecture
 
 ```
 ocws-llm-runner/
-├── main.py              # Entry point (GUI + server)
-├── requirements.txt     # Python dependencies
-├── ocws-llm-runner     # Launcher script
-├── server/
-│   ├── app.py           # Flask REST API
-│   ├── llm.py           # LLM inference engine
-│   ├── ocr.py           # OCR processor
-│   └── sessions.py      # Session manager
-├── gui/
-│   └── app.py           # GTK3 GUI
-└── utils/
-    └── __init__.py
+  main.py              Entry point (GUI + server)
+  requirements.txt     Python dependencies
+  server/
+    app.py             Flask REST API
+    llm.py             LLM inference engine
+    ocr.py             OCR processor
+    sessions.py        Session manager
+  gui/
+    app.py             GTK3 GUI
+  utils/
+    __init__.py
 ```
-
----
 
 ## Installation
 
@@ -49,8 +42,6 @@ sudo apt install tesseract-ocr
 # The installer deploys the launcher and .desktop file
 ./install.sh
 ```
-
----
 
 ## Usage
 
@@ -71,34 +62,30 @@ ocws-llm-runner --ocr image.png
 ocws-llm-runner --model ~/.local/share/ocws/models/model.gguf
 ```
 
----
-
 ## GUI Features
 
 ### Header Bar
-- **Server Status**: Green/red indicator
-- **Start/Stop**: Control server from GUI
-- **Refresh**: Update all status info
+- Server status indicator (green/red)
+- Start/stop server from GUI
+- Refresh all status info
 
 ### Left Sidebar
-- **Sessions**: Create, switch, rename, delete, export sessions
-- **Model Management**: Load, eject, switch models
-- **Quick Switch**: Dropdown for downloaded models
-- **System Prompt**: Edit AI system prompt
+- Sessions: create, switch, rename, delete, export
+- Model management: load, eject, switch models
+- Quick switch dropdown for downloaded models
+- System prompt editor
 
 ### Chat Area
-- **Messages**: User (blue), Assistant (gray), System (yellow)
-- **Input**: Enter to send, Shift+Enter for newline
-- **OCR Button**: Quick screen region capture
-
----
+- Messages: user (blue), assistant (gray), system (yellow)
+- Input: Enter to send, Shift+Enter for newline
+- OCR button for quick screen region capture
 
 ## Model Management
 
 ### Load a Model
+
 ```bash
-# Via GUI
-Click "Load" → Select .gguf file
+# Via GUI: Click "Load" then select .gguf file
 
 # Via API
 curl -X POST http://127.0.0.1:5000/api/model/load \
@@ -106,9 +93,9 @@ curl -X POST http://127.0.0.1:5000/api/model/load \
 ```
 
 ### Switch Models
+
 ```bash
-# Via GUI
-Click model dropdown → Select model
+# Via GUI: Click model dropdown then select model
 
 # Via API
 curl -X POST http://127.0.0.1:5000/api/model/switch \
@@ -116,15 +103,13 @@ curl -X POST http://127.0.0.1:5000/api/model/switch \
 ```
 
 ### Eject Model
+
 ```bash
-# Via GUI
-Click "Eject"
+# Via GUI: Click "Eject"
 
 # Via API
 curl -X POST http://127.0.0.1:5000/api/model/eject
 ```
-
----
 
 ## Recommended Models
 
@@ -160,8 +145,6 @@ wget -O ~/.local/share/ocws/models/qwen2.5-coder-1.5b.gguf \
   https://huggingface.co/Qwen/Qwen2.5-Coder-1.5B-Instruct-GGUF/resolve/main/qwen2.5-coder-1.5b-instruct-q4_k_m.gguf
 ```
 
----
-
 ## Session Manager
 
 Sessions persist conversations across restarts.
@@ -169,11 +152,12 @@ Sessions persist conversations across restarts.
 ### Via GUI
 - **New Session**: Click "+ New Session"
 - **Switch**: Click session in list
-- **Rename**: Right-click → Rename
-- **Delete**: Right-click → Delete
-- **Export**: Right-click → Export as JSON
+- **Rename**: Right-click then Rename
+- **Delete**: Right-click then Delete
+- **Export**: Right-click then Export as JSON
 
 ### Via API
+
 ```bash
 # List sessions
 curl http://127.0.0.1:5000/api/sessions
@@ -189,24 +173,20 @@ curl http://127.0.0.1:5000/api/sessions/<id>/history
 curl -X DELETE http://127.0.0.1:5000/api/sessions/<id>
 ```
 
----
-
 ## OCR Integration
 
 ### Screen Region Capture
+
 ```bash
-# Via GUI
-Click "OCR" button → Select region
+# Via GUI: Click "OCR" button then select region
 
 # Via API
 curl -X POST http://127.0.0.1:5000/api/ocr/region
 ```
 
 ### File OCR
-```bash
-# Via GUI
-Sidebar → "OCR from File" → Select image
 
+```bash
 # Via API
 curl -X POST http://127.0.0.1:5000/api/ocr \
   -F "image=@screenshot.png" \
@@ -214,27 +194,25 @@ curl -X POST http://127.0.0.1:5000/api/ocr \
 ```
 
 ### Command Line
+
 ```bash
-# Using ocws-llm-runner
-ocws-llm-runner --ocr image.png
-
-# Using ocws-ocr directly
-ocws-ocr                    # Capture region
-ocws-ocr -c                 # Capture to clipboard
-ocws-ocr screenshot.png     # OCR file
+ocws-llm-runner --ocr image.png     # Using ocws-llm-runner
+ocws-ocr                             # Using ocws-ocr directly
+ocws-ocr -c                          # Capture to clipboard
+ocws-ocr screenshot.png              # OCR file
 ```
-
----
 
 ## REST API Reference
 
-### Health & Status
+### Health and Status
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/health` | GET | Health check |
 | `/api/status` | GET | Detailed server status |
 
 ### Model Management
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/models` | GET | List available models |
@@ -245,12 +223,14 @@ ocws-ocr screenshot.png     # OCR file
 | `/api/model/delete` | POST | Delete a model file |
 
 ### Chat
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/chat` | POST | Send message |
 | `/api/chat/stream` | POST | Stream response (SSE) |
 
 ### Sessions
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/sessions` | GET | List all sessions |
@@ -264,64 +244,52 @@ ocws-ocr screenshot.png     # OCR file
 | `/api/sessions/active` | PUT | Set active session |
 
 ### OCR
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/ocr` | POST | OCR uploaded image |
 | `/api/ocr/region` | POST | Capture region and OCR |
 
 ### Export/Import
+
 | Endpoint | Method | Description |
 |----------|--------|-------------|
 | `/api/export/session/<id>` | GET | Export session as JSON |
 | `/api/import/session` | POST | Import session from JSON |
 
----
-
 ## Data Storage
 
 ```
 ~/.local/share/ocws/llm-runner/
-├── meta.json           # Active session, last model
-├── sessions/           # Session files
-│   ├── abc123.json
-│   └── def456.json
-└── models/             # Downloaded models
-    └── model.gguf
+  meta.json           Active session, last model
+  sessions/           Session files
+    abc123.json
+    def456.json
+  models/             Downloaded models
+    model.gguf
 ```
-
----
 
 ## Troubleshooting
 
-### Server won't start
-```bash
-# Check if port is in use
-lsof -i :5000
+### Server will not start
 
-# Try different port
-ocws-llm-runner --port 5001
+```bash
+lsof -i :5000              # Check if port is in use
+ocws-llm-runner --port 5001  # Try different port
 ```
 
 ### Model fails to load
+
 ```bash
-# Check file exists
-ls -la ~/.local/share/ocws/models/
-
-# Check available RAM
-free -h
-
-# Try smaller model
-# Qwen2.5-Coder-1.5B needs ~2GB RAM
+ls -la ~/.local/share/ocws/models/  # Check file exists
+free -h                              # Check available RAM
+# Qwen2.5-Coder-1.5B needs ~2GB RAM -- try a smaller model if needed
 ```
 
 ### OCR not working
+
 ```bash
-# Check tesseract installed
-tesseract --version
-
-# Check screenshot tools
-which grim slurp
-
-# Test directly
-ocws-ocr
+tesseract --version    # Check tesseract installed
+which grim slurp       # Check screenshot tools
+ocws-ocr               # Test directly
 ```

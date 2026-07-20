@@ -1,316 +1,175 @@
-# OCWS: Our C-Written Shell
+# OCWS: Native Wayland Desktop Environment
 
-A native Wayland desktop shell built on C, GTK3, and labwc. No JavaScript. No Electron. No Qt. Just compiled code and the Wayland protocol.
+[![CI](https://github.com/naranyala/labwc-zigshell/actions/workflows/ci.yml/badge.svg)](https://github.com/naranyala/labwc-zigshell/actions/workflows/ci.yml)
+[![Release](https://github.com/naranyala/labwc-zigshell/actions/workflows/release.yml/badge.svg)](https://github.com/naranyala/labwc-zigshell/actions/workflows/release.yml)
+[![Docs](https://github.com/naranyala/labwc-zigshell/actions/workflows/docs.yml/badge.svg)](https://github.com/naranyala/labwc-zigshell/actions/workflows/docs.yml)
 
-OCWS ships as a complete desktop environment: a compositor-integrated shell with glassmorphic panels, a theme engine that propagates palettes across 14 configuration surfaces, native GTK3 settings and utility GUIs, and a modular widget system -- all implemented in C for minimal memory footprint and immediate responsiveness.
-
----
-
-## What OCWS Is
-
-OCWS is a Wayland desktop shell that replaces the typical GNOME/KDE stack with a set of small, focused C binaries and shell scripts. It runs on top of labwc (a tiling/stacking Wayland compositor), uses zigshell-cairo-pango for panels and widgets, and fuzzel as the application launcher.
-
-The project targets developers, power users, and anyone who wants full control over their desktop environment without the overhead of a full desktop suite.
-
-### Core Properties
-
-- **Pure C and GTK3** -- Every GUI utility (settings manager, theme center, font manager, dock manager, welcome wizard) is a native C binary. No web technologies.
-- **Under 200 MB RAM** -- A complete session with panels, widgets, notifications, and media controls runs comfortably within 200 MB.
-- **Modular architecture** -- Panels, widgets, daemons, and plugins are independent units. Replace any component without touching the others.
-- **Theme engine** -- Change one INI file and the palette propagates to labwc, zigshell-cairo-pango, GTK, fuzzel, foot, rofi, mako, Qt6, and color tokens simultaneously.
-- **Security-hardened** -- umask(0077) on all entry points, shell metacharacter validation before system(), XDG_RUNTIME_DIR for temp files, path traversal rejection, async-signal-safe signal handlers.
+OCWS is a modular, native-compiled desktop environment built exclusively for Wayland. It combines the `labwc` compositor with a suite of C and Zig binaries -- panels, daemons, CLI tools, and GTK3 GUI applications -- to deliver a complete desktop session without JavaScript, Electron, or Qt runtimes. The full session footprint is under 200 MB of system memory.
 
 ---
 
 ## Architecture
 
+OCWS is organized into four discrete layers, each with a defined responsibility and interface boundary.
+
 | Layer | Component | Role |
 |-------|-----------|------|
-| Compositor | labwc | Window management, input handling, keybindings, decorations |
-| Shell UI | zigshell-cairo-pango | Panels, widgets, taskbar, tray, popups (C-native rendering) |
+| Compositor | labwc | Wayland session management, window layout, input dispatch, keybinding evaluation |
+| Shell UI | zigshell-cairo-pango | GTK3 panel engine providing widgets, system tray, taskbar, and popup surfaces |
 | Launcher | fuzzel | Application launcher and dmenu-mode script runner |
-| Layer Shell | gtk-layer-shell | Anchors shell surfaces to Wayland outputs |
+| Layer Shell | gtk-layer-shell | Anchors shell surfaces to Wayland output edges with margin and exclusive-zone control |
 
-Supporting services: ocws-notify (D-Bus notifications), swayidle/swaylock (idle/lock), cliphist/wl-clipboard (clipboard history), playerctl (media), ocws-brightness (backlight), gammastep (night light), grim/slurp (screenshots).
-
----
-
-## Shell Modes
-
-OCWS supports multiple desktop paradigms through modular configuration. Switch between them without restarting:
-
-| Mode | Description |
-|------|-------------|
-| Double Panel | Top status bar + bottom dock/taskbar (default OCWS experience) |
-| Noctalia | Minimalist floating dynamic island bar (DankMaterialShell-inspired) |
-| Zigshell-cairo-pango | Status bar + macOS-style bottom dock |
-| Single Bar | Status bar only (zigshell-cairo-pango handles the dock) |
-| Minimal | Lightweight bar with clock, volume, battery |
+Supporting infrastructure includes the OCWS Event Bus (IPC between daemons and the shell via `ocws-emit`), a centralized INI-based theme engine that propagates palette changes to 11+ configuration surfaces, and a plugin autoloader for widget extensibility.
 
 ---
 
-## C Utility Binaries
+## Component Overview
 
-All system interactions are handled by compiled C binaries built with the Zig build system:
+### Shell Modes
 
-| Binary | Purpose |
-|--------|---------|
-| ocws | Unified entry point (subcommand dispatch) |
-| ocws-settings | GTK3 settings manager for themes, keybindings, appearance |
-| ocws-theme-center | Theme browser with live preview and palette visualization |
-| ocws-fonts-mgr | Font manager with install/remove/preview |
-| ocws-dock-mgr | Dock layout manager |
-| ocws-welcome | First-run setup wizard |
-| ocws-brokerd | C-native event bus daemon (replaces bash daemon) |
-| ocws-notify | D-Bus notification daemon |
-| ocws-brightness | Smooth backlight control with cubic easing |
-| ocws-volume | Smooth PulseAudio volume control |
-| ocws-shot | Screenshot tool with clipboard integration |
-| ocws-clip | Clipboard manager |
-| ocws-recorder | Screen recording (wf-recorder wrapper) |
-| ocws-state | Persistent key-value state store |
-| ocws-emit | IPC event emitter to zigshell-cairo-pango |
-| ocws-validate | Configuration validator |
+| Mode | Layout | Description |
+|------|--------|-------------|
+| doublepanel | Top bar + bottom dock/taskbar | Traditional dual-panel layout with workspaces, tray, and dock |
+| zigshell-cairo-pango | Single status bar | Unified top bar paired with external zigshell-cairo-pango dock |
+| minimal | Compact single bar | Clock, volume, battery, and tray only |
+| noctalia | Floating dynamic island | Modern minimalist floating-interface paradigm |
+| dms | Material Design vertical panel | Vertical sidebar with matugen dynamic theming |
+
+### Core Utilities
+
+| Binary | Domain | Dependencies |
+|--------|--------|--------------|
+| `ocws-brightness` | Backlight control with cubic-easing animation | libm |
+| `ocws-volume` | PulseAudio volume control with smooth transitions | libm, PulseAudio |
+| `ocws-clip` | Clipboard manager (cliphist + fuzzel picker) | stdlib |
+| `ocws-shot` | Screenshot tool (grim + slurp) | stdlib |
+| `ocws-sysmon` | System metrics: CPU, memory, network, battery, temperature | stdlib |
+| `ocws-emit` | Event Bus IPC emitter (namespace-to-variable mapping) | stdlib |
+| `ocws-kv` | Persistent key-value store (flat file) | stdlib |
+| `ocws-color` | Wallpaper palette extraction (median-cut) | cairo |
+| `ocws-recorder` | Screen recording (wf-recorder wrapper) | stdlib |
+| `ocws-search` | Multi-engine web search frontend | stdlib |
+| `ocws-state` | JSON state file manager | stdlib |
+| `ocws-style` | Theme engine CLI (INI-to-CSS generation) | stdlib |
+| `ocws-validate` | System dependency and configuration validator | stdlib |
+| `ocws-player` | Media player controller (playerctl wrapper) | stdlib |
+| `ocws-ocr` | Screen OCR (Tesseract / Leptonica) | tesseract, leptonica |
+| `ocws-lock` | Screen lock (swaylock wrapper) | stdlib |
+
+### Daemons
+
+| Binary | Function | Protocol |
+|--------|----------|----------|
+| `ocws-brokerd` | Event bus broker with plugin runtime | Unix socket + shared library |
+| `ocws-appletd` | Unified applet loader daemon | Plugin (.so) loader |
+| `ocws-notify` | D-Bus notification daemon (replaces mako) | D-Bus (org.freedesktop.Notifications) |
+| `ocws-osd-notify` | Glassmorphic on-screen notification popup | GTK Layer Shell |
+| `ocws-wallpaper` | Time-of-day wallpaper transitions with Cairo crossfade | Cairo |
+| `ocws-live-bg` | Animated live background renderer | GTK Layer Shell + Cairo |
+| `ocws-hypertile` | Dynamic tiling daemon (wlr-foreign-toplevel) | Wayland protocol |
+| `ocws-gestured` | Gesture detection and dispatch | libinput |
 
 ### GUI Applications
 
-All GUI utilities are native GTK3 C binaries. They share a common pattern: header bar with integrated stack switcher, layer-shell anchoring via `ocws_background_app_init`, and tray icon for background persistence.
-
-**System Management:**
-
-| Application | Description |
-|-------------|-------------|
-| `ocws-settings` | Central settings panel — theme picker, corner radius sliders, font scaling, icon/cursor themes, keybinding presets, healthcheck |
-| `ocws-theme-center` | Theme browser with live INI preview, palette visualization, and one-click apply |
-| `ocws-fonts-mgr` | Font manager — install, preview, and remove fonts |
-| `ocws-dock-mgr` | Visual dock layout editor with drag-and-drop app pinning |
-| `ocws-dotdesktop-mgr` | .desktop file manager — create, edit, and organize application entries |
-| `ocws-pkgmgr` | Package manager frontend — install and remove system packages |
-| `ocws-welcome` | First-run setup wizard — walks through pairing, apps install, and config |
-| `ocws-workspace-mgr` | Virtual desktop manager — rename, reorder, assign apps to workspaces |
-| `ocws-llm-runner` | Local LLM chat interface (runs models via llama.cpp) |
-
-**Audio Visualization (10-Band EQ + Spectrum Analyzer):**
-
-| Application | Description |
-|-------------|-------------|
-| `ocws-equalizer` | 10-band graphic EQ with 6 presets + 64-bar FFT spectrum visualizer, L/R level meters, 4-band display, and centroid indicator |
-| `ocws-equalizer-gl` | OpenGL-accelerated equalizer with real-time waveform rendering |
-| `ocws-speaker-gl` | OpenGL speaker visualization — frequency response and phase plot |
-| `ocws-speaker-qs` | Quick-settings speaker panel: volume, balance, mute, output selector |
-| `ocws-waveform-gl` | OpenGL waveform viewer — real-time stereo PCM trace with scrolling display |
-| `ocws-waveform-qs` | Quick-settings waveform — lightweight preview, route-aware |
-
-**Utilities & Demos:**
-
-| Application | Description |
-|-------------|-------------|
-| `ocws-snake-game` | Classic snake game running as a GTK3 layer-shell overlay |
-| `ocws-todomvc` | TODO MVC demo app — reference implementation for the widget system |
-| `ocws-datetime` | Floating date/time display widget |
-| `ocws-wallpaper-picker` | Wallpaper browser — preview and apply from local collection |
-| `ocws-equalizer-qs` | Quick-settings equalizer — compact UI for slider adjustments |
+| Binary | Purpose | Key Libraries |
+|--------|---------|---------------|
+| `ocws-settings` | 11-tab control center: shell, appearance, bar, widgets, keybindings, diagnostics | GTK3, libxml2 |
+| `ocws-welcome` | First-run setup wizard (10 pages) | GTK3 |
+| `ocws-theme-center` | Theme browser with live INI preview, palette visualization, one-click apply | GTK3 |
+| `ocws-workspace-mgr` | Kanban-style workspace/window manager | GTK3, wayland-client |
+| `ocws-dock-mgr` | Dock pinned-application manager with hot-reload | GTK3, json-c |
+| `ocws-dotdesktop-mgr` | .desktop file browser and editor | GTK3, GIO |
+| `ocws-pkgmgr` | Dependency resolver, source builder, health checker | GTK3, GIO |
+| `ocws-fonts-mgr` | 5-tab font manager: scan, install, preview, configure | GTK3, GIO |
+| `ocws-equalizer` | 10-band audio equalizer with FFT visualization | GTK3, PulseAudio, FFTW3 |
+| `ocws-equalizer-gl` | OpenGL-accelerated equalizer overlay | GTK3, epoxy, PulseAudio |
+| `ocws-waveform-gl` | OpenGL waveform audio viewer | GTK3, epoxy, PulseAudio |
+| `ocws-llm-runner` | Local LLM chat client with OCR integration (Python backend) | GTK3, json-c |
+| `ocws-snake-game` | Snake game | GTK3 |
+| `ocws-todomvc` | Todo-MVC application | GTK3 |
+| `ocws-datetime` | Date/time display widget | GTK3 |
+| `ocws-wallpaper-picker` | Minimal wallpaper selector dialog | tinyfiledialogs |
+| `ocws-tray` | System tray indicator application | GTK3, ayatana-appindicator |
 
 ---
 
-## Theme Engine
-
-OCWS uses an INI-based theme system. Each theme file defines colors for labwc, zigshell-cairo-pango, GTK, fuzzel, foot, rofi, mako, Qt6, and more. The theme engine reads a single INI and generates all 14 configuration surfaces atomically.
-
-### Built-in Themes
-
-catppuccin-mocha, tokyo-night, dracula, nord, rose-pine, gruvbox, everforest, kanagawa, one-dark, solarized-dark, flexoki
-
-### Usage
-
-```bash
-# List available themes
-theme-engine.sh list
-
-# Preview (reverts on Ctrl+C)
-theme-engine.sh preview themes/catppuccin-mocha.ini
-
-# Apply permanently
-theme-engine.sh apply themes/catppuccin-mocha.ini
-
-# Labwc-only (fast compositor theme switch)
-labwc-theme next
-```
-
----
-
-## Installation
+## Build and Install
 
 ### Prerequisites
 
-**Arch Linux:**
-
-```bash
-sudo pacman -S labwc zigshell-cairo-pango fuzzel gtk-layer-shell pipewire wireplumber \
-  libpulse inotify-tools playerctl bc wl-clipboard cliphist \
-  polkit-gnome swayidle swaylock grim slurp foot tesseract leptonica
+```
+labwc, zigshell-cairo-pango, fuzzel
+gtk-layer-shell, gtk+-3.0, glib-2.0, cairo
+pipewire, wireplumber, pulseaudio, playerctl
+wl-clipboard, cliphist, grim, slurp
+polkit-gnome, swayidle, swaylock
 ```
 
-**Debian/Ubuntu or Fedora:** See `distro/debian.sh` and `distro/fedora.sh`.
+### Compile
 
-### Build from Source
+The Zig build system (v0.16.0) compiles all C and Zig sources in a single invocation:
 
-```bash
-git clone --depth=1 https://github.com/naranyala/labwc-fuzzel-zigshell-cairo-pango.git
-cd labwc-fuzzel-zigshell-cairo-pango
+```sh
 zig build
 ```
 
-Build options:
+Output binaries are placed in `zig-out/bin/`. Individual targets can be built via named steps (e.g. `zig build ocws-equalizer-gl`).
 
-```bash
-zig build -Dasan=true    # Build with AddressSanitizer (debug)
-zig build test            # Run unit tests
-```
+### Deploy
 
-### Install
-
-```bash
+```sh
 ./install.sh
 ```
 
-The installer backs up existing configurations before deploying. It installs:
+The installer archives existing configurations, provisions XDG-compliant dotfiles to `~/.config/labwc/` and `~/.config/ocws/`, installs compiled binaries to `~/.local/bin/`, and links action scripts and `.desktop` files.
 
-- labwc config to `~/.config/labwc/`
-- OCWS config and widgets to `~/.config/ocws/`
-- Scripts to `~/.local/bin/`
-- C binaries from `zig-out/bin/` to `~/.local/bin/`
+### Cross-Compilation
 
-### Launch
+```sh
+zig build -Dtarget=aarch64-linux-musl -Doptimize=ReleaseFast
+zig build -Dtarget=riscv64-linux-musl -Doptimize=ReleaseFast
+```
 
-From a display manager (GDM, SDDM, ly): select the labwc session.
+### Test
 
-From a TTY:
-
-```bash
-labwc
+```sh
+zig build test          # Zig unit tests
+bash tests/run-bash-tests.sh     # Shell script integration tests
+bash tests/test-c-binaries.sh    # C binary smoke tests
 ```
 
 ---
 
-## Keybindings
+## Documentation Reference
 
-| Key | Action |
-|-----|--------|
-| Super+Enter | Terminal (foot) |
-| Super+D | App launcher (fuzzel) |
-| Super+Q | Close window |
-| Super+F | Toggle fullscreen |
-| Super+1-9 | Switch workspace |
-| Super+Shift+1-9 | Move window to workspace |
-| Alt+Tab | Cycle windows |
-| Super+C | Open ocws-settings |
-| Super+W | Random wallpaper |
-| Alt+F12 | Cycle labwc theme |
-| XF86Audio* | Volume controls |
-| XF86MonBrightness* | Brightness controls |
-| Print | Screenshot |
+The following documents are maintained in `www/docs/`:
 
-Full keybindings are defined in `~/.config/labwc/rc.xml`.
+| Document | Description |
+|----------|-------------|
+| `index.md` | Entry point and feature summary |
+| `getting-started.md` | Installation, first-run, shell usage, troubleshooting |
+| `architecture-modes.md` | Shell mode architecture, widget sets, CSS theming, mode files |
+| `configuration.md` | Event Bus API, plugin autoloader, theme engine, C helper reference, keybindings |
+| `events.md` | Full IPC event contract with variable mappings and data-flow diagrams |
+| `modular-config.md` | Composable ZIGSHELL-CAIRO-PANGO configuration modules |
+| `gui-managers.md` | GTK3 utility application overviews (settings, theme, fonts, dock, etc.) |
+| `ai-runner.md` | LLM Runner overview and quick-start |
+| `llm-runner.md` | Full LLM Runner API reference, model management, session management, OCR |
+| `distro-packages.md` | Package availability matrix across Arch, Debian, Fedora, openSUSE |
+| `consolidation-analysis.md` | Impact analysis for removing third-party shell dependencies |
+| `dependency-removal-impact.md` | Component-level breakage analysis per dependency |
+| `shell-removal-impact.md` | Feature-loss audit for each shell mode |
+| `ocws-settings-panel-design.md` | Settings panel UI/UX specification |
+| `PLAN-sfwbar-unification.md` | Roadmap for zigshell-cairo-pango unification and deprecation of external shells |
+| `install-dms-openmandriva.md` | DankMaterialShell build guide for OpenMandriva |
+| `install-noctalia-openmandriva.md` | Noctalia Shell build guide for OpenMandriva |
 
----
+The `www/docs/lessons/` directory contains 55+ implementation notes covering zigshell-cairo-pango internals, C security patterns, shell scripting pitfalls, widget architecture, and theme engine design.
 
-## Configuration
-
-| Path | Contents |
-|------|----------|
-| `~/.config/labwc/` | rc.xml, menu.xml, autostart, environment, themerc-override |
-| `~/.config/ocws/` | ocws.config, widgets, daemon scripts, plugins |
-| `~/.config/fuzzel/` | fuzzel.ini |
-| `~/.config/foot/` | foot.ini |
-| `~/.local/bin/` | All scripts and C binaries |
-
-### Settings GUI
-
-```bash
-ocws-settings
-```
-
-The settings panel provides:
-
-- Theme selection with live preview
-- Corner radius and window margin sliders (live labwc reload)
-- Font scaling
-- Icon and cursor theme selection
-- Shell mode switching
-- Keybinding presets
-- System healthcheck
-
----
-
-## Event Bus
-
-OCWS uses a lightweight IPC mechanism. Background daemons emit events via `ocws-emit`, and zigshell-cairo-pango subscribes to them through its variable system.
-
-```bash
-# Emit a volume update
-ocws-emit System.Volume 75
-
-# Emit media metadata
-ocws-emit Media.Title "Song Name"
-ocws-emit Media.Artist "Artist Name"
-```
-
-Full event namespace reference: `www/docs/configuration.md`
-
----
-
-## Project Structure
-
-```
-labwc-fuzzel-zigshell-cairo-pango/
-  build.zig              -- Zig build system (70+ targets)
-  src/
-    cli/                 -- CLI utilities (ocws-clip, ocws-shot, etc.)
-    gui/                 -- GTK3 GUIs (settings, theme-center, fonts-mgr)
-    daemons/             -- Background daemons (brokerd, notify)
-    core/                -- Shared C code (kv store, utils)
-    libocws/             -- Header-only C libraries (easing, audio, fs)
-  dotfiles/
-    labwc/               -- labwc config (rc.xml, themerc-override)
-    ocws/                -- zigshell-cairo-pango config, widgets, CSS
-  scripts/               -- Shell scripts (theme-engine, keybinds, etc.)
-  themes/                -- INI theme files (11 built-in)
-  templates/             -- Template files for theme engine
-  tests/                 -- Test suites (bash, C integration, Zig unit)
-  www/                   -- Documentation site (mkdocs)
-```
-
----
-
-## Security
-
-OCWS includes active security hardening:
-
-- **umask(0077)** on all daemon and CLI entry points
-- **Shell metacharacter validation** before any system() or execl() call
-- **XDG_RUNTIME_DIR** for PID files and temp data (never /tmp)
-- **getpwuid() fallback** when $HOME is unset
-- **Path traversal rejection** on user-supplied names
-- **Async-signal-safe signal handlers** (volatile sig_atomic_t + GLib timeout)
-- **AddressSanitizer** in CI builds
-- **cppcheck** static analysis in CI
-
-See `SECURITY.md` for the full security policy and vulnerability disclosure process.
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch
-3. Run `zig build test` to verify changes
-4. Submit a pull request
-
-All C code should follow the existing style: gnu99, static inline for header-only libraries, `ocws_` prefix for public functions.
+For security disclosures and vulnerability reporting, see `SECURITY.md`.
 
 ---
 
 ## License
 
-See the repository for license details.
+Refer to the repository license file for usage and distribution terms. The project is distributed as open-source software; all contributions are subject to the terms defined therein.

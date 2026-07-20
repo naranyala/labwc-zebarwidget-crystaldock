@@ -17,10 +17,9 @@
 const char *OCWS_HOME = NULL;
 
 void init_paths(void) {
-    const char *home = getenv("HOME");
-    if (!home) home = "/tmp";
+    const char *config_dir = g_get_user_config_dir();
     static char buf[512];
-    snprintf(buf, sizeof(buf), "%s/%s", home, OCWS_DIR);
+    snprintf(buf, sizeof(buf), "%s/ocws", config_dir);
     OCWS_HOME = buf;
 }
 

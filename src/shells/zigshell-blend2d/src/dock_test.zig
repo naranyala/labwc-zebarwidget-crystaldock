@@ -129,6 +129,35 @@ test "iconAt — launcher toggle hit zone" {
     const settings_x = start_x + total_w + 8;
     const launcher_x = settings_x + slot;
     const result = dock.iconAt(1920, 48, &infos, 1, launcher_x + @divTrunc(dock.DOCK_ICON_SIZE, 2));
+    // The launcher toggle (-3) opens the full .desktop app grid: it is a
+    // clickable dock item, mirroring cairo-pango's home toggle.
+    try std.testing.expectEqual(@as(i32, -3), result);
+}
+
+test "iconAt — launcher toggle on wide screen" {
+    var infos: [toplevel.MAX_TOPLEVELS]toplevel.ToplevelInfo = undefined;
+    var count: i32 = 0;
+    _ = toplevel.add(&infos, &count, @ptrFromInt(0x1000));
+
+    const w: i32 = 3840; // 4K
+    const slot = dock.DOCK_ICON_SIZE + 8;
+    const total_w: i32 = slot - 8;
+    const start_x: i32 = @divTrunc(w - total_w, 2);
+
+    const settings_x = start_x + total_w + 8;
+    const launcher_x = settings_x + slot;
+    const result = dock.iconAt(w, 48, &infos, 1, launcher_x + 5);
+    try std.testing.expectEqual(@as(i32, -3), result);
+}
+
+test "iconAt — launcher toggle no windows" {
+    var infos: [toplevel.MAX_TOPLEVELS]toplevel.ToplevelInfo = undefined;
+
+    // With 0 windows total_w = 0, start_x = w/2
+    const start_x: i32 = @divTrunc(1920, 2);
+    const settings_x = start_x + 8; // total_w=0 + DOCK_PAD
+    const launcher_x = settings_x + (dock.DOCK_ICON_SIZE + 8);
+    const result = dock.iconAt(1920, 48, &infos, 0, launcher_x + 5);
     try std.testing.expectEqual(@as(i32, -3), result);
 }
 
@@ -168,7 +197,7 @@ test "iconAt — toggle zones don't overlap with app icons" {
     const total_w: i32 = 2 * slot - 8;
     const start_x: i32 = @divTrunc(1920 - total_w, 2);
 
-    // Click on each app icon — should return 0 or 1, not -2 or -3
+    // Click on each app icon — should return 0 or 1, not -2 (settings)
     const r0 = dock.iconAt(1920, 48, &infos, 2, start_x + @divTrunc(dock.DOCK_ICON_SIZE, 2));
     const r1 = dock.iconAt(1920, 48, &infos, 2, start_x + slot + @divTrunc(dock.DOCK_ICON_SIZE, 2));
     try std.testing.expectEqual(@as(i32, 0), r0);

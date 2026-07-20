@@ -1,36 +1,36 @@
-# Installing DankMaterialShell on OpenMandriva Linux
+# Deployment Guide: DankMaterialShell on OpenMandriva Linux
 
-A complete guide for building and installing [DankMaterialShell (DMS)](https://github.com/DankShrine/dms) on OpenMandriva Linux, where quickshell and DMS are not available as packages and must be built from source.
+This document provides a comprehensive procedure for the compilation and installation of [DankMaterialShell (DMS)](https://github.com/DankShrine/dms) within an OpenMandriva Linux environment. Due to the absence of pre-compiled packages for both `quickshell` and DMS in the standard OpenMandriva repositories, manual compilation from source is required.
 
-## Overview
+## Executive Summary
 
-DankMaterialShell is a Material Design 3 shell for Wayland compositors. It runs on top of [quickshell](https://github.com/quickshell-mirror/quickshell), a Qt6/QML-based shell framework. OpenMandriva does not package either tool, so both must be built from source.
+DankMaterialShell is a Material Design 3 interface for Wayland compositors, operating on the [quickshell](https://github.com/quickshell-mirror/quickshell) Qt6/QML framework. As neither component is packaged for OpenMandriva, this guide details the build process for both.
 
-**What we're building:**
-1. **quickshell** — the QML shell runtime (from source)
-2. **DankMaterialShell (DMS)** — the Material 3 shell (from source)
+**Deployment Objectives:**
+1. **quickshell**: The foundational QML shell runtime (compiled from source).
+2. **DankMaterialShell (DMS)**: The Material 3 shell interface (compiled from source).
 
-**Time estimate:** ~15-30 minutes depending on your hardware.
+**Estimated Execution Time:** Approximately 15 to 30 minutes, contingent upon hardware capabilities.
 
 ---
 
 ## Prerequisites
 
-### System Requirements
-- OpenMandriva Lx 6.0 (or newer)
-- A Wayland compositor (labwc, Hyprland, sway, etc.)
-- ~2GB free disk space for build artifacts
-- Internet connection
+### System Specifications
+- OpenMandriva Lx 6.0 (or subsequent releases).
+- A functioning Wayland compositor (e.g., `labwc`, Hyprland, sway).
+- A minimum of 2GB of available disk space to accommodate build artifacts.
+- An active internet connection for repository access.
 
-### Required Packages
+### Dependency Provisioning
 
-Install the build toolchain and Qt6 development packages first:
+Deploy the necessary build toolchain and Qt6 development libraries prior to compilation:
 
 ```bash
-# Build tools
+# Provision build utilities
 sudo dnf install -y cmake ninja-build gcc-c++ g++ pkgconf-pkg-config git
 
-# Qt6 development packages
+# Provision Qt6 development libraries
 sudo dnf install -y \
     lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Qml-devel \
     lib64Qt6Quick-devel lib64Qt6QuickControls2-devel \
@@ -38,24 +38,24 @@ sudo dnf install -y \
     lib64Qt6WaylandClient-devel lib64Qt6DBus-devel \
     lib64Qt6Network-devel lib64Qt6Test-devel
 
-# Wayland and Vulkan dependencies
+# Provision Wayland and Vulkan libraries
 sudo dnf install -y \
     lib64wayland-devel wayland-protocols-devel \
     lib64vulkan-devel spirv-tools
 
-# Miscellaneous dependencies
+# Provision supplementary libraries
 sudo dnf install -y \
     lib64jemalloc-devel lib64pipewire-devel \
     lib64pam-devel
 ```
 
-> **Note:** If some `lib64*` packages are not found, try the non-lib64 variants (e.g., `Qt6Core-devel` instead of `lib64Qt6Core-devel`). OpenMandriva sometimes uses different naming conventions across releases.
+> **Note:** Should the `lib64*` packages be unresolvable, substitute them with their non-lib64 equivalents (e.g., utilize `Qt6Core-devel` in place of `lib64Qt6Core-devel`). OpenMandriva's nomenclature conventions may vary across release versions.
 
 ---
 
-## Step 1: Build quickshell from Source
+## Phase 1: Compilation of quickshell
 
-### 1.1 Clone the repository
+### 1.1 Repository Acquisition
 
 ```bash
 mkdir -p ~/sources
@@ -64,7 +64,7 @@ git clone --depth=1 https://github.com/quickshell-mirror/quickshell.git
 cd quickshell
 ```
 
-### 1.2 Configure the build
+### 1.2 Build Configuration
 
 ```bash
 cmake -B build -G Ninja \
@@ -76,39 +76,39 @@ cmake -B build -G Ninja \
     -DNO_PCH=ON
 ```
 
-**Optional flags** (enable/disable based on what you have):
+**Optional Compilation Flags** (adjust based on specific system requirements):
 ```bash
-# Disable crash handler if cpptrace is not available
+# Deactivate the crash handler if cpptrace is unavailable
 -DCRASH_HANDLER=OFF
 
-# Disable PipeWire if not needed
+# Deactivate PipeWire integration if unnecessary
 -DSERVICE_PIPEWIRE=OFF
 ```
 
-### 1.3 Build and install
+### 1.3 Compilation and Installation
 
 ```bash
-# Build (adjust -j to match your CPU cores)
+# Execute the build process (adjust the -j parameter to match available CPU cores)
 cmake --build build -j$(nproc)
 
-# Install (requires root)
+# Execute the installation process (requires elevated privileges)
 sudo cmake --install build
 ```
 
-### 1.4 Verify
+### 1.4 Verification Protocol
 
 ```bash
 quickshell --version
 ```
 
-You should see something like:
-```
-quickshell 0.1.0 (or similar version string)
+Expected output format:
+```text
+quickshell 0.1.0 (or equivalent version identifier)
 ```
 
-### 1.5 Remove old package (if installed)
+### 1.5 Legacy Package Removal
 
-If you previously installed quickshell from OpenMandriva repos, remove it to avoid conflicts:
+If `quickshell` was previously installed via OpenMandriva repositories, it must be removed to prevent system conflicts:
 
 ```bash
 sudo dnf remove quickshell
@@ -116,9 +116,9 @@ sudo dnf remove quickshell
 
 ---
 
-## Step 2: Build DankMaterialShell from Source
+## Phase 2: Compilation of DankMaterialShell
 
-### 2.1 Clone the repository
+### 2.1 Repository Acquisition
 
 ```bash
 cd ~/sources
@@ -126,66 +126,66 @@ git clone --depth=1 https://github.com/DankShrine/dms.git
 cd dms
 ```
 
-### 2.2 Build DMS
+### 2.2 Compilation
 
-DMS uses a simple Makefile:
+DMS utilizes a standard Makefile process:
 
 ```bash
 make -j$(nproc)
 ```
 
-### 2.3 Install DMS
+### 2.3 Installation
 
 ```bash
 sudo make install
 ```
 
-This installs the `dms` binary to `/usr/local/bin/dms`.
+This procedure installs the `dms` binary directly to `/usr/local/bin/dms`.
 
-### 2.4 Verify
+### 2.4 Verification Protocol
 
 ```bash
 dms --version
 ```
 
-You should see the DMS version number.
+The system should return the installed DMS version identifier.
 
 ---
 
-## Step 3: Configure DMS
+## Phase 3: System Configuration
 
-### 3.1 Create the configuration directory
+### 3.1 Directory Structure Initialization
 
-DMS looks for its QML shell files in `~/.local/share/quickshell/dms/`:
+DMS requires a specific directory structure for its QML shell files:
 
 ```bash
 mkdir -p ~/.local/share/quickshell/dms
 mkdir -p ~/.config/quickshell
 ```
 
-### 3.2 Deploy DMS files
+### 3.2 Asset Deployment
 
-The `make install` step should have installed the QML files to `~/.local/share/quickshell/dms/`. Verify:
+The `make install` command deploys the requisite QML files to `~/.local/share/quickshell/dms/`. Verify successful deployment:
 
 ```bash
 ls ~/.local/share/quickshell/dms/shell.qml
 ```
 
-If the file exists, create a symlink so `dms run` can find it:
+Upon verification, establish a symbolic link to ensure the `dms run` command can locate the necessary assets:
 
 ```bash
 ln -sf ~/.local/share/quickshell/dms ~/.config/quickshell/dms
 ```
 
-### 3.3 Deploy settings (optional)
+### 3.3 Settings Deployment
 
-If you have a custom `settings.json`, deploy it:
+If a custom `settings.json` file is available, deploy it to the appropriate directory:
 
 ```bash
 cp settings.json ~/.local/share/quickshell/dms/settings.json
 ```
 
-Or use the OCWS default settings:
+Alternatively, provision the default OCWS settings:
 
 ```bash
 cp /path/to/labwc-fuzzel-zigshell-cairo-pango/dotfiles/DankMaterialShell/settings.json \
@@ -194,52 +194,54 @@ cp /path/to/labwc-fuzzel-zigshell-cairo-pango/dotfiles/DankMaterialShell/setting
 
 ---
 
-## Step 4: Fix the AppId Pragma Issue
+## Phase 4: Resolution of the AppId Pragma Compatibility Issue
 
-**This is the most common issue on OpenMandriva.** The DMS `shell.qml` file contains a pragma that older quickshell versions don't recognize:
+**This represents the most frequently encountered issue on OpenMandriva.** The DMS `shell.qml` file incorporates a pragma that is unsupported by legacy versions of quickshell:
 
-```
+```text
 //@ pragma AppId com.danklinux.dms
 ```
 
-If you see this error:
-```
+If the following error is generated:
+```text
 ERROR: Unrecognized pragma 'AppId com.danklinux.dms'
 ERROR go: quickshell exited: exit status 255
 ```
 
-### Solution: Comment out the pragma
+### Corrective Action: Pragma Commentation
+
+Execute the following `sed` command to comment out the incompatible pragma:
 
 ```bash
 sed -i 's|^//@ pragma AppId|// //@ pragma AppId|' \
     ~/.local/share/quickshell/dms/shell.qml
 ```
 
-Or manually edit `~/.local/share/quickshell/dms/shell.qml` and comment out line 10:
+Alternatively, manually edit `~/.local/share/quickshell/dms/shell.qml` and modify line 10:
 
 ```qml
 // //@ pragma AppId com.danklinux.dms
 ```
 
-> **Note:** This pragma is only needed for app ID matching on supported quickshell versions. Commenting it out has no functional impact on DMS.
+> **Note:** This specific pragma is utilized strictly for application ID matching on supported quickshell iterations. Modifying it has no functional detriment to DMS operation.
 
 ---
 
-## Step 5: Launch DMS
+## Phase 5: Operational Procedures
 
-### 5.1 Start DMS
+### 5.1 Service Initialization
 
 ```bash
 dms run &
 ```
 
-### 5.2 Kill DMS (if needed)
+### 5.2 Service Termination
 
 ```bash
 dms kill
 ```
 
-### 5.3 Restart DMS
+### 5.3 Service Restart
 
 ```bash
 dms kill && sleep 0.5 && dms run &
@@ -247,93 +249,93 @@ dms kill && sleep 0.5 && dms run &
 
 ---
 
-## Step 6: Autostart (Optional)
+## Phase 6: Automated Initialization
 
-To auto-launch DMS when your Wayland compositor starts, add it to your autostart file.
+To configure DMS to launch automatically upon compositor initialization, append the relevant commands to your autostart configuration.
 
-For **labwc**, edit `~/.config/labwc/autostart`:
+For **labwc**, append to `~/.config/labwc/autostart`:
 
 ```bash
-# DankMaterialShell
+# Initialize DankMaterialShell
 if command -v dms >/dev/null 2>&1; then
     nohup dms run >/dev/null 2>&1 &
 fi
 ```
 
-For **Hyprland**, add to `~/.config/hypr/hyprland.conf`:
+For **Hyprland**, append to `~/.config/hypr/hyprland.conf`:
 
-```
+```text
 exec-once = dms run
 ```
 
 ---
 
-## Troubleshooting
+## Diagnostics and Troubleshooting
 
 ### "dms: command not found"
 
-DMS was installed to `/usr/local/bin/`. Make sure this is in your PATH:
+The DMS binary is located in `/usr/local/bin/`. Ensure this directory is included in your system PATH:
 
 ```bash
 export PATH="/usr/local/bin:$PATH"
 ```
 
-Add this to `~/.bashrc` or `~/.zshrc` permanently.
+Append this declaration to your `~/.bashrc` or `~/.zshrc` to ensure persistence.
 
 ### "quickshell: command not found"
 
-Same as above — quickshell is installed to `/usr/local/bin/`.
+Ensure `/usr/local/bin/` is in your PATH, as detailed above.
 
-### DMS starts but shows a blank bar
+### DMS Initializes Without Rendering Interface Elements
 
-1. Check that DMS found its QML files:
+1. Confirm DMS successfully located the QML files:
    ```bash
    dms kill
-   dms run  # watch the terminal output for errors
+   dms run  # Monitor terminal output for related error messages.
    ```
 
-2. Verify the symlink exists:
+2. Validate the integrity of the symbolic link:
    ```bash
    ls -la ~/.config/quickshell/dms
    ```
 
-3. Check that `shell.qml` exists:
+3. Confirm the presence of the primary QML file:
    ```bash
    ls ~/.local/share/quickshell/dms/shell.qml
    ```
 
-### "Module not found" errors in QML
+### QML Module Resolution Failures
 
-DMS may need additional QML modules. Install them:
+DMS may require supplementary QML modules. Provision them via:
 
 ```bash
 sudo dnf install -y lib64Qt6QuickControls2-devel
 ```
 
-Or build the missing module from source if not packaged.
+If the requisite module remains unpackaged, manual compilation from source is necessary.
 
-### Permission errors during build
+### Permission Denied During Compilation
 
-Make sure you have sudo access. The `cmake --install` and `make install` steps require root.
+Ensure all administrative commands (`sudo cmake --install` and `sudo make install`) are executed with the appropriate privileges.
 
-### Build fails with "Qt6 not found"
+### Build Failure: "Qt6 not found"
 
-Ensure all Qt6 development packages are installed:
+Verify the installation of all fundamental Qt6 development packages:
 
 ```bash
 sudo dnf install -y lib64Qt6Core-devel lib64Qt6Gui-devel lib64Qt6Qml-devel
 ```
 
-### DMS theme not applying
+### Theme Application Failures
 
-DMS uses [matugen](https://github.com/InboxDev/matugen) for Material You color extraction. Install it:
+DMS relies on [matugen](https://github.com/InboxDev/matugen) to facilitate Material You color extraction. Proceed to install it:
 
 ```bash
-# From AUR or build from source
+# Provision via Cargo
 cargo install matugen
 ```
 
-Or disable matugen in DMS settings:
+Alternatively, disable `matugen` integration within the DMS configuration:
 ```json
 {
   "runUserMatugenTemplates": false
@@ -342,33 +344,33 @@ Or disable matugen in DMS settings:
 
 ---
 
-## Quick Reference
+## Command Reference
 
-| Command | Description |
-|---------|-------------|
-| `dms run` | Start DMS |
-| `dms kill` | Stop DMS |
-| `dms kill && dms run` | Restart DMS |
-| `quickshell --version` | Check quickshell version |
-| `dms --version` | Check DMS version |
-
----
-
-## File Locations
-
-| File | Path |
-|------|------|
-| DMS binary | `/usr/local/bin/dms` |
-| quickshell binary | `/usr/local/bin/quickshell` |
-| DMS QML files | `~/.local/share/quickshell/dms/` |
-| DMS config symlink | `~/.config/quickshell/dms` → `~/.local/share/quickshell/dms` |
-| DMS settings | `~/.local/share/quickshell/dms/settings.json` |
-| DMS entry point | `~/.local/share/quickshell/dms/shell.qml` |
+| Command | Function |
+|---------|----------|
+| `dms run` | Initializes the DMS service. |
+| `dms kill` | Terminates the DMS service. |
+| `dms kill && dms run` | Restarts the DMS service. |
+| `quickshell --version` | Outputs the installed quickshell version. |
+| `dms --version` | Outputs the installed DMS version. |
 
 ---
 
-## Credits
+## Infrastructure Pathways
 
-- [DankMaterialShell](https://github.com/DankShrine/dms) by DankShrine
-- [quickshell](https://github.com/quickshell-mirror/quickshell) by quickshell-mirror
-- OCWS (Open Compositor Widget Shell) integration by the OCWS project
+| Asset | Absolute Pathway |
+|-------|------------------|
+| DMS Executable | `/usr/local/bin/dms` |
+| quickshell Executable | `/usr/local/bin/quickshell` |
+| DMS QML Directory | `~/.local/share/quickshell/dms/` |
+| DMS Configuration Link | `~/.config/quickshell/dms` → `~/.local/share/quickshell/dms` |
+| DMS Configuration File | `~/.local/share/quickshell/dms/settings.json` |
+| DMS Primary Interface File | `~/.local/share/quickshell/dms/shell.qml` |
+
+---
+
+## Acknowledgments
+
+- [DankMaterialShell](https://github.com/DankShrine/dms) developed by DankShrine.
+- [quickshell](https://github.com/quickshell-mirror/quickshell) developed by quickshell-mirror.
+- Systems integration facilitated by the Open Compositor Widget Shell (OCWS) project.

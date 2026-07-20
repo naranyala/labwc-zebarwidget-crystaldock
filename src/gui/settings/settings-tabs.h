@@ -19,5 +19,6 @@ GtkWidget* build_quick_settings_tab(void);
 GtkWidget* build_keybinds_tab(void);
 GtkWidget* build_credits_tab(void);
 GtkWidget* build_about_tab(void);
+GtkWidget* build_apps_tab(void);
 
 #endif /* SETTINGS_TABS_H */

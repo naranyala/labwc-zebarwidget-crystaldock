@@ -31,6 +31,8 @@ pub fn draw(
         c_focused[i] = if (tops[i].focused) 1 else 0;
     }
 
+    // Map hover_idx to items array index for visual feedback
+    const hovered_g: i32 = hover_idx;
     c.dock_draw(
         renderer.handle,
         w,
@@ -39,7 +41,7 @@ pub fn draw(
         @ptrCast(&c_titles),
         @ptrCast(&c_focused),
         @intCast(safe_count),
-        @intCast(hover_idx),
+        hovered_g,
     );
 }
 

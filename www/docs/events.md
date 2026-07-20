@@ -1,138 +1,111 @@
-# OCWS Event Bus Contract
+# Event Bus Specification
 
-Every IPC event that flows between components: daemon -> `ocws-emit.sh` -> zigshell-cairo-pango variables -> widgets.
+This document details the inter-process communication (IPC) architecture within the Open Compositor Widget Shell (OCWS). Every IPC event transmitted between components adheres to a standardized pipeline: from the background daemon to the `ocws-emit.sh` script, subsequently translating into `zigshell-cairo-pango` variables, and ultimately consumed by the graphical widgets.
 
----
+## Event Dictionary
 
-## Event Map
+| Event Name | Shell Variable | Origin | Consumers | Status |
+|------------|----------------|--------|-----------|--------|
+| `System.Volume` | `XVolLevel` | ocws-daemon (pactl subscribe) | volume-text, control-center, media-player | Active |
+| `System.VolumeMuted` | `XVolMuted` | ocws-daemon (pactl subscribe) | volume-text, control-center | Active |
+| `System.Brightness` | `XBrightness` | ocws-daemon (inotifywait) | brightness-text, control-center | Active |
+| `System.Battery` | `XBatLvl` | ocws-sysmon.source | battery-text, control-center | Wired |
+| `System.BatteryState` | `XBatStat` | ocws-sysmon.source | battery-text | Wired |
+| `System.Cpu` | `XCpuLoad` | ocws-sysmon.source | cpu-text | Wired |
+| `System.Memory` | `XMemPct` | ocws-sysmon.source | memory-text | Wired |
+| `System.Disk` | `XDiskPct` | disk.widget scanner | disk.widget | Wired |
+| `System.DND` | `XDndState` | (Pending implementation) | (None) | Defined |
+| `Network.WiFi` | `XNetState` | ocws-sysmon.source | control-center, network-bandwidth | Wired |
+| `Network.Bluetooth` | `XBtState` | ocws-sysmon.source | bluetooth, control-center | Wired |
+| `Media.Title` | `XMediaTitle` | media-player.widget scanner | media-player.widget | Wired |
+| `Media.Artist` | `XMediaArtist` | media-player.widget scanner | media-player.widget | Wired |
+| `Media.Status` | `XMediaStatus` | media-player.widget scanner | media-player.widget | Wired |
 
-| Event Name | zigshell-cairo-pango Variable | Source | Consumers | Status |
-|------------|-----------------|--------|-----------|--------|
-| `System.Volume` | `XVolLevel` | `ocws-daemon` (pactl subscribe) | `volume-text.widget`, `ocws-control-center.widget`, `media-player.widget` | Active |
-| `System.VolumeMuted` | `XVolMuted` | `ocws-daemon` (pactl subscribe) | `volume-text.widget`, `ocws-control-center.widget` | Active |
-| `System.Brightness` | `XBrightness` | `ocws-daemon` (inotifywait) | `brightness-text.widget`, `ocws-control-center.widget` | Active |
-| `System.Battery` | `XBatLvl` | `ocws-sysmon.source` | `battery-text.widget`, `ocws-control-center.widget` | Wired |
-| `System.BatteryState` | `XBatStat` | `ocws-sysmon.source` | `battery-text.widget` | Wired |
-| `System.Cpu` | `XCpuLoad` | `ocws-sysmon.source` | `cpu-text.widget` | Wired |
-| `System.Memory` | `XMemPct` | `ocws-sysmon.source` | `memory-text.widget` | Wired |
-| `System.Disk` | `XDiskPct` | `disk.widget` scanner | `disk.widget` | Wired |
-| `System.DND` | `XDndState` | (not yet implemented) | (none) | Defined |
-| `Network.WiFi` | `XNetState` | `ocws-sysmon.source` | `ocws-control-center.widget`, `network-bandwidth.widget` | Wired |
-| `Network.Bluetooth` | `XBtState` | `ocws-sysmon.source` | `bluetooth.widget`, `ocws-control-center.widget` | Wired |
-| `Media.Title` | `XMediaTitle` | `media-player.widget` scanner | `media-player.widget` | Wired |
-| `Media.Artist` | `XMediaArtist` | `media-player.widget` scanner | `media-player.widget` | Wired |
-| `Media.Status` | `XMediaStatus` | `media-player.widget` scanner | `media-player.widget` | Wired |
+### Status Classification
 
-### Status Meanings
+- **Active**: The daemon continuously broadcasts state changes via an event-driven mechanism.
+- **Wired**: Emitter mappings are established and the respective widget reads the variable; however, the daemon does not yet emit data, requiring the widget to rely on a polling fallback.
+- **Defined**: Emitter mappings are established, but no widget currently consumes the corresponding variable.
 
-- **Active** — daemon actively emits this event on state changes (event-driven)
-- **Wired** — emitter mapping exists and widget reads the variable, but daemon does not emit yet (widget falls back to its own scanner or polling)
-- **Defined** — emitter mapping exists but no widget consumes it yet
+## Data Pipeline Architecture
 
----
-
-## Data Flow
-
-```
-                    ocws-daemon.sh
-                    (inotifywait / pactl subscribe / playerctl -F)
-                          |
-                          v
-                    ocws-emit.sh
-                    (namespace -> zigshell-cairo-pango variable mapping)
-                          |
-                          v
-                    zigshell-cairo-pango -R "SetVal XVar = value"
-                          |
-                          v
-                    Widget reads XVar in value expression
-                          |
-                          v
-                    Label / Image widget renders output
+```text
+ocws-daemon.sh
+  (inotifywait / pactl subscribe / playerctl -F)
+        |
+        v
+ocws-emit.sh
+  (namespace -> zigshell-cairo-pango variable mapping)
+        |
+        v
+zigshell-cairo-pango -R "SetVal XVar = value"
+        |
+        v
+Widget evaluates XVar within its value expression
+        |
+        v
+Label / Image widget renders the updated state
 ```
 
-### Polling Fallback
+## Polling Fallback Mechanisms
 
-Widgets that are not fed by the daemon use their own `scanner {}` blocks:
+Widgets not presently supported by the event daemon utilize independent `scanner {}` blocks for polling operations:
 
-| Widget | Scanner |
-|--------|---------|
-| `brightness-text.widget` | Polls `brightnessctl` or `ocws-brightness` |
-| `volume-text.widget` | Polls `wpctl get-volume` |
-| `media.widget` | Polls `playerctl metadata` |
-| `media-player.widget` | Polls `playerctl metadata` |
-| `clipboard.widget` | Polls `cliphist` |
-| `disk.widget` | Polls `/proc/diskstats` via `iostat` |
-| `nightlight.widget` | Polls `gammastep` state |
-| `power-profile.widget` | Polls `powerprofilesctl` |
-| `ocws-control-center.widget` | Polls volume + brightness directly |
+| Widget | Scanner Implementation |
+|--------|------------------------|
+| brightness-text.widget | Polls `brightnessctl` or `ocws-brightness` |
+| volume-text.widget | Polls `wpctl get-volume` |
+| media-player.widget | Polls `playerctl metadata` |
+| clipboard.widget | Polls `cliphist` |
+| disk.widget | Polls `/proc/diskstats` utilizing `iostat` |
+| nightlight.widget | Polls the `gammastep` process state |
+| power-profile.widget | Polls `powerprofilesctl` |
+| control-center.widget | Polls volume and brightness directly |
 
-When the daemon starts emitting an event, the corresponding widget's scanner can be removed and replaced with the daemon-driven variable.
+Upon the daemon initiating event emissions for a specified metric, the corresponding widget's scanner may be deprecated and replaced by the daemon-managed variable.
 
----
+## Integrating a New Event
 
-## Adding a New Event
+1. Append the namespace-to-variable mapping within `scripts/ocws-emit.sh`.
+2. Incorporate the `ocws-emit.sh` execution within `dotfiles/ocws/ocws-daemon.sh` (for event-driven architecture) or a corresponding `.source` file (for polling).
+3. Revise this documentation to reflect the new event.
+4. Integrate the variable into the target widget's `value` expression.
+5. Register the variable within `contracts/variables.ini`.
 
-1. Add the namespace -> variable mapping in `scripts/ocws-emit.sh`
-2. Add the `ocws-emit.sh` call in `dotfiles/ocws/ocws-daemon.sh` (event-driven) or a `.source` file (polling)
-3. Update this file
-4. Wire the variable into a widget's `value` expression
-5. Add the variable to `contracts/variables.ini`
+## Developing a New Widget
 
-## Adding a New Widget
+1. Verify whether the requisite data is currently available (search for the corresponding variable in existing `.source` files).
+2. If unavailable, implement a scanner within the widget or provision a new `.source` file.
+3. If the daemon is intended to manage the data stream, configure a new event and emitter mapping.
+4. Validate that the variable nomenclature corresponds exactly with the output from `ocws-emit.sh` (refer to `contracts/variables.ini`).
 
-1. Check if the data it needs is already available (grep for the variable in existing `.source` files)
-2. If not, add a scanner in the widget or create a new `.source` file
-3. If the daemon should drive it, add an event + emitter mapping
-4. Ensure the variable name matches what `ocws-emit.sh` sends (see `contracts/variables.ini`)
+## Direct System Monitors (Non-IPC)
 
----
+The following variables are derived directly via `ocws-sysmon` or dedicated `.source` files, bypassing the IPC mechanism:
 
-## Raw /proc Sources (not IPC)
+| Variable Prefix | Source | Description |
+|-----------------|--------|-------------|
+| `XBat*` | ocws-sysmon.source / battery.source | Battery capacity, operational state, and discharge rate. |
+| `XCpu*` | ocws-sysmon.source / cpu.source | CPU load average and core utilization. |
+| `XMem*` | ocws-sysmon.source / memory.source | Memory allocation and utilization statistics. |
+| `XNet*` | ocws-sysmon.source | Network interface bandwidth metrics. |
+| `XTemp*` | ocws-sysmon.source | Hardware thermal sensor data. |
 
-These variables are set by `ocws-sysmon` or dedicated `.source` files, not via IPC:
-
-| Variable Prefix | Source | Provides |
-|-----------------|--------|----------|
-| `XBat*` | `ocws-sysmon.source` / `battery.source` | Battery level, state, rate |
-| `XCpu*` | `ocws-sysmon.source` / `cpu.source` | CPU load, utilization |
-| `XMem*` | `ocws-sysmon.source` / `memory.source` | Memory usage, breakdown |
-| `XNet*` | `ocws-sysmon.source` | Network bandwidth |
-| `XTemp*` | `ocws-sysmon.source` | Thermal readings |
-| `XCpuUt*` | `cpu.source` | Per-CPU utilization delta |
-
----
-
-## Debugging IPC
-
-### Test a variable directly
+## IPC Troubleshooting and Diagnostics
 
 ```bash
+# Explicitly assign a value to a variable for testing purposes
 zigshell-cairo-pango -R "SetVal XBatLvl = 50"
-```
 
-If the widget updates, the variable name is correct. If nothing happens, the name is wrong.
-
-### Check what the widget reads
-
-```bash
+# Inspect the variables currently monitored by widgets
 grep -n "XBatLvl\|XBatStat\|XMemPct\|XDiskPct" dotfiles/ocws/*.widget
-```
 
-### Check what the emit script sends
-
-```bash
+# Review the data transmission operations within the emit script
 grep "ENGINE_VAR" scripts/ocws-emit.sh
-```
 
-### Check what the scanner defines
-
-```bash
+# Analyze the scanner definitions
 grep -n "XBatLvl\|XMemPct" dotfiles/ocws/*.source
-```
 
-### Validate the variable contract
-
-```bash
+# Execute contract validation procedures
 scripts/validate-contract.sh
 ```

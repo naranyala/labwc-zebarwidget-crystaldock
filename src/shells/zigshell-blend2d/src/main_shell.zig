@@ -76,6 +76,7 @@ var widgets: [MAX_WIDGETS]panel_mod.Widget = undefined;
 var widget_count: i32 = 0;
 var widget_x: [MAX_WIDGETS]i32 = undefined;
 var pctx: panel_mod.PanelCtx = undefined;
+var panel_theme: panel_mod.Theme = .{};
 
 // ---- dock state ----
 var dock_hover_idx: i32 = -1;
@@ -244,6 +245,9 @@ fn keyboardKeymap(data: ?*anyopaque, kb: ?*c.wl_keyboard, format: u32, fd: c_int
         const mapped = c.mmap(null, size, c.PROT_READ, c.MAP_PRIVATE, fd, 0);
         if (mapped != c.MAP_FAILED) {
             keyboard_keymap_mapped = @ptrCast(@alignCast(mapped));
+        } else {
+            _ = c.close(fd);
+            keyboard_keymap_fd = -1;
         }
     }
 }
@@ -277,11 +281,14 @@ fn keyboardKey(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, time: u32, k
     // Only handle keys when the launcher has keyboard focus
     if (keyboard_focus_surface != launcher_surface.surface) return;
     if (!launcher_open) return;
-    // xkbcommon keycodes: Escape=9, Return=36
+    // xkbcommon keycodes: Escape=9, Return=36, Up=111, Down=116,
+    // Left=113, Right=114, PageUp=112, PageDown=117, Home=110, End=115.
     if (key == 9) {
         // Escape — close launcher
         toggleLauncher();
-    } else if (key == 36) {
+        return;
+    }
+    if (key == 36) {
         // Enter — launch selected item
         if (launcher_hover_idx >= 0) {
             const list = apps_mod.list();
@@ -290,6 +297,67 @@ fn keyboardKey(data: ?*anyopaque, kb: ?*c.wl_keyboard, serial: u32, time: u32, k
             }
             toggleLauncher();
         }
+        return;
+    }
+
+    const list = apps_mod.list();
+    if (list.len == 0) return;
+    var sel = if (launcher_hover_idx < 0) 0 else launcher_hover_idx;
+
+    switch (key) {
+        111 => { // Up
+            sel -= LAUNCHER_COLS;
+        },
+        116 => { // Down
+            sel += LAUNCHER_COLS;
+        },
+        113 => { // Left
+            sel -= 1;
+        },
+        114 => { // Right
+            sel += 1;
+        },
+        112 => { // PageUp
+            launcherScrollBy(-launcherVisibleRows());
+            sel -= launcherVisibleRows() * LAUNCHER_COLS;
+        },
+        117 => { // PageDown
+            launcherScrollBy(launcherVisibleRows());
+            sel += launcherVisibleRows() * LAUNCHER_COLS;
+        },
+        110 => { // Home
+            launcherScrollBy(-launcherMaxScroll());
+            sel = 0;
+            dirty = true;
+            return;
+        },
+        115 => { // End
+            launcherScrollBy(launcherMaxScroll());
+            sel = @intCast(list.len - 1);
+            dirty = true;
+            return;
+        },
+        else => return,
+    }
+
+    // Clamp selection into the catalog.
+    if (sel < 0) sel = 0;
+    if (sel >= list.len) sel = @intCast(list.len - 1);
+
+    // Keep the selection in view: scroll the launcher so `sel` is visible.
+    const first_visible = launcher_scroll * LAUNCHER_COLS;
+    const last_visible = (launcher_scroll + launcherVisibleRows()) * LAUNCHER_COLS - 1;
+    if (sel < first_visible) {
+        launcherScrollBy(@divTrunc(sel, LAUNCHER_COLS) - launcher_scroll);
+    } else if (sel > last_visible) {
+        const row = @divTrunc(sel, LAUNCHER_COLS);
+        const target = row - launcherVisibleRows() + 1;
+        launcherScrollBy(target - launcher_scroll);
+    }
+
+    if (sel != launcher_hover_idx) {
+        launcher_hover_idx = sel;
+        dirty = true;
     }
 }
 
@@ -476,8 +544,8 @@ fn pointerButton(data: ?*anyopaque, p: ?*c.wl_pointer, serial: u32, time: u32, b
             if (pointer_x >= widget_x[i] and pointer_x < widget_x[i] + click_w and
                 pointer_y >= 0 and pointer_y < panel_surface.height)
             {
-                if (widgets[i].click_fn) |fn_ptr| {
-                    _ = fn_ptr(&widgets[i], button, pointer_x - widget_x[i], pointer_y);
+                if (panel_mod.widgetClick(&widgets[i], button, pointer_x - widget_x[i], pointer_y, &pctx)) {
+                    // handled
                 }
                 dirty = true;
                 return;
@@ -616,7 +684,19 @@ const pointer_listener = c.wl_pointer_listener{
     .motion = pointerMotion,
     .button = pointerButton,
     .axis = struct {
-        fn f(_: ?*anyopaque, _: ?*c.wl_pointer, _: u32, _: u32, _: c.wl_fixed_t) callconv(.c) void {}
+        fn f(_: ?*anyopaque, _: ?*c.wl_pointer, _: u32, axis_type: u32, value: c.wl_fixed_t) callconv(.c) void {
+            // Vertical wheel only. Wayland reports scroll-up as negative.
+            if (axis_type != c.WL_POINTER_AXIS_VERTICAL_SCROLL) return;
+            if (!pointer_on_launcher or !launcher_open) return;
+            const v = c.wl_fixed_to_int(value);
+            if (v == 0) return;
+            // Convert the fixed-point delta into whole rows (1 row per ~40
+            // units, minimum 1 row per notch so a trackpad/ wheel always moves).
+            const rows = std.math.clamp(@divTrunc(v, 40), -100, 100);
+            const sign: i32 = if (rows < 0) -1 else 1;
+            const mag: i32 = @intCast(@max(1, @abs(rows)));
+            launcherScrollBy(sign * mag);
+        }
     }.f,
     .frame = struct {
         fn f(_: ?*anyopaque, _: ?*c.wl_pointer) callconv(.c) void {}
@@ -815,7 +895,7 @@ const output_listener = c.wl_output_listener{
 
 fn wireWidgetPriv() void {
     for (0..@intCast(@max(0, widget_count))) |i| {
-        if (widgets[i].wtype == .toplevel_task) {
+        if (widgets[i].kind == .toplevel_task) {
             widgets[i].priv = @ptrCast(&pctx);
         }
     }
@@ -833,33 +913,9 @@ fn reloadWidgets() void {
         const new_w = res.widgets[i];
         // Preserve accumulated state from the old widget if the type matches
         for (0..@intCast(@max(0, widget_count))) |j| {
-            if (widgets[j].wtype == new_w.wtype) {
+            if (widgets[j].kind == new_w.kind) {
                 var merged = new_w;
-                // Copy accumulated / sampled fields
-                merged.cpu_prev_total = widgets[j].cpu_prev_total;
-                merged.cpu_prev_idle = widgets[j].cpu_prev_idle;
-                merged.cpu_txt = widgets[j].cpu_txt;
-                merged.mem_txt = widgets[j].mem_txt;
-                merged.temp_txt = widgets[j].temp_txt;
-                merged.disk_txt = widgets[j].disk_txt;
-                merged.bat_lvl = widgets[j].bat_lvl;
-                merged.bat_charging = widgets[j].bat_charging;
-                merged.bat_txt = widgets[j].bat_txt;
-                merged.vol_mute = widgets[j].vol_mute;
-                merged.vol_txt = widgets[j].vol_txt;
-                merged.net_txt = widgets[j].net_txt;
-                merged.net_rx_prev = widgets[j].net_rx_prev;
-                merged.net_tx_prev = widgets[j].net_tx_prev;
-                merged.net_iface = widgets[j].net_iface;
-                merged.net_hist_rx = widgets[j].net_hist_rx;
-                merged.net_hist_tx = widgets[j].net_hist_tx;
-                merged.media_txt = widgets[j].media_txt;
-                merged.media_playing = widgets[j].media_playing;
-                merged.clock_txt = widgets[j].clock_txt;
-                merged.bl_lvl = widgets[j].bl_lvl;
-                merged.kb_idx = widgets[j].kb_idx;
-                merged.kb_txt = widgets[j].kb_txt;
-                merged.cc_out = widgets[j].cc_out;
+                merged.state = widgets[j].state;
                 widgets[i] = merged;
                 break;
             }
@@ -962,17 +1018,16 @@ fn renderPanel() void {
     const w = panel_surface.width;
     const h = panel_surface.height;
 
-// Background gradient (two-tone dark)
-    renderer.fillRect(0, 0, @as(f64, @floatFromInt(w)), @as(f64, @floatFromInt(h)) / 2.0, 0xFF1A1C26);
-    renderer.fillRect(0, @as(f64, @floatFromInt(h)) / 2.0, @as(f64, @floatFromInt(w)), @as(f64, @floatFromInt(h)) / 2.0, 0xFF0A0C11);
+// Background gradient (two-tone dark) from theme
+    renderer.fillRect(0, 0, @as(f64, @floatFromInt(w)), @as(f64, @floatFromInt(h)) / 2.0, panel_theme.bg_top);
+    renderer.fillRect(0, @as(f64, @floatFromInt(h)) / 2.0, @as(f64, @floatFromInt(w)), @as(f64, @floatFromInt(h)) / 2.0, panel_theme.bg_bottom);
 
     // Accent line at bottom
-    renderer.fillRect(0, @as(f64, @floatFromInt(h - 2)), @as(f64, @floatFromInt(w)), 2, 0xFF3399DB);
+    renderer.fillRect(0, @as(f64, @floatFromInt(h - 2)), @as(f64, @floatFromInt(w)), 2, panel_theme.accent);
 
     // Measure and layout widgets
     const pad: i32 = 8;
-    _ = panel_mod.widgetListWidth(widgets[0..@intCast(@max(0, widget_count))], h, pad);
-    const x0: i32 = 10;
+    _ = panel_mod.widgetListWidth(widgets[0..@intCast(@max(0, widget_count))], h, pad, &panel_theme);
 
     var left_w: i32 = 0;
     var right_w: i32 = 0;
@@ -983,16 +1038,22 @@ fn renderPanel() void {
     if (left_w > 0) left_w -= pad;
     if (right_w > 0) right_w -= pad;
 
+    // Center the whole widget block (left + right groups) in the panel,
+    // leaving room for the settings button on the right edge.
     const settings_btn_w: i32 = 36;
-    var x: i32 = x0;
+    const total_w = left_w + right_w;
+    const avail = w - settings_btn_w;
+    var block_x: i32 = @divTrunc(avail - total_w, 2);
+    if (block_x < 8) block_x = 8;
+
+    var x: i32 = block_x;
     for (0..@intCast(@max(0, widget_count))) |i| {
         if (widgets[i].side == 1) continue;
         widget_x[i] = x;
         x += widgets[i].cached_w + pad;
     }
 
-    var rx: i32 = w - x0 - right_w - settings_btn_w;
-    if (rx < x + 16) rx = x + 16; // min 16px gap between left and right widgets
+    var rx: i32 = block_x + total_w - right_w;
     for (0..@intCast(@max(0, widget_count))) |i| {
         if (widgets[i].side != 1) continue;
         widget_x[i] = rx;
@@ -1000,23 +1061,22 @@ fn renderPanel() void {
     }
 
     // Draw widgets
+    pctx.hover_index = -1;
+    if (pointer_on_panel) {
+        for (0..@intCast(@max(0, widget_count))) |i| {
+            const cw = @max(widgets[i].cached_w, 24);
+            if (pointer_x >= widget_x[i] and pointer_x < widget_x[i] + cw) {
+                pctx.hover_index = @intCast(i);
+                break;
+            }
+        }
+    }
     for (0..@intCast(@max(0, widget_count))) |i| {
-        if (widgets[i].draw_fn) |fn_ptr| fn_ptr(&widgets[i], &renderer, widget_x[i], 0, h);
+        panel_mod.widgetDraw(&widgets[i], &renderer, widget_x[i], 0, h, &panel_theme, &pctx);
     }
 
     // Draw settings gear icon
     drawSettingsButton(&renderer, w, h);
-
-    // Dynamic Island Enrichment
-    const target_pill_w: f64 = if (pointer_on_panel and pointer_x > @divTrunc(w, 2) - 100 and pointer_x < @divTrunc(w, 2) + 100) 240.0 else 80.0;
-    const pill_w: f64 = target_pill_w;
-    const pill_h: f64 = if (target_pill_w > 100.0) 24.0 else 16.0;
-    const pill_x: f64 = @as(f64, @floatFromInt(w)) / 2.0 - pill_w / 2.0;
-    const pill_y: f64 = 4.0;
-    renderer.fillRoundRect(pill_x, pill_y, pill_w, pill_h, pill_h / 2.0, 0xDD000000);
-    if (pill_w > 100.0) {
-        _ = panel_mod.widgetText(&renderer, "Dynamic Island", @intFromFloat(pill_x + 60.0), h, 11.0, 1.0, 1.0, 1.0);
-    }
 
     if (settings_open) {
         drawSettingsMenu(&renderer, w, h);
@@ -1188,6 +1248,28 @@ fn toggleLauncher() void {
 fn launcherVisibleRows() i32 {
     const area = LAUNCHER_H - LAUNCHER_PAD * 2;
     return area / LAUNCHER_ROW_H;
+}
+
+// Maximum number of row-pages the launcher can be scrolled by, so the last
+// page keeps its bottom edge at the popup's bottom. Returns 0 when every
+// entry already fits on screen.
+fn launcherMaxScroll() i32 {
+    const list = apps_mod.list();
+    const total_rows = @divTrunc(@as(i32, @intCast(list.len)) + LAUNCHER_COLS - 1, LAUNCHER_COLS);
+    const max = total_rows - launcherVisibleRows();
+    return if (max < 0) 0 else max;
+}
+
+// Apply a scroll delta (in rows) and clamp into [0, launcherMaxScroll].
+// Sets `dirty` when the offset actually changes so the grid re-renders.
+fn launcherScrollBy(delta_rows: i32) void {
+    if (!launcher_open or delta_rows == 0) return;
+    const next = launcher_scroll + delta_rows;
+    const clamped = std.math.clamp(next, 0, launcherMaxScroll());
+    if (clamped != launcher_scroll) {
+        launcher_scroll = clamped;
+        dirty = true;
+    }
 }
 
 fn launcherItemAt(mx: i32, my: i32) i32 {
@@ -1581,7 +1663,7 @@ pub fn main() !void {
             if ((pfds[1].revents & c.POLLIN) != 0) {
                 var exp: u64 = 0;
                 _ = c.read(timer_fd, &exp, @sizeOf(u64));
-                panel_mod.widgetListUpdate(widgets[0..@intCast(@max(0, widget_count))]);
+                panel_mod.widgetListUpdate(widgets[0..@intCast(@max(0, widget_count))], &pctx);
                 dirty = true;
             }
         } else {

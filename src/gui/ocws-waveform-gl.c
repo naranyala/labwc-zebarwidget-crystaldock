@@ -1,4 +1,5 @@
 #include <gtk/gtk.h>
+#include <gtk-layer-shell/gtk-layer-shell.h>
 #include <epoxy/gl.h>
 #include <pulse/simple.h>
 #include <pulse/error.h>
@@ -19,6 +20,7 @@ static enum WaveformStyle current_style = STYLE_LINE;
 
 float audio_buffer[NUM_SAMPLES];
 pthread_mutex_t audio_mutex = PTHREAD_MUTEX_INITIALIZER;
+static pthread_t audio_thread;
 
 // Desktop GL 3.3 Core Profile Shaders
 const char *vertex_shader_source =
@@ -226,7 +228,7 @@ static gboolean on_tick(GtkWidget *widget, GdkFrameClock *frame_clock, gpointer 
 
 // Function to dynamically adopt the OCWS adaptive color palette
 void load_adaptive_color() {
-    char *path = g_build_filename(g_get_home_dir(), ".config", "ocws", "css", "theme.css", NULL);
+    char *path = g_build_filename(g_get_user_config_dir(), "ocws", "css", "theme.css", NULL);
     gchar *content = NULL;
     if (g_file_get_contents(path, &content, NULL, NULL)) {
         // Extract the accent color defined in the engine
@@ -267,14 +269,24 @@ void load_adaptive_color() {
     g_free(path);
 }
 
+static void on_window_destroy(GtkWidget *widget, gpointer data) {
+    (void)widget; (void)data;
+    pthread_join(audio_thread, NULL);
+}
+
 static void activate(GtkApplication *app, gpointer user_data) {
     GtkWidget *window = gtk_application_window_new(app);
     gtk_window_set_title(GTK_WINDOW(window), "OCWS Waveform GL");
     gtk_window_set_default_size(GTK_WINDOW(window), 400, 100);
     
-    // Disable window decorations (for placing on desktop/panel)
+    // Disable window decorations
     gtk_window_set_decorated(GTK_WINDOW(window), FALSE);
-    gtk_window_set_keep_below(GTK_WINDOW(window), TRUE);
+    
+    // Configure layer shell
+    gtk_layer_init_for_window(GTK_WINDOW(window));
+    gtk_layer_set_layer(GTK_WINDOW(window), GTK_LAYER_SHELL_LAYER_OVERLAY);
+    gtk_layer_set_anchor(GTK_WINDOW(window), GTK_LAYER_SHELL_EDGE_BOTTOM, TRUE);
+    // gtk_window_set_keep_below(GTK_WINDOW(window), TRUE);
     
     // Enable transparent window background
     GdkScreen *screen = gtk_widget_get_screen(window);
@@ -297,11 +309,11 @@ static void activate(GtkApplication *app, gpointer user_data) {
     gtk_container_add(GTK_CONTAINER(window), gl_area);
     gtk_widget_add_tick_callback(gl_area, on_tick, NULL, NULL);
     
+    g_signal_connect(window, "destroy", G_CALLBACK(on_window_destroy), NULL);
     gtk_widget_show_all(window);
     
     // Launch audio capture in a background thread
-    pthread_t thread;
-    pthread_create(&thread, NULL, audio_capture_thread, NULL);
+    pthread_create(&audio_thread, NULL, audio_capture_thread, NULL);
 }
 
 int main(int argc, char **argv) {
@@ -323,6 +335,9 @@ int main(int argc, char **argv) {
     g_signal_connect(app, "activate", G_CALLBACK(activate), NULL);
     int status = g_application_run(G_APPLICATION(app), fake_argc, fake_argv);
     g_object_unref(app);
+    
+    pthread_cancel(audio_thread);
+    pthread_join(audio_thread, NULL);
     
     return status;
 }

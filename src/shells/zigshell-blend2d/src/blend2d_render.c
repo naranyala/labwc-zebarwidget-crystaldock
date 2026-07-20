@@ -39,6 +39,10 @@ static const char* font_paths[] = {
     "/usr/share/fonts/google-noto/NotoSans-Bold.ttf",
     // OpenMandriva
     "/usr/share/fonts/gnu-free/FreeSans.ttf",
+    // User-local fonts
+    "/home/naranyala/.local/share/fonts/JetBrainsMonoNerdFontMono-Regular.ttf",
+    "/home/naranyala/.local/share/fonts/JetBrainsMonoNerdFont-Regular.ttf",
+    "/home/naranyala/.local/share/fonts/noto-sans-mono/NotoSansMono.ttf",
     // Generic fallbacks
     "/usr/share/fonts/truetype/freefont/FreeSans.ttf",
     "/usr/share/fonts/truetype/ubuntu/Ubuntu-R.ttf",
@@ -112,6 +116,35 @@ void blend_renderer_destroy(BlendRenderer* r) {
     bl_image_destroy(&r->image);
     r->initialized = false;
     free(r);
+}
+
+// Bake a solid-color square icon into a freshly allocated BLImageCore.
+BLImageCore* blend_renderer_make_icon(uint8_t r, uint8_t g, uint8_t b, uint8_t a, int size) {
+    BLImageCore* img = (BLImageCore*)calloc(1, sizeof(BLImageCore));
+    if (!img) return NULL;
+    if (bl_image_init_as(img, size, size, BL_FORMAT_PRGB32) != BL_SUCCESS) {
+        free(img);
+        return NULL;
+    }
+    BLContextCore ctx;
+    if (bl_context_init_as(&ctx, img, NULL) != BL_SUCCESS) {
+        bl_image_destroy(img);
+        free(img);
+        return NULL;
+    }
+    uint32_t color = ((uint32_t)a << 24) | ((uint32_t)r << 16) | ((uint32_t)g << 8) | (uint32_t)b;
+    bl_context_set_fill_style_rgba32(&ctx, color);
+    BLRectI rect = { 0, 0, size, size };
+    bl_context_fill_rect_i(&ctx, &rect);
+    bl_context_end(&ctx);
+    bl_context_destroy(&ctx);
+    return img;
+}
+
+void blend_renderer_free_icon(BLImageCore* img) {
+    if (!img) return;
+    bl_image_destroy(img);
+    free(img);
 }
 
 void blend_renderer_flush(BlendRenderer* r) {

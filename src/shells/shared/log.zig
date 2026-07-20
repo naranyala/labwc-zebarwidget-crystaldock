@@ -26,6 +26,22 @@ const builtin = @import("builtin");
 
 var cached_level: ?std.log.Level = null;
 
+/// Map a ZIGSHELL_LOG string to a severity. Case-insensitive, tolerant of
+/// "error"/"warning" aliases. Unknown/unset values fall back to `default`.
+pub fn parseLevel(raw: []const u8, default: std.log.Level) std.log.Level {
+    if (raw.len == 0) return default;
+    return if (std.ascii.eqlIgnoreCase(raw, "err") or std.ascii.eqlIgnoreCase(raw, "error"))
+        .err
+    else if (std.ascii.eqlIgnoreCase(raw, "warn") or std.ascii.eqlIgnoreCase(raw, "warning"))
+        .warn
+    else if (std.ascii.eqlIgnoreCase(raw, "info"))
+        .info
+    else if (std.ascii.eqlIgnoreCase(raw, "debug"))
+        .debug
+    else
+        default;
+}
+
 fn envLevel() std.log.Level {
     if (cached_level) |lvl| return lvl;
     const default: std.log.Level = if (builtin.mode == .Debug) .debug else .info;
@@ -34,17 +50,7 @@ fn envLevel() std.log.Level {
         return default;
     };
     const raw = std.mem.sliceTo(raw_ptr, 0);
-    const lvl: std.log.Level =
-        if (std.ascii.eqlIgnoreCase(raw, "err") or std.ascii.eqlIgnoreCase(raw, "error"))
-            .err
-        else if (std.ascii.eqlIgnoreCase(raw, "warn") or std.ascii.eqlIgnoreCase(raw, "warning"))
-            .warn
-        else if (std.ascii.eqlIgnoreCase(raw, "info"))
-            .info
-        else if (std.ascii.eqlIgnoreCase(raw, "debug"))
-            .debug
-        else
-            default;
+    const lvl = parseLevel(raw, default);
     cached_level = lvl;
     return lvl;
 }
